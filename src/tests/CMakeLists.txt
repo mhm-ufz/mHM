@@ -2,7 +2,12 @@ enable_testing()
 include(${PROJECT_SOURCE_DIR}/CI-scripts/stage_run.cmake)
 
 set(LIB_NAME mhm_lib)
-find_package(PFUNIT QUIET)
+# Coverage must include the pFUnit suites rather than silently skip them.
+if(MHM_WITH_COVERAGE)
+  find_package(PFUNIT REQUIRED)
+else()
+  find_package(PFUNIT QUIET)
+endif()
 
 if(PFUNIT_FOUND)
   message(STATUS "mHM: add unit tests")

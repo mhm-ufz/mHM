@@ -90,7 +90,15 @@ Build the PDF with system TeX Live using `make -C latex`. The extra stylesheet
 `doc/mhm_api_tables.sty` uses `longtable` for API parameter tables and
 `xltabular` for simple documentation tables to reduce PDF build time. Merged
 cells, captions, and labels use Doxygen's standard table renderer. Install the
-corresponding TeX Live packages for local PDF builds.
+corresponding TeX Live packages for local PDF builds, including `newunicodechar`
+for symbols in source listings. The Unicode mapping supports pdfLaTeX and XeTeX
+(including Tectonic). GitLab compiles with Tectonic, runs TeX Live's `makeindex`,
+then compiles again to include the index. Its Fortran compiler comes from the
+`chs-fortran-conda` module's `FC` setting. Each pipeline documents its checked-out
+commit and retains `html/`, `mhm_doc.pdf`, and the Doxygen/PDF logs as artifacts.
+GitLab Pages publishes only the `main` branch build at its root; Read the Docs
+provides versioned documentation. Tectonic chooses its own reruns;
+`-r 10` would force ten additional passes rather than set a maximum.
 Read the Docs uses `latexmk -pdf` to schedule compiler, bibliography, and index
 passes from changed files, and retains the complete manual with source listings.
 Environment creation, Doxygen, PDF compilation, and publishing
@@ -99,6 +107,34 @@ run as separate commands so the build log identifies the current phase.
 the PDF build to `doxygen_latex_make.log`, and prints the last 80 log lines on
 failure. Set `MHM_DOCS_ENV` to use a different Conda environment name.
 The theme, headers, references, and figures remain in `doc/`.
+
+### Coverage reports
+
+Coverage uses a serial GNU Debug build with pFUnit installed:
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DMHM_BUILD_DRIVER=ON \
+  -DMHM_BUILD_TESTING=ON -DBUILD_TESTING=ON -DMHM_WITH_COVERAGE=ON -DMHM_WITH_OpenMP=OFF
+cmake --build build --parallel 4
+cmake --build build --target mhm_coverage_CI
+python CI-scripts/collect_coverage.py build
+```
+
+Install LCOV (`lcov` and `genhtml`) and Python's `lcov_cobertura` before running
+these commands. Use the `gcov` executable from the compiler's GCC version;
+set CMake's `GCOV_PATH` if the default differs. Coverage builds require pFUnit
+so that the unit suites cannot be silently skipped. The coverage target runs
+CTest and the curated v6 smoke scenarios, retaining unexecuted code in its baseline.
+
+The collector verifies filenames against tracked repository paths, preserving
+Fortran filename case, and writes `coverage/index.html`, `coverage/coverage.info`,
+and `coverage/coverage.xml`. GitLab reads the Cobertura XML for MR diff annotations
+and exposes the HTML report as a CI artifact; coverage is not copied to Pages.
+The GitHub Coverage workflow builds pFUnit 4.12.0 with GNU Fortran 13 and uploads
+the same report format through the Coveralls GitHub Action. It uses the built-in
+GitHub token, so no additional Coveralls repository secret is needed. Both CI
+systems retain coverage artifacts for 14 days; GitLab may retain the latest
+successful artifacts longer according to the project's retention setting.
 
 The Python package provides `mhm.run_forward`, `mhm.__version__`, `mhm.f_version`,
 and `mhm.download_examples`. Its `mhm` console script and `python -m mhm` use the

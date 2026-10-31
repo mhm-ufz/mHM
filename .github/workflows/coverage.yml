@@ -1,0 +1,72 @@
+name: Coverage
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fortran:
+    name: Fortran coverage
+    runs-on: ubuntu-24.04
+    env:
+      CC: gcc-13
+      FC: gfortran-13
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install coverage build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-13 gfortran-13 libnetcdff-dev lcov make ninja-build
+          python -m pip install lcov_cobertura==2.1.1
+
+      - name: Build serial pFUnit
+        run: |
+          git clone --branch v4.12.0 --depth 1 --recurse-submodules --shallow-submodules \
+            https://github.com/Goddard-Fortran-Ecosystem/pFUnit.git "$RUNNER_TEMP/pfunit-src"
+          cmake -S "$RUNNER_TEMP/pfunit-src" -B "$RUNNER_TEMP/pfunit-build" \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/pfunit" \
+            -DSKIP_MPI=YES -DSKIP_OPENMP=YES -DSKIP_FHAMCREST=YES -DENABLE_TESTS=OFF
+          cmake --build "$RUNNER_TEMP/pfunit-build" --parallel 4
+          cmake --install "$RUNNER_TEMP/pfunit-build"
+
+      - name: Configure coverage build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/pfunit" \
+            -DCMAKE_BUILD_TYPE=Debug -DMHM_BUILD_DRIVER=ON -DMHM_BUILD_TESTING=ON \
+            -DBUILD_TESTING=ON -DMHM_WITH_COVERAGE=ON -DMHM_WITH_OpenMP=OFF \
+            -DGCOV_PATH=/usr/bin/gcov-13
+
+      - name: Build and run coverage tests
+        run: |
+          cmake --build build --parallel 4
+          cmake --build build --target mhm_coverage_CI
+          python CI-scripts/collect_coverage.py build
+
+      - name: Upload coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fortran-coverage
+          retention-days: 14
+          path: |
+            coverage/
+            build/Testing/Temporary/LastTest.log
+            build/coverage-runs/
+
+      - name: Report coverage to Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          file: coverage/coverage.info
+          format: lcov
+          flag-name: fortran

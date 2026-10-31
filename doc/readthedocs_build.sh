@@ -61,7 +61,6 @@ fi
 if [[ "${phase}" == all || "${phase}" == publish ]]; then
   mkdir -p "${output_dir}/html" "${output_dir}/pdf"
   cp -a html/. "${output_dir}/html/"
-  cp latex/refman.pdf "${output_dir}/html/mhm_doc.pdf"
   cp latex/refman.pdf "${output_dir}/pdf/mhm.pdf"
   printf 'HTML and PDF staged for Read the Docs.\n'
 fi

@@ -7,7 +7,8 @@ $extralatexstylesheet
 \usepackage{graphicx}
 \usepackage[utf8]{inputenc}
 % Unicode symbols appearing in source listings
-\DeclareUnicodeCharacter{2211}{\ensuremath{\sum}}
+\usepackage{newunicodechar}
+\newunicodechar{∑}{\ensuremath{\sum}}
 \usepackage{makeidx}
 \usepackage{multicol}
 \usepackage{multirow}
