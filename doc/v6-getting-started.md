@@ -87,9 +87,13 @@ The header shows Doxygen's standard project version from `version.txt`;
 Read the Docs provides the version switcher and PDF download through its flyout.
 
 Build the PDF with system TeX Live using `make -C latex`. The extra stylesheet
-`doc/mhm_api_tables.sty` uses `xltabular` for API parameter tables to reduce PDF
-build time; install the corresponding TeX Live package for local PDF builds.
-On Read the Docs, environment creation, Doxygen, PDF compilation, and publishing
+`doc/mhm_api_tables.sty` uses `longtable` for API parameter tables and
+`xltabular` for simple documentation tables to reduce PDF build time. Merged
+cells, captions, and labels use Doxygen's standard table renderer. Install the
+corresponding TeX Live packages for local PDF builds.
+Read the Docs uses `latexmk -pdf` to schedule compiler, bibliography, and index
+passes from changed files, and retains the complete manual with source listings.
+Environment creation, Doxygen, PDF compilation, and publishing
 run as separate commands so the build log identifies the current phase.
 `doc/readthedocs_build.sh` runs all phases when called without arguments, logs
 the PDF build to `doxygen_latex_make.log`, and prints the last 80 log lines on

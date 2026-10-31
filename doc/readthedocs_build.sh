@@ -41,14 +41,15 @@ if [[ "${phase}" == all || "${phase}" == doxygen ]]; then
 fi
 
 if [[ "${phase}" == all || "${phase}" == pdf ]]; then
-  # Keep the log outside latex/: the generated Makefile cleans latex/*.log.
+  # Keep detailed compiler output out of the RTD command log.
   pdflatex --version
   pdf_log="doxygen_latex_make.log"
   pdf_started=${SECONDS}
   printf 'Building PDF (log: %s)...\n' "${pdf_log}"
-  if make -C latex \
-      LATEX_CMD="pdflatex -interaction=nonstopmode -halt-on-error -file-line-error" \
-      >"${pdf_log}" 2>&1; then
+  if latexmk -norc -C -bibtex -cd latex/refman.tex >"${pdf_log}" 2>&1 &&
+      latexmk -norc -pdf -cd \
+      -interaction=nonstopmode -halt-on-error -file-line-error latex/refman.tex \
+      >>"${pdf_log}" 2>&1; then
     printf 'PDF build complete in %s seconds.\n' "$((SECONDS - pdf_started))"
   else
     printf 'PDF build failed. Last 80 lines of %s:\n' "${pdf_log}" >&2

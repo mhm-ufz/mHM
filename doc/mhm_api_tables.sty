@@ -1,23 +1,68 @@
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{mhm_api_tables}
-% Doxygen 1.18 parameter tables are expensive to measure with tabularray.
-% Keep parameter directions, names and wrapping descriptions in a multipage
-% xltabular table. Other Doxygen tables retain their standard renderer.
+% Avoid tabularray's repeated measurements for the manual's simple tables.
+% Fixed parameter columns wrap long names and descriptions without measuring
+% every row again. Ordinary tables retain flexible columns and repeated heads.
+% Merged cells, captions and labels continue to use the standard renderer.
 \RequirePackage{xltabular}
 \NewDocumentCommand{\mhmDoxyParamsTable}{m m +m +m}{%
-  \begin{xltabular}[l]{\linewidth}{#2}%
+  \begin{longtable}[l]{#2}%
   \multicolumn{#1}{@{}l@{}}{\textbf{#3}}\\*[1ex]%
   \hline%
   #4%
-  \end{xltabular}%
+  \end{longtable}%
   \par\addvspace{6pt}%
 }
 \RenewDocumentEnvironment{DoxyParams}{O{0} m +b}{%
   \ifcase#1\relax
-    \mhmDoxyParamsTable{2}{|l|X|}{#2}{#3}%
+    \mhmDoxyParamsTable{2}{|p{.25\linewidth}|p{\dimexpr.75\linewidth-4\tabcolsep-3\arrayrulewidth\relax}|}{#2}{#3}%
   \or
-    \mhmDoxyParamsTable{3}{|l|l|X|}{#2}{#3}%
+    \mhmDoxyParamsTable{3}{|p{.08\linewidth}|p{.25\linewidth}|p{\dimexpr.67\linewidth-6\tabcolsep-4\arrayrulewidth\relax}|}{#2}{#3}%
   \else
-    \mhmDoxyParamsTable{4}{|l|l|l|X|}{#2}{#3}%
+    \mhmDoxyParamsTable{4}{|p{.08\linewidth}|p{.17\linewidth}|p{.25\linewidth}|p{\dimexpr.50\linewidth-8\tabcolsep-5\arrayrulewidth\relax}|}{#2}{#3}%
   \fi
 }{}
+
+\long\def\mhmRepeatTableHeader#1\\\hline#2\mhmTableEnd{%
+  \hline#1\\\hline\endfirsthead
+  \hline#1\\\hline\endhead
+  #2%
+}
+\ExplSyntaxOn
+\tl_new:N \l_mhm_table_body_tl
+\NewDocumentCommand{\mhmStandardTable}{m +m m m +m}{
+  \tl_if_blank:nTF {#2}
+    {\SetTblrOuter[longtblr]{theme=DoxyTableBareTheme,entry=none}}
+    {
+      \DefTblrTemplate{firsthead}{default}{\UseTblrTemplate{caption}{default}}
+      \SetTblrOuter[longtblr]{theme=DoxyTableCaptionTheme,caption={#2}}
+    }
+  \tl_if_blank:nF {#3}
+    {\SetTblrOuter[longtblr]{label={#3}}}
+  \begin{longtblr}{hlines,vlines,measure=vbox,colspec={*{#1}{X[-1]}},rowhead=#4}
+    #5
+  \end{longtblr}
+}
+\NewDocumentCommand{\mhmSimpleTable}{m m +m}{
+  \RenewDocumentCommand{\SetCell}{m}
+    {\cellcolor{\tableheadbgcolor}\centering\arraybackslash\bfseries}
+  \tl_set:Nn \l_mhm_table_body_tl {#3}
+  \tl_replace_all:Nnn \l_mhm_table_body_tl {\\} {\\\hline}
+  \begin{xltabular}[l]{\linewidth}{|*{#1}{X|}}
+    \ifnum#2=1
+      \exp_after:wN \mhmRepeatTableHeader \l_mhm_table_body_tl \mhmTableEnd
+    \else
+      \hline\tl_use:N \l_mhm_table_body_tl
+    \fi
+  \end{xltabular}
+}
+\RenewDocumentEnvironment{DoxyTable}{m +m m m +b}{
+  \tl_if_in:nnTF {#5} {\SetCell[}
+    {\mhmStandardTable{#1}{#2}{#3}{#4}{#5}}
+    {
+      \tl_if_blank:nTF {#2#3}
+        {\mhmSimpleTable{#1}{#4}{#5}}
+        {\mhmStandardTable{#1}{#2}{#3}{#4}{#5}}
+    }
+}{}
+\ExplSyntaxOff
