@@ -1,4 +1,4 @@
-# Cygwin details
+# Cygwin details {#cygwin}
 
 [TOC]
 
