@@ -19,7 +19,7 @@ latexmk -norc -pdf -cd -interaction=nonstopmode -halt-on-error -file-line-error 
 Open `html/index.html` or `latex/refman.pdf`. Each build documents the checked-out
 commit once; it does not check out a release tag or create stable/latest copies.
 
-The [Read the Docs v5-dev manual](https://mhm.readthedocs.io/en/v5-dev/) tracks
+The [Read the Docs v5-dev manual](https://mhm.readthedocs.io/v5-dev/) tracks
 `v5.x`; `latest` tracks v6 on `main`, and `stable` selects a release.
 Read the Docs uses `.readthedocs.yaml`, `doc/rtd-environment.yml`, and
 `doc/readthedocs_build.sh`. The script exposes `environment`, `doxygen`, `pdf`,

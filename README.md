@@ -13,7 +13,7 @@ If you like to contribute to the code, please contact [mhm-admin@ufz.de](mailto:
 
 This is the legacy mHM v5 development line, maintained on `v5.x`.
 
-The [v5 development manual](https://mhm.readthedocs.io/en/v5-dev/) includes HTML
+The [v5 development manual](https://mhm.readthedocs.io/v5-dev/) includes HTML
 and PDF documentation for `v5.x`. Read the Docs also provides `latest` for v6 on
 `main` and `stable` for releases through its version selector.
 
@@ -55,7 +55,7 @@ LGPLv3 (c) 2005-2026 mHM-Developers
 [0]: https://git.ufz.de/mhm/mhm/-/releases
 [3]: doc/RELEASES.md
 [4]: https://git.ufz.de/mhm/mhm/tags/
-[5]: https://mhm.readthedocs.io/en/v5-dev/
+[5]: https://mhm.readthedocs.io/v5-dev/
 [6]: LICENSE
 [7]: https://mhm-ufz.org/about/publications/
 [9]: doc/INSTALL.md
