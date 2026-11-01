@@ -31,8 +31,10 @@ integration. The ordinary Doxygen configuration keeps the local search index for
 GitLab artifacts and offline use. On RTD, one dropdown offers documentation
 versions and a PDF download for the current version. It appears in the navigation
 sidebar, or inside the navigation menu on phones, and uses RTD's Addons data.
-The floating flyout is hidden only after these controls initialize.
-The search dialog and fallback flyout follow the documentation's light/dark theme.
+Disable the floating flyout in RTD under Settings > Addons > Flyout menu.
+The dropdown receives version and download data through the Addons event even
+when the flyout is disabled. Integrated search and the dropdown follow the
+documentation's light/dark theme.
 
 GitLab loads `GCC/13.3.0`, `texlive/20250308`, and `chs-fortran-conda/0.6.0`.
 It builds the PDF with Tectonic, runs `makeindex`, then runs Tectonic again to
