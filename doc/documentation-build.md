@@ -35,10 +35,13 @@ The floating flyout is hidden only after these controls initialize.
 The search dialog and fallback flyout follow the documentation's light/dark theme.
 
 GitLab loads `GCC/13.3.0`, `texlive/20250308`, and `chs-fortran-conda/0.6.0`.
-It builds the PDF with the same `latexmk` workflow as Read the Docs, including
-the index and cross-reference passes. The documentation
-job retains `html/`, `mhm_doc.pdf`, and Doxygen logs as job artifacts. This legacy
-branch has no GitLab Pages deployment, so it cannot replace the main branch site.
+It builds the PDF with Tectonic, runs `makeindex`, then runs Tectonic again to
+include the index and resolve cross-references. Read the Docs continues to use
+`latexmk`. The GitLab Doxygen step sets `CAIRO_DEBUG_PDF=1` to generate Graphviz
+PDFs without Cairo compression, avoiding Tectonic 0.15's PDF import failures.
+The documentation job retains `html/`, `mhm_doc.pdf`, and Doxygen logs as job
+artifacts. This legacy branch has no GitLab Pages deployment, so it cannot replace
+the main branch site.
 
 ## Fortran coverage
 

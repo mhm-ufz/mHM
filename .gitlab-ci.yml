@@ -45,12 +45,15 @@ show-env-vars:
     - module use /global/apps/modulefiles
     - module load chs-fortran-conda/0.6.0
     - export PROJECT_NUMBER="$(cat version.txt)"
-    - doxygen doc/doxygen.config > doxygen_log.txt 2>&1
+    # Keep Graphviz PDFs readable by Tectonic 0.15's PDF importer.
+    - CAIRO_DEBUG_PDF=1 doxygen doc/doxygen.config > doxygen_log.txt 2>&1
     - |
-      printf 'Building PDF with latexmk...\n'
+      printf 'Building PDF with Tectonic...\n'
       if ! (
-        latexmk -norc -C -bibtex -cd latex/refman.tex &&
-        latexmk -norc -pdf -cd -interaction=nonstopmode -halt-on-error -file-line-error latex/refman.tex
+        cd latex &&
+        tectonic -X compile --keep-intermediates --keep-logs refman.tex &&
+        makeindex refman.idx &&
+        tectonic -X compile --keep-intermediates --keep-logs refman.tex
       ) > "doxygen_latex.txt" 2>&1; then
         tail -n 80 "doxygen_latex.txt"
         exit 1
