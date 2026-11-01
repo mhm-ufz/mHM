@@ -20,3 +20,102 @@ div.image div.caption{
   display: table;
   width: 100%;
 }
+
+/* Match RTD's search dialog and fallback flyout to the documentation theme.
+ * These variables follow both the theme toggle and the OS color preference. */
+html {
+  --readthedocs-search-font-family: var(--font-family);
+  --readthedocs-search-color: var(--page-foreground-color);
+  --readthedocs-search-link-color: var(--link-color);
+  --readthedocs-search-content-background-color: var(--page-background-color);
+  --readthedocs-search-content-border-color: var(--separator-color);
+  --readthedocs-search-filters-border-color: var(--separator-color);
+  --readthedocs-search-input-background-color: var(--side-nav-background);
+  --readthedocs-search-footer-background-color: var(--side-nav-background);
+  --readthedocs-search-footer-color: var(--page-foreground-color);
+  --readthedocs-search-footer-code-background-color: var(--code-background);
+  --readthedocs-search-footer-code-border-color: var(--separator-color);
+  --readthedocs-search-result-background-color: var(--page-background-color);
+  --readthedocs-search-result-color: var(--page-secondary-foreground-color);
+  --readthedocs-search-result-icon-color: var(--page-secondary-foreground-color);
+  --readthedocs-search-result-heading-color: var(--page-foreground-color);
+  --readthedocs-search-result-subheading-color: var(--page-secondary-foreground-color);
+  --readthedocs-search-result-highlight-color: var(--primary-color);
+  --readthedocs-search-result-active-background-color: var(--side-nav-background);
+  --readthedocs-search-result-border-color: var(--separator-color);
+  --readthedocs-search-badge-background-color: var(--code-background);
+  --readthedocs-search-badge-color: var(--page-foreground-color);
+  /* Older deployed Addons releases use these names. */
+  --readthedocs-search-result-section-color: var(--page-secondary-foreground-color);
+  --readthedocs-search-result-section-subheading-color: var(--page-secondary-foreground-color);
+  --readthedocs-search-result-section-highlight-color: var(--primary-color);
+  --readthedocs-search-result-section-border-color: var(--separator-color);
+  --readthedocs-flyout-font-family: var(--font-family);
+  --readthedocs-flyout-background-color: var(--side-nav-background);
+  --readthedocs-flyout-color: var(--page-foreground-color);
+  --readthedocs-flyout-current-version-color: var(--primary-color);
+  --readthedocs-flyout-section-heading-color: var(--page-secondary-foreground-color);
+  --readthedocs-flyout-item-link-color: var(--link-color);
+  --readthedocs-flyout-link-color: var(--link-color);
+  --readthedocs-flyout-divider-color: var(--separator-color);
+}
+
+.mhm-rtd-navigation-ready readthedocs-flyout {
+  display: none;
+}
+
+.mhm-rtd-controls {
+  box-sizing: border-box;
+  display: grid;
+  gap: var(--spacing-small);
+  padding: var(--spacing-medium);
+  background: var(--side-nav-background);
+  color: var(--page-foreground-color);
+  border-bottom: 1px solid var(--separator-color);
+  font-size: var(--navigation-font-size);
+}
+
+.mhm-rtd-controls label {
+  font-weight: bold;
+}
+
+.mhm-rtd-controls select {
+  width: 100%;
+  min-width: 0;
+  padding: var(--spacing-small);
+  font: inherit;
+  color: var(--page-foreground-color);
+  background: var(--page-background-color);
+  border: 1px solid var(--separator-color);
+  border-radius: var(--border-radius-small);
+  color-scheme: light;
+}
+
+html.dark-mode .mhm-rtd-controls select {
+  color-scheme: dark;
+}
+
+#nav-tree .mhm-rtd-controls a,
+#main-menu .mhm-rtd-controls a {
+  padding: var(--spacing-small) 0;
+  color: var(--link-color);
+  font: inherit;
+  background: transparent;
+}
+
+#mhm-rtd-sidebar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+#main-menu > #mhm-rtd-mobile {
+  display: none;
+}
+
+@media screen and (max-width: 767px) {
+  #main-menu > #mhm-rtd-mobile {
+    display: block;
+    float: none;
+  }
+}
