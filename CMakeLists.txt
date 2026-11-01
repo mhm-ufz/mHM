@@ -109,7 +109,11 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND MHM_WITH_COVERAGE AND EXISTS "${C
     EXECUTABLE ${CMAKE_CURRENT_SOURCE_DIR}/CI-scripts/run_cmake_coverage.sh
     EXECUTABLE_ARGS ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}
     DEPENDENCIES ${mhm_coverage_dependencies}
-    GENHTML_ARGS -t "mHM coverage" --html-prolog ${CMAKE_CURRENT_SOURCE_DIR}/doc/html_files/cov_header.prolog
+    # GNU Fortran can map distinct functions to overlapping source lines.
+    # Keep their original counters instead of applying LCOV 2.2+ consistency checks.
+    LCOV_ARGS --rc check_data_consistency=0
+    GENHTML_ARGS --rc check_data_consistency=0 -t "mHM coverage"
+      --html-prolog ${CMAKE_CURRENT_SOURCE_DIR}/doc/html_files/cov_header.prolog
   )
 endif()
 

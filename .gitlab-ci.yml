@@ -304,14 +304,20 @@ coverage:
   stage: code-analysis
   needs: []
   script:
-    # gcov is part of GCC
-    - source hpc-module-loads/eve.chs-conda02
+    - module purge
+    - module use /global/apps/modulefiles
+    - module load chs-fortran-conda/0.6.0
     # run cmake with coverage support and run tests
     - cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DMHM_BUILD_DRIVER=ON -DMHM_BUILD_TESTING=ON -DBUILD_TESTING=ON -DMHM_WITH_COVERAGE=ON -DMHM_WITH_OpenMP=OFF
     - cmake --build build --parallel 4
     - cmake --build build --target mhm_coverage_CI
-    # Stage HTML, LCOV, and Cobertura; reject filenames GitLab cannot match.
-    - python CI-scripts/collect_coverage.py build
+    # Strip logical and physical checkout prefixes before converting for GitLab.
+    - |
+      mkdir -p coverage
+      cp -a build/mhm_coverage_CI/. coverage/
+      lcov --rc check_data_consistency=0 --add-tracefile build/mhm_coverage_CI.info \
+        --substitute "s#^(\Q$PWD\E|\Q$(pwd -P)\E)/##" --output-file coverage/coverage.info
+      lcov_cobertura coverage/coverage.info --base-dir . --output coverage/coverage.xml
   coverage: '/lines[\.]+\: (\d+\.\d+)\%/'
   artifacts:
     when: always

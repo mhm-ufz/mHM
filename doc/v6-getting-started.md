@@ -117,19 +117,26 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DMHM_BUILD_DRIVER=ON \
   -DMHM_BUILD_TESTING=ON -DBUILD_TESTING=ON -DMHM_WITH_COVERAGE=ON -DMHM_WITH_OpenMP=OFF
 cmake --build build --parallel 4
 cmake --build build --target mhm_coverage_CI
-python CI-scripts/collect_coverage.py build
+mkdir -p coverage
+cp -a build/mhm_coverage_CI/. coverage/
+lcov --rc check_data_consistency=0 --add-tracefile build/mhm_coverage_CI.info \
+  --substitute "s#^(\Q$PWD\E|\Q$(pwd -P)\E)/##" --output-file coverage/coverage.info
+lcov_cobertura coverage/coverage.info --base-dir . --output coverage/coverage.xml
 ```
 
-Install LCOV (`lcov` and `genhtml`) and Python's `lcov_cobertura` before running
-these commands. Use the `gcov` executable from the compiler's GCC version;
+Install LCOV 2.0 or newer (`lcov` and `genhtml`) and Python's `lcov_cobertura`
+before running these commands. Use the `gcov` executable from the compiler's GCC version;
 set CMake's `GCOV_PATH` if the default differs. Coverage builds require pFUnit
 so that the unit suites cannot be silently skipped. The coverage target runs
 CTest and the curated v6 smoke scenarios, retaining unexecuted code in its baseline.
 
-The collector verifies filenames against tracked repository paths, preserving
-Fortran filename case, and writes `coverage/index.html`, `coverage/coverage.info`,
-and `coverage/coverage.xml`. GitLab reads the Cobertura XML for MR diff annotations
-and exposes the HTML report as a CI artifact; coverage is not copied to Pages.
+LCOV strips both logical and physical checkout prefixes, preserving Fortran filename
+case and line counters. The commands stage HTML, LCOV, and Cobertura XML in `coverage/`.
+Function/line consistency checks are disabled because GNU Fortran can map distinct
+functions to overlapping source lines; the original counters are retained.
+GitLab coverage uses `chs-fortran-conda/0.6.0`, including LCOV 2.5, and takes its
+compiler from the module settings. GitLab reads the Cobertura XML for MR diff
+annotations and exposes the HTML report as a CI artifact; coverage is not copied to Pages.
 The GitHub Coverage workflow builds pFUnit 4.12.0 with GNU Fortran 13 and uploads
 the same report format through the Coveralls GitHub Action. It uses the built-in
 GitHub token, so no additional Coveralls repository secret is needed. Both CI

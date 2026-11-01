@@ -51,7 +51,11 @@ jobs:
         run: |
           cmake --build build --parallel 4
           cmake --build build --target mhm_coverage_CI
-          python CI-scripts/collect_coverage.py build
+          mkdir -p coverage
+          cp -a build/mhm_coverage_CI/. coverage/
+          lcov --rc check_data_consistency=0 --add-tracefile build/mhm_coverage_CI.info \
+            --substitute "s#^(\Q$PWD\E|\Q$(pwd -P)\E)/##" --output-file coverage/coverage.info
+          lcov_cobertura coverage/coverage.info --base-dir . --output coverage/coverage.xml
 
       - name: Upload coverage artifacts
         if: always()
