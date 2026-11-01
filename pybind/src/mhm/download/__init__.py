@@ -85,7 +85,8 @@ def download_test(branch=None, domain=1, path=None, verbose=False, source="auto"
     Download a test domain for mHM.
 
     @param branch (str, optional): Branch, tag, or commit of the mHM repository to
-        take the test domain from, by default tag determined from the mHM version
+        take the test domain from; defaults to v5.x for development versions
+        or the matching release tag
     @param domain (int, optional): Test domain 1 or 2, by default 1
     @param path (pathlike, optional): Destination path for the downloaded folder,
         by default original name of the test domain folder
@@ -99,7 +100,7 @@ def download_test(branch=None, domain=1, path=None, verbose=False, source="auto"
     if branch is None:
         from .. import __version__
 
-        branch = "main" if "dev" in __version__ else f"v{__version__}"
+        branch = "v5.x" if "dev" in __version__ else f"v{__version__}"
     # check test domain and source
     if domain not in VALID_DOMAINS:
         msg = f"mhm-download: 'domain' needs to be 1 or 2. Got: '{domain}'"
@@ -182,7 +183,8 @@ def cli(argv=None):  # pragma: no cover
         "--branch",
         help=(
             "branch, tag, or commit of the mHM repository to take the "
-            "test domain from, by default tag determined from the mHM version"
+            "test domain from; defaults to v5.x for development versions or "
+            "the matching release tag"
         ),
     )
     parser.add_argument(
