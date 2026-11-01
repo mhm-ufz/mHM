@@ -84,7 +84,9 @@ Open `html/index.html` to browse it. The documentation environment in
 [doxygen-awesome v2.5.0](https://github.com/jothepro/doxygen-awesome-css/releases/tag/v2.5.0);
 its styles and extensions are copied unchanged into `doc/doxygen-awesome-css/`.
 The header shows Doxygen's standard project version from `version.txt`;
-Read the Docs provides the version switcher and PDF download through its flyout.
+On Read the Docs, the navigation dropdown offers version selection and a PDF
+download for the current version. Disable the floating flyout under
+`Settings > Addons > Flyout menu` in RTD; the dropdown still receives its Addons data.
 
 Build the PDF with system TeX Live using `make -C latex`. The extra stylesheet
 `doc/mhm_api_tables.sty` uses `longtable` for API parameter tables and

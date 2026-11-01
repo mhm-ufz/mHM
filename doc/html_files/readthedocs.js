@@ -50,7 +50,7 @@ if (typeof serverUrl !== "undefined") {
           window.location.assign(current.downloads.pdf);
           return;
         }
-        // Like RTD's flyout, keep the current page when switching versions.
+        // Keep the current page when switching versions.
         const filename = config.readthedocs?.resolver?.filename ||
           document.querySelector('meta[name="readthedocs-resolver-filename"]')?.content || "";
         const target = new URL(filename.replace(/^\/+/, ""), select.value);
@@ -69,9 +69,6 @@ if (typeof serverUrl !== "undefined") {
     sidebar.prepend(desktop);
     // Keep Doxygen's search item last: the theme styles it specially.
     menu.insertBefore(mobile, document.getElementById("searchBoxPos2"));
-
-    // Hide the floating widget only after both replacements are available.
-    document.documentElement.classList.add("mhm-rtd-navigation-ready");
   }
 
   document.addEventListener("readthedocs-addons-data-ready", event => {
