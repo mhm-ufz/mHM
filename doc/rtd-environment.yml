@@ -1,0 +1,9 @@
+channels:
+  - conda-forge
+  - nodefaults
+
+dependencies:
+  - python=3.12
+  - doxygen=1.18.0
+  - graphviz
+  - fortran-compiler

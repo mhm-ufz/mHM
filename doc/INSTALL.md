@@ -140,6 +140,9 @@ git checkout v5.12.0
 
 Afterwards you can continue with the compilation.
 
+See [Building documentation and coverage](documentation-build.md) for the HTML/PDF
+manual and coverage workflows.
+
 
 ## Compilation commands
 

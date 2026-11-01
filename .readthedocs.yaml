@@ -1,0 +1,13 @@
+version: 2
+
+build:
+  os: ubuntu-24.04
+  apt_packages:
+    - latexmk
+  tools:
+    python: "miniconda3-3.12-24.9"
+  commands:
+    - bash doc/readthedocs_build.sh environment
+    - bash doc/readthedocs_build.sh doxygen
+    - bash doc/readthedocs_build.sh pdf
+    - bash doc/readthedocs_build.sh publish

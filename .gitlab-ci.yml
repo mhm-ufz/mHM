@@ -14,7 +14,6 @@ stages:
   - check-cases
   - code-analysis
   - doc
-  - deploy
 
 show-env-vars:
   stage: info
@@ -41,21 +40,28 @@ show-env-vars:
   stage: doc
   needs: []
   script:
-    - source hpc-module-loads/eve.chs-conda04
-    # checkout latest tag if there is at least one (and only for stable docs)
-    - if [ $(git rev-list --tags --max-count=1) ] && [ $DOC_TYPE == "stable" ]; then git checkout $(git describe --tags $(git rev-list --tags --max-count=1)); fi
+    - module purge
+    - module load GCC/13.3.0 texlive/20250308
+    - module use /global/apps/modulefiles
+    - module load chs-fortran-conda/0.6.0
     - export PROJECT_NUMBER="$(cat version.txt)"
-    - doxygen doc/doxygen.config > doxygen_log_${DOC_TYPE}.txt 2>&1 # doxygen_log_stable.txt
-    - cd latex/ && tectonic -r 10 -Z continue-on-errors refman.tex > ../doxygen_latex_${DOC_TYPE}.txt 2>&1     # ../doxygen_latex_stable.txt
-    - cp refman.pdf ../html/mhm_doc.pdf                             # same name always
-    - cp refman.pdf ../mhm_doc_${DOC_TYPE}.pdf                      # ../mhm_doc_stable.pdf
-    - cd .. && mv html html_${DOC_TYPE}                             # html_stable
-    - mv doxygen_warn.txt doxygen_warn_${DOC_TYPE}.txt              # doxygen_warn_stable.txt
+    - doxygen doc/doxygen.config > doxygen_log.txt 2>&1
+    - |
+      printf 'Building PDF with latexmk...\n'
+      if ! (
+        latexmk -norc -C -bibtex -cd latex/refman.tex &&
+        latexmk -norc -pdf -cd -interaction=nonstopmode -halt-on-error -file-line-error latex/refman.tex
+      ) > "doxygen_latex.txt" 2>&1; then
+        tail -n 80 "doxygen_latex.txt"
+        exit 1
+      fi
+    - cp latex/refman.pdf mhm_doc.pdf
   artifacts:
+    when: always
     name: "$CI_COMMIT_REF_NAME"
     paths:
-      - html_*
-      - mhm_doc_*.pdf
+      - html/
+      - mhm_doc.pdf
       - doxygen_*.txt
 
 .cmake_template: &cmake_template
@@ -405,45 +411,4 @@ coverage:
     - coverage
 
 documentation:
-  variables:
-    DOC_TYPE: latest
   <<: *doc_template
-
-documentation_stable:
-  only:
-    - main
-  variables:
-    GIT_DEPTH: 0  # to have all tags
-    DOC_TYPE: stable
-  <<: *doc_template
-
-pages:
-  only:
-    - main
-  stage: deploy
-  needs:
-    - job: documentation
-      artifacts: true
-    - job: documentation_stable
-      artifacts: true
-    - job: coverage
-      artifacts: true
-  script:
-    # create public dir (remove if already present)
-    - test -d public && rm -rf public
-    - mkdir -p public
-    # create the subdir
-    - mkdir public/stable/
-    - mkdir public/latest/
-    # copy the doxygen generated html page to the public site
-    - cp html_stable/* public/stable/ -R
-    - cp html_latest/* public/latest/ -R
-    # create an index.html that redirects to the master documentation (in master folder)
-    - cp doc/html_files/index.html public/
-    # create the coverage site
-    - mkdir -p public/coverage
-    - cp coverage/* public/coverage/ -R
-  artifacts:
-    name: "$CI_COMMIT_REF_NAME"
-    paths:
-      - public
