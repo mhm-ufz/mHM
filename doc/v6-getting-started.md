@@ -132,6 +132,7 @@ CTest and the curated v6 smoke scenarios, retaining unexecuted code in its basel
 
 LCOV strips both logical and physical checkout prefixes, preserving Fortran filename
 case and line counters. The commands stage HTML, LCOV, and Cobertura XML in `coverage/`.
+The HTML report uses the repository root as its prefix, showing `app/` and `src/` paths.
 Function/line consistency checks are disabled because GNU Fortran can map distinct
 functions to overlapping source lines; the original counters are retained.
 GitLab coverage uses `chs-fortran-conda/0.6.0`, including LCOV 2.5, and takes its
@@ -139,9 +140,9 @@ compiler from the module settings. GitLab reads the Cobertura XML for MR diff
 annotations and exposes the HTML report as a CI artifact; coverage is not copied to Pages.
 The GitHub Coverage workflow builds pFUnit 4.12.0 with GNU Fortran 13 and uploads
 the same report format through the Coveralls GitHub Action. It uses the built-in
-GitHub token, so no additional Coveralls repository secret is needed. Both CI
-systems retain coverage artifacts for 14 days; GitLab may retain the latest
-successful artifacts longer according to the project's retention setting.
+GitHub token, so no additional Coveralls repository secret is needed. GitHub
+retains coverage artifacts for 14 days. GitLab uses the instance's default artifact
+expiry and the project's setting for retaining the latest successful artifacts.
 
 The Python package provides `mhm.run_forward`, `mhm.__version__`, `mhm.f_version`,
 and `mhm.download_examples`. Its `mhm` console script and `python -m mhm` use the

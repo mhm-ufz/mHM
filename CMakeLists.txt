@@ -113,6 +113,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND MHM_WITH_COVERAGE AND EXISTS "${C
     # Keep their original counters instead of applying LCOV 2.2+ consistency checks.
     LCOV_ARGS --rc check_data_consistency=0
     GENHTML_ARGS --rc check_data_consistency=0 -t "mHM coverage"
+      --prefix ${CMAKE_CURRENT_SOURCE_DIR}
       --html-prolog ${CMAKE_CURRENT_SOURCE_DIR}/doc/html_files/cov_header.prolog
   )
 endif()

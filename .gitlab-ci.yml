@@ -322,7 +322,6 @@ coverage:
   artifacts:
     when: always
     expose_as: "Fortran coverage report"
-    expire_in: 2 weeks
     reports:
       coverage_report:
         coverage_format: cobertura
