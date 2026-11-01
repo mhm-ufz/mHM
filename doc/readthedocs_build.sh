@@ -37,7 +37,10 @@ if [[ "${phase}" == all || "${phase}" == doxygen ]]; then
   doxygen --version
   dot -V
   printf 'Generating HTML and LaTeX...\n'
-  doxygen doc/doxygen.config
+  doxygen doc/doxygen-rtd.config
+  # Doxygen 1.18's external-search script also runs on ordinary pages, which
+  # have no searchresults element. Guard its empty-query message there.
+  sed -i 's/^    results.innerHTML =/    if (results) results.innerHTML =/' html/search/search.js
 fi
 
 if [[ "${phase}" == all || "${phase}" == pdf ]]; then

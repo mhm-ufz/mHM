@@ -26,6 +26,13 @@ Read the Docs uses `.readthedocs.yaml`, `doc/rtd-environment.yml`, and
 and `publish` phases, or runs all phases without an argument. HTML and the separate
 PDF download are staged under `${READTHEDOCS_OUTPUT:-_readthedocs}`.
 
+RTD builds use `doc/doxygen-rtd.config` to enable doxygen-awesome's hosted search
+integration. The ordinary Doxygen configuration keeps the local search index for
+GitLab artifacts and offline use. On RTD, version and PDF download controls appear
+in the navigation sidebar, or inside the navigation menu on phones. They use
+RTD's Addons data; the floating flyout is hidden only after these controls initialize.
+The search dialog and fallback flyout follow the documentation's light/dark theme.
+
 GitLab loads `GCC/13.3.0`, `texlive/20250308`, and `chs-fortran-conda/0.6.0`.
 It builds the PDF with the same `latexmk` workflow as Read the Docs, including
 the index and cross-reference passes. The documentation
