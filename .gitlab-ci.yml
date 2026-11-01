@@ -61,7 +61,7 @@ show-env-vars:
     - cp latex/refman.pdf mhm_doc.pdf
   artifacts:
     when: always
-    expose_as: "Documentation (HTML and PDF)"
+    expose_as: "Documentation HTML and PDF"
     name: "$CI_COMMIT_REF_NAME"
     paths:
       - html/
