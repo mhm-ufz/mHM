@@ -48,7 +48,7 @@ def test_versions():
 @pytest.mark.parametrize("domain", [1, 2])
 @pytest.mark.parametrize("source", ["auto", "github", "git.ufz"])
 @pytest.mark.parametrize(
-    "version,branch", [("6.0.0.dev1", "v6alpha"), ("6.0.0", "v6.0.0")]
+    "version,branch", [("6.0.0.dev1", "main"), ("6.0.0", "v6.0.0")]
 )
 def test_download(tmp_path, monkeypatch, domain, source, version, branch):
     monkeypatch.setattr(mhm, "__version__", version)

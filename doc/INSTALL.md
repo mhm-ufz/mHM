@@ -124,9 +124,9 @@ This will give you a new folder `mhm/` containing the whole repository. You can 
 cd mhm/
 ```
 
-If you then want to compile a specific version (different from the latest development version), you can check that out with e.g.:
+The latest development version is maintained on `main`. To select it explicitly:
 ```bash
-git checkout v6alpha
+git checkout main
 ```
 
 Afterwards you can continue with the compilation.
