@@ -61,11 +61,13 @@ show-env-vars:
     - cp latex/refman.pdf mhm_doc.pdf
   artifacts:
     when: always
+    expose_as: "Documentation (HTML and PDF)"
     name: "$CI_COMMIT_REF_NAME"
     paths:
       - html/
       - mhm_doc.pdf
-      - doxygen_*.txt
+      - doxygen_log.txt
+      - doxygen_latex.txt
 
 # Compiler and v6 validation templates
 .cmake_template: &cmake_template
