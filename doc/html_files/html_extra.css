@@ -66,17 +66,12 @@ html {
 
 .mhm-rtd-controls {
   box-sizing: border-box;
-  display: grid;
-  gap: var(--spacing-small);
+  display: block;
   padding: var(--spacing-medium);
   background: var(--side-nav-background);
   color: var(--page-foreground-color);
   border-bottom: 1px solid var(--separator-color);
   font-size: var(--navigation-font-size);
-}
-
-.mhm-rtd-controls label {
-  font-weight: bold;
 }
 
 .mhm-rtd-controls select {
@@ -93,14 +88,6 @@ html {
 
 html.dark-mode .mhm-rtd-controls select {
   color-scheme: dark;
-}
-
-#nav-tree .mhm-rtd-controls a,
-#main-menu .mhm-rtd-controls a {
-  padding: var(--spacing-small) 0;
-  color: var(--link-color);
-  font: inherit;
-  background: transparent;
 }
 
 #mhm-rtd-sidebar {

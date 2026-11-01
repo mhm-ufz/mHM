@@ -19,19 +19,37 @@ if (typeof serverUrl !== "undefined") {
       controls.className = "mhm-rtd-controls";
       controls.setAttribute("aria-label", "Documentation versions and downloads");
 
-      const label = document.createElement("label");
-      label.htmlFor = id;
-      label.textContent = "Version";
       const select = document.createElement("select");
       select.id = id;
+      select.setAttribute("aria-label", "Documentation version or PDF download");
+      const versionGroup = document.createElement("optgroup");
+      versionGroup.label = "Versions";
       for (const version of versions) {
         const option = document.createElement("option");
         option.textContent = version.verbose_name || version.slug;
         option.value = version.urls.documentation;
         option.selected = version.slug === current.slug;
-        select.appendChild(option);
+        versionGroup.appendChild(option);
       }
+      select.appendChild(versionGroup);
+
+      if (current.downloads?.pdf) {
+        const downloads = document.createElement("optgroup");
+        downloads.label = "Downloads";
+        const pdf = document.createElement("option");
+        pdf.value = current.downloads.pdf;
+        pdf.dataset.download = "pdf";
+        pdf.textContent = "Download PDF (current version)";
+        downloads.appendChild(pdf);
+        select.appendChild(downloads);
+      }
+
       select.addEventListener("change", () => {
+        if (select.selectedOptions[0].dataset.download === "pdf") {
+          select.value = current.urls.documentation;
+          window.location.assign(current.downloads.pdf);
+          return;
+        }
         // Like RTD's flyout, keep the current page when switching versions.
         const filename = config.readthedocs?.resolver?.filename ||
           document.querySelector('meta[name="readthedocs-resolver-filename"]')?.content || "";
@@ -39,14 +57,7 @@ if (typeof serverUrl !== "undefined") {
         target.hash = window.location.hash;
         window.location.assign(target.href);
       });
-      controls.append(label, select);
-
-      if (current.downloads?.pdf) {
-        const pdf = document.createElement("a");
-        pdf.href = current.downloads.pdf;
-        pdf.textContent = "Download PDF";
-        controls.appendChild(pdf);
-      }
+      controls.appendChild(select);
       return controls;
     }
 
