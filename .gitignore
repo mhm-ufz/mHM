@@ -16,6 +16,7 @@ html
 latex
 doxygen_warn.txt
 _readthedocs/
+coverage/
 mhm_doc.pdf
 
 # Exclusions

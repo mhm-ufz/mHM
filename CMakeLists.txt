@@ -60,6 +60,15 @@ if(MHM_IS_TOP_LEVEL)
   include(CTest)
 endif()
 
+if(CMAKE_WITH_COVERAGE)
+  if(NOT BUILD_TESTING OR NOT BUILD_MHM_DRIVER)
+    message(FATAL_ERROR "mHM: CMAKE_WITH_COVERAGE requires BUILD_TESTING=ON and BUILD_MHM_DRIVER=ON.")
+  endif()
+  if(NOT CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
+    message(FATAL_ERROR "mHM: CMAKE_WITH_COVERAGE requires GNU Fortran.")
+  endif()
+endif()
+
 add_subdirectory(src)
 
 if(BUILD_MHM_DRIVER)
@@ -79,20 +88,25 @@ target_compile_definitions(mhm_lib PRIVATE
 )
 
 # setup coverage with GNU
-if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE AND EXISTS "CI-scripts" AND TARGET mhm)
+if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND CMAKE_WITH_COVERAGE AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/CI-scripts" AND TARGET mhm)
   message(STATUS "mHM: add coverage")
   include(cmake/CodeCoverage.cmake)
   append_coverage_compiler_flags_to_target(mhm_lib)
   append_coverage_compiler_flags_to_target(mhm)
   SETUP_TARGET_FOR_COVERAGE_LCOV(
     NAME mhm_coverage_CI
-    EXECUTABLE ../CI-scripts/run_cmake_coverage.sh
+    EXECUTABLE ${CMAKE_CURRENT_SOURCE_DIR}/CI-scripts/run_cmake_coverage.sh
+    EXECUTABLE_ARGS ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}
     DEPENDENCIES mhm mhm_lib
-    GENHTML_ARGS -t "mHM coverage" --html-prolog ../doc/html_files/cov_header.prolog
+    # Preserve overlapping GNU Fortran source-line counters with LCOV 2.2+.
+    LCOV_ARGS --rc check_data_consistency=0
+    GENHTML_ARGS --rc check_data_consistency=0 -t "mHM coverage"
+      --prefix ${CMAKE_CURRENT_SOURCE_DIR}
+      --html-prolog ${CMAKE_CURRENT_SOURCE_DIR}/doc/html_files/cov_header.prolog
   )
 endif()
 
 # add pfunit test folder
-if(BUILD_TESTING AND EXISTS "src/tests")
+if(BUILD_TESTING AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/tests")
   add_subdirectory(src/tests)
 endif()
