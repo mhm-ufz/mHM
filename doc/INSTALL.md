@@ -1,4 +1,4 @@
-# Compilation
+# Compilation {#compilation}
 
 [TOC]
 
@@ -133,12 +133,16 @@ This will give you a new folder `mhm/` containing the whole repository. You can 
 cd mhm/
 ```
 
-If you then want to compile a specific version (different from the latest development version), you can check that out with e.g.:
+Select the legacy v5 development branch before compiling:
 ```bash
-git checkout v5.12.0
+git checkout v5.x
 ```
 
+For a released version, select its tag instead (for example `v5.13.4`).
 Afterwards you can continue with the compilation.
+
+See [Building documentation and coverage](documentation-build.md) for the HTML/PDF
+manual and coverage workflows.
 
 
 ## Compilation commands

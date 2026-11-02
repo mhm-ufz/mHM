@@ -1,4 +1,4 @@
-# Publications using mHM
+# Publications using mHM {#publications}
 - Rakovec, O., Mizukami, N.,Kumar, R., Newman, A., Thober, S., Wood, A. W., et al. (2019). Diagnostic Evaluation of large-domain hydrologic models calibrated across the contiguous United States. Journal of Geophysical Research: Atmospheres, 124, 13991 - 14007, https://doi.org/1029/2019JD030767
 - SoohyunYang, Büttner, O., Kumar, R., Jäger, C., Jawitz, J.W., Rao, P.S.C., Borchardt, D. (2019). Spatial patterns of water quality impairments from point source nutrient loads in Germany's largest national River Basin (Weser River). https://doi.org/10.1016/j.scitotenv.2019.134145
 - Samaniego, L., Thober, S., Wanders, N., Pan, M., Rakovec, O., Sheffield, J., Wood, E.F., Prudhomme, C., Rees, G.,  Houghton-carr, H., Fry, M., Smith, K., Watts, G., Hisdal, H., Estrela, T., Buontempo, C., Marx, A., and Kumar, R., (2019). HYDROLOGICAL FORECASTS AND PROJECTIONS FOR IMPROVED DECISION-MAKING IN THE WATER SECTOR IN EUROPE, DOI:10.1175/BAMS-D-17-0274.1.

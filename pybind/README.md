@@ -62,9 +62,12 @@ The following environment variables can be used to control the compilation and i
 
 ## Test domain download tool
 
+Development versions use the legacy `v5.x` branch by default; release versions
+use the matching version tag. An explicit `--branch` overrides this choice.
+
 Together with the Python bindings comes a command line script to download the test domains:
 ```bash
-mhm-download --verbose --branch main --domain 1 --path mhm_domain/
+mhm-download --verbose --branch v5.x --domain 1 --path mhm_domain/
 ```
 
 To ensure the downloader is executed from the active Python environment, it can
@@ -95,7 +98,7 @@ optional arguments:
   -v, --verbose         be verbose (default: False)
   -b BRANCH, --branch BRANCH
                         branch, tag, or commit of the mHM repository to take the test domain from,
-                        by default tag determined from the mHM version (default: None)
+                        by default v5.x for development versions or the matching release tag (default: None)
   -d {1,2}, --domain {1,2}
                         test domain '1' or '2' (default: 1)
   -p PATH, --path PATH  destination path for the downloaded folder,

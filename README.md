@@ -11,9 +11,15 @@ If you like to contribute to the code, please contact [mhm-admin@ufz.de](mailto:
 
 ## Documentation
 
-The online documentation for mHM can be found here (pdf versions are provided there as well):
-- stable: https://mhm.pages.ufz.de/mhm
-- latest: https://mhm.pages.ufz.de/mhm/latest
+This is the legacy mHM v5 development line, maintained on `v5.x`.
+
+The [v5 development manual](https://mhm.readthedocs.io/v5-dev/) includes HTML
+and PDF documentation for `v5.x`. Read the Docs also provides `latest` for v6 on
+`main` and `stable` for releases through its version selector.
+
+GitLab provides HTML and PDF artifacts in the `documentation` job. The legacy
+pipeline does not deploy to GitLab Pages. See
+[Building documentation and coverage](doc/documentation-build.md) for local builds.
 
 ## Cite as
 
@@ -49,7 +55,7 @@ LGPLv3 (c) 2005-2026 mHM-Developers
 [0]: https://git.ufz.de/mhm/mhm/-/releases
 [3]: doc/RELEASES.md
 [4]: https://git.ufz.de/mhm/mhm/tags/
-[5]: https://mhm.pages.ufz.de/mhm
+[5]: https://mhm.readthedocs.io/v5-dev/
 [6]: LICENSE
 [7]: https://mhm-ufz.org/about/publications/
 [9]: doc/INSTALL.md
