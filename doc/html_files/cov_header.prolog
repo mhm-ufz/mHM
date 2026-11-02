@@ -9,7 +9,3 @@
 </head>
 
 <body>
-
-<form method="get" action="@basedir@../index.html">
-    <button type="submit" style="float: right;">back to documentation</button>
-</form>

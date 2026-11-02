@@ -11,9 +11,11 @@ If you like to contribute to the code, please contact [mhm-admin@ufz.de](mailto:
 
 ## Documentation
 
-The online documentation for mHM can be found here (pdf versions are provided there as well):
-- stable: https://mhm.pages.ufz.de/mhm
-- latest: https://mhm.pages.ufz.de/mhm/latest
+The online documentation includes HTML and PDF versions:
+
+- [Latest v6 development documentation](https://mhm.readthedocs.io/latest/) (`main`)
+- [Stable release documentation](https://mhm.readthedocs.io/stable/)
+- [Legacy v5 development documentation](https://mhm.readthedocs.io/v5-dev/) (`v5.x`)
 
 ## Cite as
 
@@ -49,7 +51,7 @@ LGPLv3 (c) 2005-2025 mHM-Developers
 [0]: https://git.ufz.de/mhm/mhm/-/releases
 [3]: doc/RELEASES.md
 [4]: https://git.ufz.de/mhm/mhm/tags/
-[5]: https://mhm.pages.ufz.de/mhm
+[5]: https://mhm.readthedocs.io/latest/
 [6]: LICENSE
 [7]: https://mhm-ufz.org/about/publications/
 [9]: doc/INSTALL.md

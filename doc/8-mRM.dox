@@ -71,7 +71,7 @@ with the coefficients \f$C_1\f$, \f$C_2\f$ and \f$C_3\f$ being:
 \f}
 The coefficients \f$C_1\f$, \f$C_2\f$ and \f$C_3\f$ add up to one. The spatial
 resolution at which mRM is applied is called
-``routing'' resolution in the following.
+"routing" resolution in the following.
 
 \section slope_to_c Stream Celerity Parametrization based on Terrain Slope
 

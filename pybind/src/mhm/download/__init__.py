@@ -78,7 +78,7 @@ def _extract_domain(archive, extracted, name):
 def download_examples(branch=None, domain=1, path=None, verbose=False, source="auto"):
     """Download one example domain, preserving its runnable directory layout.
 
-    Development packages use v6alpha; releases use their matching version tag.
+    Development packages use main; releases use their matching version tag.
     Explicit branch/tag/commit and destination arguments override these defaults.
     Source "auto" tries GitHub first, then git.ufz; either source can be selected
     explicitly. Local destination errors do not trigger another download.
@@ -92,7 +92,7 @@ def download_examples(branch=None, domain=1, path=None, verbose=False, source="a
             f"mhm-download: 'source' needs to be one of {VALID_SOURCES}. Got: '{source}'"
         )
     if branch is None:
-        branch = "v6alpha" if "dev" in __version__ else f"v{__version__}"
+        branch = "main" if "dev" in __version__ else f"v{__version__}"
     name = f"domain_{domain:02d}"
     folder = f"examples/{name}"
     path = Path(path or name)

@@ -41,22 +41,33 @@ show-env-vars:
   stage: doc
   needs: []
   script:
-    - source hpc-module-loads/eve.chs-conda04
-    # checkout latest tag if there is at least one (and only for stable docs)
-    - if [ $(git rev-list --tags --max-count=1) ] && [ $DOC_TYPE == "stable" ]; then git checkout $(git describe --tags $(git rev-list --tags --max-count=1)); fi
+    - module purge
+    - module load GCC/13.3.0 texlive/20250308
+    - module use /global/apps/modulefiles
+    - module load chs-fortran-conda/0.6.0
     - export PROJECT_NUMBER="$(cat version.txt)"
-    - doxygen doc/doxygen.config > doxygen_log_${DOC_TYPE}.txt 2>&1 # doxygen_log_stable.txt
-    - cd latex/ && tectonic -r 10 -Z continue-on-errors refman.tex > ../doxygen_latex_${DOC_TYPE}.txt 2>&1     # ../doxygen_latex_stable.txt
-    - cp refman.pdf ../html/mhm_doc.pdf                             # same name always
-    - cp refman.pdf ../mhm_doc_${DOC_TYPE}.pdf                      # ../mhm_doc_stable.pdf
-    - cd .. && mv html html_${DOC_TYPE}                             # html_stable
-    - mv doxygen_warn.txt doxygen_warn_${DOC_TYPE}.txt              # doxygen_warn_stable.txt
+    - doxygen doc/doxygen.config > doxygen_log.txt 2>&1
+    - |
+      printf 'Building PDF with Tectonic...\n'
+      if ! (
+        cd latex &&
+        tectonic -X compile --keep-intermediates --keep-logs refman.tex &&
+        makeindex refman.idx &&
+        tectonic -X compile --keep-intermediates --keep-logs refman.tex
+      ) > "doxygen_latex.txt" 2>&1; then
+        tail -n 80 "doxygen_latex.txt"
+        exit 1
+      fi
+    - cp latex/refman.pdf mhm_doc.pdf
   artifacts:
+    when: always
+    expose_as: "Documentation HTML and PDF"
     name: "$CI_COMMIT_REF_NAME"
     paths:
-      - html_*
-      - mhm_doc_*.pdf
-      - doxygen_*.txt
+      - html/
+      - mhm_doc.pdf
+      - doxygen_log.txt
+      - doxygen_latex.txt
 
 # Compiler and v6 validation templates
 .cmake_template: &cmake_template
@@ -295,37 +306,34 @@ coverage:
   stage: code-analysis
   needs: []
   script:
-    # gcov is part of GCC
-    - source hpc-module-loads/eve.chs-conda02
+    - module purge
+    - module use /global/apps/modulefiles
+    - module load chs-fortran-conda/0.6.0
     # run cmake with coverage support and run tests
-    - cmake -DCMAKE_BUILD_TYPE=Debug -DMHM_BUILD_TESTING=ON -DMHM_WITH_COVERAGE=ON -B build
+    - cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DMHM_BUILD_DRIVER=ON -DMHM_BUILD_TESTING=ON -DBUILD_TESTING=ON -DMHM_WITH_COVERAGE=ON -DMHM_WITH_OpenMP=OFF
     - cmake --build build --parallel 4
     - cmake --build build --target mhm_coverage_CI
-    # copy the output to a top-level folder
-    - mkdir coverage
-    - cp build/mhm_coverage_CI/* coverage -R
-    - lcov_cobertura build/mhm_coverage_CI.info
+    # Strip logical and physical checkout prefixes before converting for GitLab.
+    - |
+      mkdir -p coverage
+      cp -a build/mhm_coverage_CI/. coverage/
+      lcov --rc check_data_consistency=0 --add-tracefile build/mhm_coverage_CI.info \
+        --substitute "s#^(\Q$PWD\E|\Q$(pwd -P)\E)/##" --output-file coverage/coverage.info
+      lcov_cobertura coverage/coverage.info --base-dir . --output coverage/coverage.xml
   coverage: '/lines[\.]+\: (\d+\.\d+)\%/'
   artifacts:
     when: always
+    expose_as: "Fortran coverage report"
     reports:
       coverage_report:
         coverage_format: cobertura
-        path: coverage.xml
+        path: coverage/coverage.xml
     paths:
-    - coverage
+      - coverage/
+      - build/Testing/Temporary/LastTest.log
+      - build/coverage-runs/
 
 documentation:
-  variables:
-    DOC_TYPE: latest
-  <<: *doc_template
-
-documentation_stable:
-  only:
-    - main
-  variables:
-    GIT_DEPTH: 0  # to have all tags
-    DOC_TYPE: stable
   <<: *doc_template
 
 pages:
@@ -335,25 +343,10 @@ pages:
   needs:
     - job: documentation
       artifacts: true
-    - job: documentation_stable
-      artifacts: true
-    - job: coverage
-      artifacts: true
   script:
-    # create public dir (remove if already present)
-    - test -d public && rm -rf public
-    - mkdir -p public
-    # create the subdir
-    - mkdir public/stable/
-    - mkdir public/latest/
-    # copy the doxygen generated html page to the public site
-    - cp html_stable/* public/stable/ -R
-    - cp html_latest/* public/latest/ -R
-    # create an index.html that redirects to the master documentation (in master folder)
-    - cp doc/html_files/index.html public/
-    # create the coverage site
-    - mkdir -p public/coverage
-    - cp coverage/* public/coverage/ -R
+    # Publish the main branch documentation at the Pages root.
+    - rm -rf public
+    - cp -a html public
   artifacts:
     name: "$CI_COMMIT_REF_NAME"
     paths:

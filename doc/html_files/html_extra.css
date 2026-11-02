@@ -1,6 +1,3 @@
-html {
-  --top-height: 165px;
-}
 /* Sets properties of images in HTML */
 div.image img{
         /* border:1px solid #5555FF; */
@@ -22,4 +19,47 @@ div.image div.caption{
 .contents table:not(.memberdecls):not(.mlabels):not(.fieldtable):not(.memname) tbody {
   display: table;
   width: 100%;
+}
+
+.mhm-rtd-controls {
+  box-sizing: border-box;
+  display: block;
+  padding: var(--spacing-medium);
+  background: var(--side-nav-background);
+  color: var(--page-foreground-color);
+  border-bottom: 1px solid var(--separator-color);
+  font-size: var(--navigation-font-size);
+}
+
+.mhm-rtd-controls select {
+  width: 100%;
+  min-width: 0;
+  padding: var(--spacing-small);
+  font: inherit;
+  color: var(--page-foreground-color);
+  background: var(--page-background-color);
+  border: 1px solid var(--separator-color);
+  border-radius: var(--border-radius-small);
+  color-scheme: light;
+}
+
+html.dark-mode .mhm-rtd-controls select {
+  color-scheme: dark;
+}
+
+#mhm-rtd-sidebar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+#main-menu > #mhm-rtd-mobile {
+  display: none;
+}
+
+@media screen and (max-width: 767px) {
+  #main-menu > #mhm-rtd-mobile {
+    display: block;
+    float: none;
+  }
 }

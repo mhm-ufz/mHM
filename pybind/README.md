@@ -18,7 +18,7 @@ python -m mhm my-domain
 python -m mhm -n custom.nml -p parameters.nml -o outputs.nml -q my-domain
 
 mhm-download --domain 2 --path my-domain
-python -m mhm.download --branch v6alpha --domain 1
+python -m mhm.download --branch main --domain 1
 python -m mhm.download --source git.ufz --domain 2
 ```
 
@@ -33,7 +33,7 @@ relative to the process working directory. Use `mhm --help` for all options,
 `mhm --version` for the compiled version, and `mhm --pyversion` for the distribution
 version. Optimization and stepwise model-control bindings will follow later.
 
-Development distributions download from `v6alpha`; releases use the matching
+Development distributions download from `main`; releases use the matching
 version tag. Downloads contain the selected example domain's configuration
 and inputs, ready for a forward run. The downloader tries GitHub first and falls
 back to UFZ GitLab if the transfer fails or the archive is unusable. Select
