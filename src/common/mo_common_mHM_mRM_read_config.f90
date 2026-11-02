@@ -41,7 +41,7 @@ CONTAINS
     use mo_common_mHM_mRM_variables, only : LCyearId, dds_r, mhmFileRestartIn, mrmFileRestartIn, evalPer,&
                                             mcmc_error_params, mcmc_opti, nIterations, &
                                             nTStepDay, opti_function, opti_method, optimize, optimize_restart, &
-                                            read_restart, mrm_read_river_network, resolutionRouting, sa_temp, &
+                                            read_restart, mrm_read_river_network, resolutionRouting, sa_temp, sa_strict_maxiter, &
                                             sce_ngs, sce_npg, sce_nps, seed, &
                                             simPer, timestep, warmPer, warmingDays, read_old_style_restart_bounds, &
                                             restart_reset_fluxes_states
@@ -191,6 +191,7 @@ CONTAINS
     seed = nml_Optimization%seed
     dds_r = nml_Optimization%dds_r
     sa_temp = nml_Optimization%sa_temp
+    sa_strict_maxiter = nml_Optimization%sa_strict_maxiter
     sce_ngs = nml_Optimization%sce_ngs
     sce_npg = nml_Optimization%sce_npg
     sce_nps = nml_Optimization%sce_nps

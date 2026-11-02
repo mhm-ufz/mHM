@@ -935,6 +935,10 @@
   !> Initial Temperature (default: -9.0)
   !> if default: temperature is determined by algorithm of Ben-Ameur (2004)
   sa_temp = -9.0
+  !> SA: treat nIterations as a hard upper limit of model runs (default: .true.)
+  !> .false. restores the legacy behaviour (nIterations is extended by 10% while moves are still accepted)
+  !> note: with sa_temp = -9.0 the temperature estimation is taken from the same budget (at most nIterations/2)
+  sa_strict_maxiter = .true.
   !  -------------------------------------
   !> SCE specific:
   !  -------------------------------------

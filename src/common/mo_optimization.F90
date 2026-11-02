@@ -50,7 +50,7 @@ contains
 
     use mo_anneal, only : anneal
     use mo_common_mHM_mRM_variables, only : dds_r, mcmc_error_params, mcmc_opti, nIterations, opti_function, opti_method, &
-                                            optimize_restart, sa_temp, sce_ngs, sce_npg, sce_nps, seed
+                                            optimize_restart, sa_temp, sa_strict_maxiter, sce_ngs, sce_npg, sce_nps, seed
     use mo_common_variables, only : global_parameters
 #ifdef MPI
     use mo_common_variables, only : domainMeta
@@ -241,13 +241,13 @@ contains
         ! use fixed user-defined seed and user-defined initial temperature
         local_parameters(:, 3) = anneal(optimize_target, local_parameters(:, 3), local_parameters(:, 1 : 2), &
                 temp = sa_temp, seeds = (/iseed, iseed + 1000_i8, iseed + 2000_i8/), nITERmax = nIterations, &
-                tmp_file = tFile, maskpara = local_maskpara, &
+                strict_maxiter = sa_strict_maxiter, tmp_file = tFile, maskpara = local_maskpara, &
                 funcbest = funcbest)
       else
         ! use fixed user-defined seed and adaptive initial temperature
         local_parameters(:, 3) = anneal(optimize_target, local_parameters(:, 3), local_parameters(:, 1 : 2), &
                 seeds = (/iseed, iseed + 1000_i8, iseed + 2000_i8/), nITERmax = nIterations, &
-                tmp_file = tFile, maskpara = local_maskpara, &
+                strict_maxiter = sa_strict_maxiter, tmp_file = tFile, maskpara = local_maskpara, &
                 funcbest = funcbest)
       end if
     case (3)
