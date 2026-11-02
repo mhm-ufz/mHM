@@ -79,6 +79,7 @@ module mo_common_mHM_mRM_variables
   real(dp), public :: dds_r               ! DDS: perturbation rate
   !                                                                       !      default: 0.2
   real(dp), public :: sa_temp             ! SA:  initial temperature
+  logical, public :: sa_strict_maxiter    ! SA:  nIterations is a hard limit (default: .true.)
   !                                                                       !      default: -9.0 --> estimated
   integer(i4), public :: sce_ngs             ! SCE: # of complexes
   !                                                                       !      default: 2

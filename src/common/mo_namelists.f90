@@ -187,6 +187,7 @@ module mo_namelists
   !   seed, &
   !   dds_r, &
   !   sa_temp, &
+  !   sa_strict_maxiter, &
   !   sce_ngs, &
   !   sce_npg, &
   !   sce_nps, &
@@ -202,6 +203,7 @@ module mo_namelists
     integer(i8) :: seed !< seed used for optimization, default: -9 --> system time
     real(dp) :: dds_r !< DDS: perturbation rate, default: 0.2
     real(dp) :: sa_temp !< SA:  initial temperature, default: -9.0 --> estimated
+    logical :: sa_strict_maxiter !< SA:  nIterations is a hard limit (no automatic extension), default: .true.
     integer(i4) :: sce_ngs !< SCE: # of complexes, default: 2
     integer(i4) :: sce_npg !< SCE: # of points per complex,default: -9 --> 2n+1
     integer(i4) :: sce_nps !< SCE: # of points per subcomplex,default: -9 --> n+1
@@ -1484,6 +1486,7 @@ contains
     integer(i8) :: seed !< seed used for optimization, default: -9 --> system time
     real(dp) :: dds_r !< DDS: perturbation rate, default: 0.2
     real(dp) :: sa_temp !< SA:  initial temperature, default: -9.0 --> estimated
+    logical :: sa_strict_maxiter !< SA:  nIterations is a hard limit (no automatic extension), default: .true.
     integer(i4) :: sce_ngs !< SCE: # of complexes, default: 2
     integer(i4) :: sce_npg !< SCE: # of points per complex,default: -9 --> 2n+1
     integer(i4) :: sce_nps !< SCE: # of points per subcomplex,default: -9 --> n+1
@@ -1495,6 +1498,7 @@ contains
       seed, &
       dds_r, &
       sa_temp, &
+      sa_strict_maxiter, &
       sce_ngs, &
       sce_npg, &
       sce_nps, &
@@ -1506,6 +1510,7 @@ contains
       seed = -9_i8
       dds_r = 0.2_dp
       sa_temp = -9.0_dp
+      sa_strict_maxiter = .true.
       sce_ngs = 2_i4
       sce_npg = -9_i4
       sce_nps = -9_i4
@@ -1519,6 +1524,7 @@ contains
       self%seed = seed
       self%dds_r = dds_r
       self%sa_temp = sa_temp
+      self%sa_strict_maxiter = sa_strict_maxiter
       self%sce_ngs = sce_ngs
       self%sce_npg = sce_npg
       self%sce_nps = sce_nps
