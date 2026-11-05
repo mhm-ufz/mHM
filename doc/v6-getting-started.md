@@ -101,10 +101,11 @@ Build the PDF with system TeX Live using `make -C latex`. The extra stylesheet
 cells, captions, and labels use Doxygen's standard table renderer. Install the
 corresponding TeX Live packages for local PDF builds, including `newunicodechar`
 for symbols in source listings. The Unicode mapping supports pdfLaTeX and XeTeX
-(including Tectonic). GitLab compiles with Tectonic, runs TeX Live's `makeindex`,
-then compiles again to include the index. Its Fortran compiler comes from the
-`chs-fortran-conda` module's `FC` setting. Each pipeline documents its checked-out
-commit and retains `html/`, `mhm_doc.pdf`, and the Doxygen/PDF logs as artifacts.
+(including Tectonic). GitLab compiles with Tectonic using `-Z continue-on-errors`,
+runs TeX Live's `makeindex`, then compiles again to include the index. Its Fortran
+compiler comes from the `chs-fortran-conda` module's `FC` setting. Each pipeline
+documents its checked-out commit and retains `html/`, `mhm_doc.pdf`, and the
+Doxygen/PDF logs as artifacts.
 GitLab Pages publishes only the `main` branch build at its root; Read the Docs
 provides versioned documentation. Tectonic chooses its own reruns;
 `-r 10` would force ten additional passes rather than set a maximum.

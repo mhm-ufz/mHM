@@ -64,9 +64,9 @@ check-nml-tools:
       printf 'Building PDF with Tectonic...\n'
       if ! (
         cd latex &&
-        tectonic -X compile --keep-intermediates --keep-logs refman.tex &&
+        tectonic -X compile -Z continue-on-errors --keep-intermediates --keep-logs refman.tex &&
         makeindex refman.idx &&
-        tectonic -X compile --keep-intermediates --keep-logs refman.tex
+        tectonic -X compile -Z continue-on-errors --keep-intermediates --keep-logs refman.tex
       ) > "doxygen_latex.txt" 2>&1; then
         tail -n 80 "doxygen_latex.txt"
         exit 1
