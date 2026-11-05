@@ -236,26 +236,26 @@ contains
     case ("correction_factor_min%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_min'"
+        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_min%value'"
         return
       end if
       if (ieee_is_nan(this%correction_factor_min%value)) status = NML_ERR_NOT_SET
     case ("correction_factor_min%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_min'"
+        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_min%optimize'"
         return
       end if
     case ("correction_factor_min%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_min'"
+        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_min%min'"
         return
       end if
     case ("correction_factor_min%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_min'"
+        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_min%max'"
         return
       end if
     case ("correction_factor_min")
@@ -264,32 +264,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'correction_factor_min'"
         return
       end if
-      if (ieee_is_nan(this%correction_factor_min%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%correction_factor_min%value))) status = NML_ERR_NOT_SET
     case ("correction_factor_delta%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_delta'"
+        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_delta%value'"
         return
       end if
       if (ieee_is_nan(this%correction_factor_delta%value)) status = NML_ERR_NOT_SET
     case ("correction_factor_delta%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_delta'"
+        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_delta%optimize'"
         return
       end if
     case ("correction_factor_delta%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_delta'"
+        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_delta%min'"
         return
       end if
     case ("correction_factor_delta%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_delta'"
+        if (present(errmsg)) errmsg = "index not supported for 'correction_factor_delta%max'"
         return
       end if
     case ("correction_factor_delta")
@@ -298,32 +296,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'correction_factor_delta'"
         return
       end if
-      if (ieee_is_nan(this%correction_factor_delta%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%correction_factor_delta%value))) status = NML_ERR_NOT_SET
     case ("aspect_threshold%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'aspect_threshold'"
+        if (present(errmsg)) errmsg = "index not supported for 'aspect_threshold%value'"
         return
       end if
       if (ieee_is_nan(this%aspect_threshold%value)) status = NML_ERR_NOT_SET
     case ("aspect_threshold%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'aspect_threshold'"
+        if (present(errmsg)) errmsg = "index not supported for 'aspect_threshold%optimize'"
         return
       end if
     case ("aspect_threshold%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'aspect_threshold'"
+        if (present(errmsg)) errmsg = "index not supported for 'aspect_threshold%min'"
         return
       end if
     case ("aspect_threshold%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'aspect_threshold'"
+        if (present(errmsg)) errmsg = "index not supported for 'aspect_threshold%max'"
         return
       end if
     case ("aspect_threshold")
@@ -332,32 +328,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'aspect_threshold'"
         return
       end if
-      if (ieee_is_nan(this%aspect_threshold%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%aspect_threshold%value))) status = NML_ERR_NOT_SET
     case ("hargreaves_samani_coefficient%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'hargreaves_samani_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'hargreaves_samani_coefficient%value'"
         return
       end if
       if (ieee_is_nan(this%hargreaves_samani_coefficient%value)) status = NML_ERR_NOT_SET
     case ("hargreaves_samani_coefficient%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'hargreaves_samani_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'hargreaves_samani_coefficient%optimize'"
         return
       end if
     case ("hargreaves_samani_coefficient%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'hargreaves_samani_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'hargreaves_samani_coefficient%min'"
         return
       end if
     case ("hargreaves_samani_coefficient%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'hargreaves_samani_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'hargreaves_samani_coefficient%max'"
         return
       end if
     case ("hargreaves_samani_coefficient")
@@ -366,9 +360,7 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'hargreaves_samani_coefficient'"
         return
       end if
-      if (ieee_is_nan(this%hargreaves_samani_coefficient%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%hargreaves_samani_coefficient%value))) status = NML_ERR_NOT_SET
     case default
       status = NML_ERR_INVALID_NAME
       if (present(errmsg)) errmsg = "unknown field: " // trim(name)

@@ -255,26 +255,26 @@ contains
     case ("travel_time_constant%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'travel_time_constant'"
+        if (present(errmsg)) errmsg = "index not supported for 'travel_time_constant%value'"
         return
       end if
       if (ieee_is_nan(this%travel_time_constant%value)) status = NML_ERR_NOT_SET
     case ("travel_time_constant%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'travel_time_constant'"
+        if (present(errmsg)) errmsg = "index not supported for 'travel_time_constant%optimize'"
         return
       end if
     case ("travel_time_constant%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'travel_time_constant'"
+        if (present(errmsg)) errmsg = "index not supported for 'travel_time_constant%min'"
         return
       end if
     case ("travel_time_constant%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'travel_time_constant'"
+        if (present(errmsg)) errmsg = "index not supported for 'travel_time_constant%max'"
         return
       end if
     case ("travel_time_constant")
@@ -283,32 +283,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'travel_time_constant'"
         return
       end if
-      if (ieee_is_nan(this%travel_time_constant%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%travel_time_constant%value))) status = NML_ERR_NOT_SET
     case ("travel_time_river_length%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_length'"
+        if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_length%value'"
         return
       end if
       if (ieee_is_nan(this%travel_time_river_length%value)) status = NML_ERR_NOT_SET
     case ("travel_time_river_length%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_length'"
+        if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_length%optimize'"
         return
       end if
     case ("travel_time_river_length%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_length'"
+        if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_length%min'"
         return
       end if
     case ("travel_time_river_length%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_length'"
+        if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_length%max'"
         return
       end if
     case ("travel_time_river_length")
@@ -317,32 +315,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_length'"
         return
       end if
-      if (ieee_is_nan(this%travel_time_river_length%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%travel_time_river_length%value))) status = NML_ERR_NOT_SET
     case ("travel_time_river_slope%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_slope'"
+        if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_slope%value'"
         return
       end if
       if (ieee_is_nan(this%travel_time_river_slope%value)) status = NML_ERR_NOT_SET
     case ("travel_time_river_slope%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_slope'"
+        if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_slope%optimize'"
         return
       end if
     case ("travel_time_river_slope%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_slope'"
+        if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_slope%min'"
         return
       end if
     case ("travel_time_river_slope%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_slope'"
+        if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_slope%max'"
         return
       end if
     case ("travel_time_river_slope")
@@ -351,32 +347,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'travel_time_river_slope'"
         return
       end if
-      if (ieee_is_nan(this%travel_time_river_slope%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%travel_time_river_slope%value))) status = NML_ERR_NOT_SET
     case ("travel_time_impervious%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'travel_time_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'travel_time_impervious%value'"
         return
       end if
       if (ieee_is_nan(this%travel_time_impervious%value)) status = NML_ERR_NOT_SET
     case ("travel_time_impervious%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'travel_time_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'travel_time_impervious%optimize'"
         return
       end if
     case ("travel_time_impervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'travel_time_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'travel_time_impervious%min'"
         return
       end if
     case ("travel_time_impervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'travel_time_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'travel_time_impervious%max'"
         return
       end if
     case ("travel_time_impervious")
@@ -385,32 +379,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'travel_time_impervious'"
         return
       end if
-      if (ieee_is_nan(this%travel_time_impervious%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%travel_time_impervious%value))) status = NML_ERR_NOT_SET
     case ("attenuation_river_slope%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'attenuation_river_slope'"
+        if (present(errmsg)) errmsg = "index not supported for 'attenuation_river_slope%value'"
         return
       end if
       if (ieee_is_nan(this%attenuation_river_slope%value)) status = NML_ERR_NOT_SET
     case ("attenuation_river_slope%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'attenuation_river_slope'"
+        if (present(errmsg)) errmsg = "index not supported for 'attenuation_river_slope%optimize'"
         return
       end if
     case ("attenuation_river_slope%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'attenuation_river_slope'"
+        if (present(errmsg)) errmsg = "index not supported for 'attenuation_river_slope%min'"
         return
       end if
     case ("attenuation_river_slope%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'attenuation_river_slope'"
+        if (present(errmsg)) errmsg = "index not supported for 'attenuation_river_slope%max'"
         return
       end if
     case ("attenuation_river_slope")
@@ -419,9 +411,7 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'attenuation_river_slope'"
         return
       end if
-      if (ieee_is_nan(this%attenuation_river_slope%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%attenuation_river_slope%value))) status = NML_ERR_NOT_SET
     case default
       status = NML_ERR_INVALID_NAME
       if (present(errmsg)) errmsg = "unknown field: " // trim(name)

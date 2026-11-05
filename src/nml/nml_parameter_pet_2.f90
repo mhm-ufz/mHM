@@ -198,26 +198,26 @@ contains
     case ("priestley_taylor_coefficient%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_coefficient%value'"
         return
       end if
       if (ieee_is_nan(this%priestley_taylor_coefficient%value)) status = NML_ERR_NOT_SET
     case ("priestley_taylor_coefficient%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_coefficient%optimize'"
         return
       end if
     case ("priestley_taylor_coefficient%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_coefficient%min'"
         return
       end if
     case ("priestley_taylor_coefficient%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_coefficient%max'"
         return
       end if
     case ("priestley_taylor_coefficient")
@@ -226,32 +226,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_coefficient'"
         return
       end if
-      if (ieee_is_nan(this%priestley_taylor_coefficient%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%priestley_taylor_coefficient%value))) status = NML_ERR_NOT_SET
     case ("priestley_taylor_lai_correction%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_lai_correction'"
+        if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_lai_correction%value'"
         return
       end if
       if (ieee_is_nan(this%priestley_taylor_lai_correction%value)) status = NML_ERR_NOT_SET
     case ("priestley_taylor_lai_correction%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_lai_correction'"
+        if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_lai_correction%optimize'"
         return
       end if
     case ("priestley_taylor_lai_correction%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_lai_correction'"
+        if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_lai_correction%min'"
         return
       end if
     case ("priestley_taylor_lai_correction%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_lai_correction'"
+        if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_lai_correction%max'"
         return
       end if
     case ("priestley_taylor_lai_correction")
@@ -260,9 +258,7 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'priestley_taylor_lai_correction'"
         return
       end if
-      if (ieee_is_nan(this%priestley_taylor_lai_correction%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%priestley_taylor_lai_correction%value))) status = NML_ERR_NOT_SET
     case default
       status = NML_ERR_INVALID_NAME
       if (present(errmsg)) errmsg = "unknown field: " // trim(name)

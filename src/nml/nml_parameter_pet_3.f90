@@ -293,26 +293,26 @@ contains
     case ("canopy_height_forest%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_forest%value'"
         return
       end if
       if (ieee_is_nan(this%canopy_height_forest%value)) status = NML_ERR_NOT_SET
     case ("canopy_height_forest%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_forest%optimize'"
         return
       end if
     case ("canopy_height_forest%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_forest%min'"
         return
       end if
     case ("canopy_height_forest%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_forest%max'"
         return
       end if
     case ("canopy_height_forest")
@@ -321,32 +321,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'canopy_height_forest'"
         return
       end if
-      if (ieee_is_nan(this%canopy_height_forest%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%canopy_height_forest%value))) status = NML_ERR_NOT_SET
     case ("canopy_height_impervious%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_impervious%value'"
         return
       end if
       if (ieee_is_nan(this%canopy_height_impervious%value)) status = NML_ERR_NOT_SET
     case ("canopy_height_impervious%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_impervious%optimize'"
         return
       end if
     case ("canopy_height_impervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_impervious%min'"
         return
       end if
     case ("canopy_height_impervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_impervious%max'"
         return
       end if
     case ("canopy_height_impervious")
@@ -355,32 +353,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'canopy_height_impervious'"
         return
       end if
-      if (ieee_is_nan(this%canopy_height_impervious%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%canopy_height_impervious%value))) status = NML_ERR_NOT_SET
     case ("canopy_height_pervious%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_pervious%value'"
         return
       end if
       if (ieee_is_nan(this%canopy_height_pervious%value)) status = NML_ERR_NOT_SET
     case ("canopy_height_pervious%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_pervious%optimize'"
         return
       end if
     case ("canopy_height_pervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_pervious%min'"
         return
       end if
     case ("canopy_height_pervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'canopy_height_pervious%max'"
         return
       end if
     case ("canopy_height_pervious")
@@ -389,32 +385,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'canopy_height_pervious'"
         return
       end if
-      if (ieee_is_nan(this%canopy_height_pervious%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%canopy_height_pervious%value))) status = NML_ERR_NOT_SET
     case ("displacement_height_coefficient%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'displacement_height_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'displacement_height_coefficient%value'"
         return
       end if
       if (ieee_is_nan(this%displacement_height_coefficient%value)) status = NML_ERR_NOT_SET
     case ("displacement_height_coefficient%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'displacement_height_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'displacement_height_coefficient%optimize'"
         return
       end if
     case ("displacement_height_coefficient%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'displacement_height_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'displacement_height_coefficient%min'"
         return
       end if
     case ("displacement_height_coefficient%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'displacement_height_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'displacement_height_coefficient%max'"
         return
       end if
     case ("displacement_height_coefficient")
@@ -423,32 +417,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'displacement_height_coefficient'"
         return
       end if
-      if (ieee_is_nan(this%displacement_height_coefficient%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%displacement_height_coefficient%value))) status = NML_ERR_NOT_SET
     case ("momentum_roughness_length_coefficient%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'momentum_roughness_length_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'momentum_roughness_length_coefficient%value'"
         return
       end if
       if (ieee_is_nan(this%momentum_roughness_length_coefficient%value)) status = NML_ERR_NOT_SET
     case ("momentum_roughness_length_coefficient%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'momentum_roughness_length_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'momentum_roughness_length_coefficient%optimize'"
         return
       end if
     case ("momentum_roughness_length_coefficient%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'momentum_roughness_length_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'momentum_roughness_length_coefficient%min'"
         return
       end if
     case ("momentum_roughness_length_coefficient%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'momentum_roughness_length_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'momentum_roughness_length_coefficient%max'"
         return
       end if
     case ("momentum_roughness_length_coefficient")
@@ -457,32 +449,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'momentum_roughness_length_coefficient'"
         return
       end if
-      if (ieee_is_nan(this%momentum_roughness_length_coefficient%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%momentum_roughness_length_coefficient%value))) status = NML_ERR_NOT_SET
     case ("heat_roughness_length_coefficient%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'heat_roughness_length_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'heat_roughness_length_coefficient%value'"
         return
       end if
       if (ieee_is_nan(this%heat_roughness_length_coefficient%value)) status = NML_ERR_NOT_SET
     case ("heat_roughness_length_coefficient%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'heat_roughness_length_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'heat_roughness_length_coefficient%optimize'"
         return
       end if
     case ("heat_roughness_length_coefficient%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'heat_roughness_length_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'heat_roughness_length_coefficient%min'"
         return
       end if
     case ("heat_roughness_length_coefficient%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'heat_roughness_length_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'heat_roughness_length_coefficient%max'"
         return
       end if
     case ("heat_roughness_length_coefficient")
@@ -491,32 +481,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'heat_roughness_length_coefficient'"
         return
       end if
-      if (ieee_is_nan(this%heat_roughness_length_coefficient%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%heat_roughness_length_coefficient%value))) status = NML_ERR_NOT_SET
     case ("stomatal_resistance%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'stomatal_resistance'"
+        if (present(errmsg)) errmsg = "index not supported for 'stomatal_resistance%value'"
         return
       end if
       if (ieee_is_nan(this%stomatal_resistance%value)) status = NML_ERR_NOT_SET
     case ("stomatal_resistance%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'stomatal_resistance'"
+        if (present(errmsg)) errmsg = "index not supported for 'stomatal_resistance%optimize'"
         return
       end if
     case ("stomatal_resistance%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'stomatal_resistance'"
+        if (present(errmsg)) errmsg = "index not supported for 'stomatal_resistance%min'"
         return
       end if
     case ("stomatal_resistance%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'stomatal_resistance'"
+        if (present(errmsg)) errmsg = "index not supported for 'stomatal_resistance%max'"
         return
       end if
     case ("stomatal_resistance")
@@ -525,9 +513,7 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'stomatal_resistance'"
         return
       end if
-      if (ieee_is_nan(this%stomatal_resistance%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%stomatal_resistance%value))) status = NML_ERR_NOT_SET
     case default
       status = NML_ERR_INVALID_NAME
       if (present(errmsg)) errmsg = "unknown field: " // trim(name)

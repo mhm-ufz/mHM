@@ -29,7 +29,8 @@ module nml_config_observations
     idx_check, &
     to_lower, &
     n_domains__default, &
-    buf
+    buf, &
+    NML_ERR_PARTLY_SET
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
@@ -59,6 +60,10 @@ module nml_config_observations
     procedure :: from_file => nml_config_observations_from_file
     procedure :: set => nml_config_observations_set
     procedure :: is_set => nml_config_observations_is_set
+    procedure, private :: set_mask__rank__1 => nml_config_observations_set_mask__rank__1
+    generic :: set_mask => &
+      set_mask__rank__1
+    procedure :: filled_shape => nml_config_observations_filled_shape
     procedure :: is_valid => nml_config_observations_is_valid
   end type nml_config_observations_t
 
@@ -190,6 +195,16 @@ contains
 
     status = nml%find("config_observations", errmsg=errmsg)
     if (status /= NML_OK) then
+      if (status == NML_ERR_NML_NOT_FOUND) then
+        close_status = nml%close(errmsg=errmsg)
+        if (close_status /= NML_OK) then
+          status = close_status
+          return
+        end if
+        this%is_configured = .true.
+        status = NML_OK
+        return
+      end if
       close_status = nml%close()
       return
     end if
@@ -248,9 +263,6 @@ contains
     integer(i4), intent(in), optional :: sm_time_step !< Time step of soil moisture
     integer(i4), intent(in), optional :: et_time_step !< Time step of evapotranspiration
     integer(i4), intent(in), optional :: tws_time_step !< Time step of total water storage
-    integer :: &
-      lb__1, &
-      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -263,9 +275,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'sm_path'"
         return
       end if
-      lb__1 = lbound(this%sm_path, 1)
-      ub__1 = lb__1 + size(sm_path, 1) - 1
-      this%sm_path(lb__1:ub__1) = sm_path
+      this%sm_path(1:size(sm_path, 1)) = sm_path
     end if
     if (present(neutrons_path)) then
       if (size(neutrons_path, 1) > size(this%neutrons_path, 1)) then
@@ -273,9 +283,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'neutrons_path'"
         return
       end if
-      lb__1 = lbound(this%neutrons_path, 1)
-      ub__1 = lb__1 + size(neutrons_path, 1) - 1
-      this%neutrons_path(lb__1:ub__1) = neutrons_path
+      this%neutrons_path(1:size(neutrons_path, 1)) = neutrons_path
     end if
     if (present(et_path)) then
       if (size(et_path, 1) > size(this%et_path, 1)) then
@@ -283,9 +291,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'et_path'"
         return
       end if
-      lb__1 = lbound(this%et_path, 1)
-      ub__1 = lb__1 + size(et_path, 1) - 1
-      this%et_path(lb__1:ub__1) = et_path
+      this%et_path(1:size(et_path, 1)) = et_path
     end if
     if (present(tws_path)) then
       if (size(tws_path, 1) > size(this%tws_path, 1)) then
@@ -293,9 +299,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'tws_path'"
         return
       end if
-      lb__1 = lbound(this%tws_path, 1)
-      ub__1 = lb__1 + size(tws_path, 1) - 1
-      this%tws_path(lb__1:ub__1) = tws_path
+      this%tws_path(1:size(tws_path, 1)) = tws_path
     end if
     if (present(bfi_obs)) then
       if (size(bfi_obs, 1) > size(this%bfi_obs, 1)) then
@@ -303,9 +307,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'bfi_obs'"
         return
       end if
-      lb__1 = lbound(this%bfi_obs, 1)
-      ub__1 = lb__1 + size(bfi_obs, 1) - 1
-      this%bfi_obs(lb__1:ub__1) = bfi_obs
+      this%bfi_obs(1:size(bfi_obs, 1)) = bfi_obs
     end if
     if (present(sm_horizons)) this%sm_horizons = sm_horizons
     if (present(sm_time_step)) this%sm_time_step = sm_time_step
@@ -323,6 +325,7 @@ contains
     character(len=*), intent(in) :: name !< field name
     integer, intent(in), optional :: idx(:) !< optional field index values
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    intrinsic :: shape
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -335,11 +338,11 @@ contains
     case ("sm_path")
       if (.not. allocated(this%sm_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: sm_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%sm_path), ubound(this%sm_path), &
-          "sm_path", errmsg)
+        status = idx_check(idx, shape(this%sm_path), "sm_path", errmsg)
         if (status /= NML_OK) return
         if (this%sm_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -348,11 +351,11 @@ contains
     case ("neutrons_path")
       if (.not. allocated(this%neutrons_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: neutrons_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%neutrons_path), ubound(this%neutrons_path), &
-          "neutrons_path", errmsg)
+        status = idx_check(idx, shape(this%neutrons_path), "neutrons_path", errmsg)
         if (status /= NML_OK) return
         if (this%neutrons_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -361,11 +364,11 @@ contains
     case ("et_path")
       if (.not. allocated(this%et_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: et_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%et_path), ubound(this%et_path), &
-          "et_path", errmsg)
+        status = idx_check(idx, shape(this%et_path), "et_path", errmsg)
         if (status /= NML_OK) return
         if (this%et_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -374,11 +377,11 @@ contains
     case ("tws_path")
       if (.not. allocated(this%tws_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tws_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%tws_path), ubound(this%tws_path), &
-          "tws_path", errmsg)
+        status = idx_check(idx, shape(this%tws_path), "tws_path", errmsg)
         if (status /= NML_OK) return
         if (this%tws_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -387,11 +390,11 @@ contains
     case ("bfi_obs")
       if (.not. allocated(this%bfi_obs)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: BFI_obs"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%bfi_obs), ubound(this%bfi_obs), &
-          "BFI_obs", errmsg)
+        status = idx_check(idx, shape(this%bfi_obs), "BFI_obs", errmsg)
         if (status /= NML_OK) return
         if (ieee_is_nan(this%bfi_obs(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -433,6 +436,260 @@ contains
       if (len_trim(errmsg) == 0) errmsg = "field not set: " // trim(name)
     end if
   end function nml_config_observations_is_set
+
+  !> \brief Obtain the item presence mask with one field-name dispatch
+  integer function nml_config_observations_set_mask__rank__1(this, name, mask, errmsg) result(status)
+    class(nml_config_observations_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    logical, allocatable, intent(out) :: mask(:) !< item presence
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("sm_path")
+      if (.not. allocated(this%sm_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: sm_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%sm_path, 1)))
+      do idx__1 = 1, size(this%sm_path, 1)
+        if (this%sm_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("neutrons_path")
+      if (.not. allocated(this%neutrons_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: neutrons_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%neutrons_path, 1)))
+      do idx__1 = 1, size(this%neutrons_path, 1)
+        if (this%neutrons_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("et_path")
+      if (.not. allocated(this%et_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: et_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%et_path, 1)))
+      do idx__1 = 1, size(this%et_path, 1)
+        if (this%et_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("tws_path")
+      if (.not. allocated(this%tws_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tws_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%tws_path, 1)))
+      do idx__1 = 1, size(this%tws_path, 1)
+        if (this%tws_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("bfi_obs")
+      if (.not. allocated(this%bfi_obs)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: BFI_obs"
+        return
+      end if
+      allocate(mask( &
+        size(this%bfi_obs, 1)))
+      do idx__1 = 1, size(this%bfi_obs, 1)
+        if (ieee_is_nan(this%bfi_obs(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("sm_horizons")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: sm_horizons"
+    case ("sm_time_step")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: sm_time_step"
+    case ("et_time_step")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: et_time_step"
+    case ("tws_time_step")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: tws_time_step"
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_observations_set_mask__rank__1
+
+  !> \brief Determine the smallest complete populated prefix starting at index 1
+  integer function nml_config_observations_filled_shape(this, name, filled, errmsg) result(status)
+    class(nml_config_observations_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    integer, intent(out) :: filled(:) !< prefix extents, retained when the prefix has holes
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    filled = 0
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("sm_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'sm_path'"
+        return
+      end if
+      if (.not. allocated(this%sm_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: sm_path"
+        return
+      end if
+      do idx__1 = 1, size(this%sm_path, 1)
+        if (this%sm_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%sm_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: sm_path"
+          return
+        end if
+      end do
+    case ("neutrons_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'neutrons_path'"
+        return
+      end if
+      if (.not. allocated(this%neutrons_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: neutrons_path"
+        return
+      end if
+      do idx__1 = 1, size(this%neutrons_path, 1)
+        if (this%neutrons_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%neutrons_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: neutrons_path"
+          return
+        end if
+      end do
+    case ("et_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'et_path'"
+        return
+      end if
+      if (.not. allocated(this%et_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: et_path"
+        return
+      end if
+      do idx__1 = 1, size(this%et_path, 1)
+        if (this%et_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%et_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: et_path"
+          return
+        end if
+      end do
+    case ("tws_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'tws_path'"
+        return
+      end if
+      if (.not. allocated(this%tws_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tws_path"
+        return
+      end if
+      do idx__1 = 1, size(this%tws_path, 1)
+        if (this%tws_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%tws_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: tws_path"
+          return
+        end if
+      end do
+    case ("bfi_obs")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'BFI_obs'"
+        return
+      end if
+      if (.not. allocated(this%bfi_obs)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: BFI_obs"
+        return
+      end if
+      do idx__1 = 1, size(this%bfi_obs, 1)
+        if (ieee_is_nan(this%bfi_obs(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (ieee_is_nan(this%bfi_obs(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: BFI_obs"
+          return
+        end if
+      end do
+    case ("sm_horizons")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: sm_horizons"
+    case ("sm_time_step")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: sm_time_step"
+    case ("et_time_step")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: et_time_step"
+    case ("tws_time_step")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: tws_time_step"
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_observations_filled_shape
 
   !> \brief Validate required values and constraints
   integer function nml_config_observations_is_valid(this, errmsg) result(status)

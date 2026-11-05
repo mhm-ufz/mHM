@@ -177,12 +177,16 @@ workflows before changing components or configuration; this file defines the det
 
 ## Schemas and documentation
 
-- `nml-schemas/*.yml` and `nml-config.toml` are authoritative. Run
-  `nml-tools generate --config nml-config.toml`; do not hand-edit generated `src/nml/*.f90`, templates, or namelist references.
+- `nml-schemas/*.yml` and `nml-config.toml` are authoritative. Use nml-tools 0.6 and run
+  `nml-tools generate --config nml-config.toml`, then `nml-tools check --config nml-config.toml --diff`;
+  do not hand-edit generated `src/nml/*.f90`, templates, or namelist references.
 - Declare configurable namelist dimensions in `nml-config.toml`, expose them in `config_project`,
-  and propagate them through the exchange to component `set_dims` before reading dependent namelists.
+  wire matching dimension sources for CLI/Python loading, and propagate them through the exchange
+  to component `set_dims` before reading dependent namelists.
   Use `nml_n_domains`/`nml_domain_id` for domain-local config indexing; keep data-derived counts distinct.
 - Include generated modules, root templates, and `doc/nml/` references together with schema changes.
+- A readable file may omit an all-optional namelist group; generated readers configure its defaults
+  and sentinels exactly as for an empty group. Output paths still control stream activation.
 - Follow the file/module header in [mo_river_flow.f90](src/mRM/mo_river_flow.f90): adapt filenames,
   module names, factual authorship, dates, version/changelog, copyright, and license. Preserve donor provenance; never invent attribution.
 - Every production module declares its appropriate `\ingroup` from [doc/directories.dox](doc/directories.dox);
@@ -220,7 +224,7 @@ build it, run affected CTest tests with `OMP_NUM_THREADS=1` and `OMP_NUM_THREADS
 runner with `--threads 1` and `--threads 4` against `./openmp_debug/app/mhm`.
 
 - CTest and the smoke runner stage isolated run roots. Keep restart write/read sequences together;
-  retain the runner's output configurations, including `mhm-output-template.nml` for required `output_mrm`.
+  retain the runner's output configurations so its requested output fields and cadences remain covered.
 - Every pFUnit `@assert...` stays on one physical source line without continuations; compute long expressions in locals first.
 - Add meaningful regressions for changed behavior; do not add tests merely mirroring implementation.
   Missing active inputs must fail with `log_fatal` + `error stop`; failure tests check exit status and the expected diagnostic.

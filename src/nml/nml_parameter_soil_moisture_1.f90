@@ -464,26 +464,26 @@ contains
     case ("organic_matter_forest%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_forest%value'"
         return
       end if
       if (ieee_is_nan(this%organic_matter_forest%value)) status = NML_ERR_NOT_SET
     case ("organic_matter_forest%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_forest%optimize'"
         return
       end if
     case ("organic_matter_forest%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_forest%min'"
         return
       end if
     case ("organic_matter_forest%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_forest%max'"
         return
       end if
     case ("organic_matter_forest")
@@ -492,32 +492,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'organic_matter_forest'"
         return
       end if
-      if (ieee_is_nan(this%organic_matter_forest%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%organic_matter_forest%value))) status = NML_ERR_NOT_SET
     case ("organic_matter_impervious%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_impervious%value'"
         return
       end if
       if (ieee_is_nan(this%organic_matter_impervious%value)) status = NML_ERR_NOT_SET
     case ("organic_matter_impervious%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_impervious%optimize'"
         return
       end if
     case ("organic_matter_impervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_impervious%min'"
         return
       end if
     case ("organic_matter_impervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_impervious%max'"
         return
       end if
     case ("organic_matter_impervious")
@@ -526,32 +524,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'organic_matter_impervious'"
         return
       end if
-      if (ieee_is_nan(this%organic_matter_impervious%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%organic_matter_impervious%value))) status = NML_ERR_NOT_SET
     case ("organic_matter_pervious%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_pervious%value'"
         return
       end if
       if (ieee_is_nan(this%organic_matter_pervious%value)) status = NML_ERR_NOT_SET
     case ("organic_matter_pervious%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_pervious%optimize'"
         return
       end if
     case ("organic_matter_pervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_pervious%min'"
         return
       end if
     case ("organic_matter_pervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'organic_matter_pervious%max'"
         return
       end if
     case ("organic_matter_pervious")
@@ -560,32 +556,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'organic_matter_pervious'"
         return
       end if
-      if (ieee_is_nan(this%organic_matter_pervious%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%organic_matter_pervious%value))) status = NML_ERR_NOT_SET
     case ("ptf_lower_66_5_constant%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_constant'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_constant%value'"
         return
       end if
       if (ieee_is_nan(this%ptf_lower_66_5_constant%value)) status = NML_ERR_NOT_SET
     case ("ptf_lower_66_5_constant%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_constant'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_constant%optimize'"
         return
       end if
     case ("ptf_lower_66_5_constant%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_constant'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_constant%min'"
         return
       end if
     case ("ptf_lower_66_5_constant%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_constant'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_constant%max'"
         return
       end if
     case ("ptf_lower_66_5_constant")
@@ -594,32 +588,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_constant'"
         return
       end if
-      if (ieee_is_nan(this%ptf_lower_66_5_constant%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%ptf_lower_66_5_constant%value))) status = NML_ERR_NOT_SET
     case ("ptf_lower_66_5_clay%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_clay'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_clay%value'"
         return
       end if
       if (ieee_is_nan(this%ptf_lower_66_5_clay%value)) status = NML_ERR_NOT_SET
     case ("ptf_lower_66_5_clay%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_clay'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_clay%optimize'"
         return
       end if
     case ("ptf_lower_66_5_clay%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_clay'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_clay%min'"
         return
       end if
     case ("ptf_lower_66_5_clay%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_clay'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_clay%max'"
         return
       end if
     case ("ptf_lower_66_5_clay")
@@ -628,32 +620,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_clay'"
         return
       end if
-      if (ieee_is_nan(this%ptf_lower_66_5_clay%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%ptf_lower_66_5_clay%value))) status = NML_ERR_NOT_SET
     case ("ptf_lower_66_5_bulk_density%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_bulk_density'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_bulk_density%value'"
         return
       end if
       if (ieee_is_nan(this%ptf_lower_66_5_bulk_density%value)) status = NML_ERR_NOT_SET
     case ("ptf_lower_66_5_bulk_density%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_bulk_density'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_bulk_density%optimize'"
         return
       end if
     case ("ptf_lower_66_5_bulk_density%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_bulk_density'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_bulk_density%min'"
         return
       end if
     case ("ptf_lower_66_5_bulk_density%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_bulk_density'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_bulk_density%max'"
         return
       end if
     case ("ptf_lower_66_5_bulk_density")
@@ -662,32 +652,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_lower_66_5_bulk_density'"
         return
       end if
-      if (ieee_is_nan(this%ptf_lower_66_5_bulk_density%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%ptf_lower_66_5_bulk_density%value))) status = NML_ERR_NOT_SET
     case ("ptf_upper_66_5_constant%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_constant'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_constant%value'"
         return
       end if
       if (ieee_is_nan(this%ptf_upper_66_5_constant%value)) status = NML_ERR_NOT_SET
     case ("ptf_upper_66_5_constant%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_constant'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_constant%optimize'"
         return
       end if
     case ("ptf_upper_66_5_constant%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_constant'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_constant%min'"
         return
       end if
     case ("ptf_upper_66_5_constant%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_constant'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_constant%max'"
         return
       end if
     case ("ptf_upper_66_5_constant")
@@ -696,32 +684,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_constant'"
         return
       end if
-      if (ieee_is_nan(this%ptf_upper_66_5_constant%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%ptf_upper_66_5_constant%value))) status = NML_ERR_NOT_SET
     case ("ptf_upper_66_5_clay%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_clay'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_clay%value'"
         return
       end if
       if (ieee_is_nan(this%ptf_upper_66_5_clay%value)) status = NML_ERR_NOT_SET
     case ("ptf_upper_66_5_clay%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_clay'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_clay%optimize'"
         return
       end if
     case ("ptf_upper_66_5_clay%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_clay'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_clay%min'"
         return
       end if
     case ("ptf_upper_66_5_clay%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_clay'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_clay%max'"
         return
       end if
     case ("ptf_upper_66_5_clay")
@@ -730,32 +716,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_clay'"
         return
       end if
-      if (ieee_is_nan(this%ptf_upper_66_5_clay%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%ptf_upper_66_5_clay%value))) status = NML_ERR_NOT_SET
     case ("ptf_upper_66_5_bulk_density%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_bulk_density'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_bulk_density%value'"
         return
       end if
       if (ieee_is_nan(this%ptf_upper_66_5_bulk_density%value)) status = NML_ERR_NOT_SET
     case ("ptf_upper_66_5_bulk_density%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_bulk_density'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_bulk_density%optimize'"
         return
       end if
     case ("ptf_upper_66_5_bulk_density%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_bulk_density'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_bulk_density%min'"
         return
       end if
     case ("ptf_upper_66_5_bulk_density%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_bulk_density'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_bulk_density%max'"
         return
       end if
     case ("ptf_upper_66_5_bulk_density")
@@ -764,32 +748,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_upper_66_5_bulk_density'"
         return
       end if
-      if (ieee_is_nan(this%ptf_upper_66_5_bulk_density%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%ptf_upper_66_5_bulk_density%value))) status = NML_ERR_NOT_SET
     case ("ptf_ks_constant%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant%value'"
         return
       end if
       if (ieee_is_nan(this%ptf_ks_constant%value)) status = NML_ERR_NOT_SET
     case ("ptf_ks_constant%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant%optimize'"
         return
       end if
     case ("ptf_ks_constant%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant%min'"
         return
       end if
     case ("ptf_ks_constant%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant%max'"
         return
       end if
     case ("ptf_ks_constant")
@@ -798,32 +780,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant'"
         return
       end if
-      if (ieee_is_nan(this%ptf_ks_constant%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%ptf_ks_constant%value))) status = NML_ERR_NOT_SET
     case ("ptf_ks_sand%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand%value'"
         return
       end if
       if (ieee_is_nan(this%ptf_ks_sand%value)) status = NML_ERR_NOT_SET
     case ("ptf_ks_sand%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand%optimize'"
         return
       end if
     case ("ptf_ks_sand%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand%min'"
         return
       end if
     case ("ptf_ks_sand%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand%max'"
         return
       end if
     case ("ptf_ks_sand")
@@ -832,32 +812,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand'"
         return
       end if
-      if (ieee_is_nan(this%ptf_ks_sand%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%ptf_ks_sand%value))) status = NML_ERR_NOT_SET
     case ("ptf_ks_clay%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay%value'"
         return
       end if
       if (ieee_is_nan(this%ptf_ks_clay%value)) status = NML_ERR_NOT_SET
     case ("ptf_ks_clay%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay%optimize'"
         return
       end if
     case ("ptf_ks_clay%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay%min'"
         return
       end if
     case ("ptf_ks_clay%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay%max'"
         return
       end if
     case ("ptf_ks_clay")
@@ -866,32 +844,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay'"
         return
       end if
-      if (ieee_is_nan(this%ptf_ks_clay%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%ptf_ks_clay%value))) status = NML_ERR_NOT_SET
     case ("root_fraction_forest%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_forest%value'"
         return
       end if
       if (ieee_is_nan(this%root_fraction_forest%value)) status = NML_ERR_NOT_SET
     case ("root_fraction_forest%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_forest%optimize'"
         return
       end if
     case ("root_fraction_forest%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_forest%min'"
         return
       end if
     case ("root_fraction_forest%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_forest%max'"
         return
       end if
     case ("root_fraction_forest")
@@ -900,32 +876,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'root_fraction_forest'"
         return
       end if
-      if (ieee_is_nan(this%root_fraction_forest%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%root_fraction_forest%value))) status = NML_ERR_NOT_SET
     case ("root_fraction_impervious%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_impervious%value'"
         return
       end if
       if (ieee_is_nan(this%root_fraction_impervious%value)) status = NML_ERR_NOT_SET
     case ("root_fraction_impervious%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_impervious%optimize'"
         return
       end if
     case ("root_fraction_impervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_impervious%min'"
         return
       end if
     case ("root_fraction_impervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_impervious%max'"
         return
       end if
     case ("root_fraction_impervious")
@@ -934,32 +908,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'root_fraction_impervious'"
         return
       end if
-      if (ieee_is_nan(this%root_fraction_impervious%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%root_fraction_impervious%value))) status = NML_ERR_NOT_SET
     case ("root_fraction_pervious%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_pervious%value'"
         return
       end if
       if (ieee_is_nan(this%root_fraction_pervious%value)) status = NML_ERR_NOT_SET
     case ("root_fraction_pervious%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_pervious%optimize'"
         return
       end if
     case ("root_fraction_pervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_pervious%min'"
         return
       end if
     case ("root_fraction_pervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'root_fraction_pervious%max'"
         return
       end if
     case ("root_fraction_pervious")
@@ -968,32 +940,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'root_fraction_pervious'"
         return
       end if
-      if (ieee_is_nan(this%root_fraction_pervious%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%root_fraction_pervious%value))) status = NML_ERR_NOT_SET
     case ("infiltration_shape_factor%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'infiltration_shape_factor'"
+        if (present(errmsg)) errmsg = "index not supported for 'infiltration_shape_factor%value'"
         return
       end if
       if (ieee_is_nan(this%infiltration_shape_factor%value)) status = NML_ERR_NOT_SET
     case ("infiltration_shape_factor%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'infiltration_shape_factor'"
+        if (present(errmsg)) errmsg = "index not supported for 'infiltration_shape_factor%optimize'"
         return
       end if
     case ("infiltration_shape_factor%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'infiltration_shape_factor'"
+        if (present(errmsg)) errmsg = "index not supported for 'infiltration_shape_factor%min'"
         return
       end if
     case ("infiltration_shape_factor%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'infiltration_shape_factor'"
+        if (present(errmsg)) errmsg = "index not supported for 'infiltration_shape_factor%max'"
         return
       end if
     case ("infiltration_shape_factor")
@@ -1002,9 +972,7 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'infiltration_shape_factor'"
         return
       end if
-      if (ieee_is_nan(this%infiltration_shape_factor%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%infiltration_shape_factor%value))) status = NML_ERR_NOT_SET
     case default
       status = NML_ERR_INVALID_NAME
       if (present(errmsg)) errmsg = "unknown field: " // trim(name)

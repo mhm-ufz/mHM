@@ -1,4 +1,4 @@
-required-versions = ">=0.5,<0.6"
+required-version = ">=0.6,<0.7"
 
 [helper]
 path = "src/nml/nml_helper.f90"
@@ -19,18 +19,22 @@ doc = "String buffer length."
 [dimensions]
 [dimensions.max_layers]
 default = 10
+source = { namelist = "config_project", property = "max_layers" }
 doc = "Maximum number of soil-layer entries stored per domain in a namelist file."
 
 [dimensions.n_domains]
-default = 100
+default = 1
+source = { namelist = "config_project", property = "n_domains" }
 doc = "Number of domains."
 
 [dimensions.n_geo_units]
 default = 25
+source = { namelist = "config_project", property = "n_geo_units" }
 doc = "Number of geological units."
 
 [dimensions.max_lakes]
 default = 50
+source = { namelist = "config_project", property = "max_lakes" }
 doc = "Maximum number of lakes per domain stored in a namelist file (sizing dimension for per-lake arrays)."
 
 [documentation]
@@ -288,8 +292,8 @@ doc_path = "doc/nml/output_mrm.md"
 [[file_profiles]]
 name = "meta"
 title = "Meta configuration"
-description = "Project-level configuration for combined mHM runs."
-default_file = "mhm.nml"
+description = "Project-level configuration for combined mHM runs; domain-local configurations are loaded separately by the runtime."
+default_file = "combine.nml"
 namelists = ["config_project", "config_domain", "config_processes", "config_optimize"]
 required = ["config_project", "config_processes"]
 
@@ -353,6 +357,24 @@ namelists = [
   "river_temperature_1",
   "lakes_1",
 ]
+
+[[project_profiles]]
+name = "standard"
+title = "Standard run"
+description = "Runtime, parameter, and output configuration, including multiple domains in one main file."
+file_profiles = ["main", "parameter", "output"]
+
+[[project_profiles]]
+name = "combined"
+title = "Combined run"
+description = "Meta, parameter, and output configuration; the runtime loads each domain's local configuration separately."
+file_profiles = ["meta", "parameter", "output"]
+
+[[project_profiles]]
+name = "member"
+title = "Domain within a combined run"
+description = "Domain-local runtime configuration; parameter and output settings are supplied by the enclosing combined run."
+file_profiles = ["main"]
 
 [[templates]]
 path = "mhm-template.nml"

@@ -321,7 +321,7 @@ the variable-bottom marker and output names.
 
 ## Size namelists before reading them
 
-Namelists are generated from `nml-schemas/*.yml` and `nml-config.toml`. Their
+Namelists are generated with nml-tools 0.6 from `nml-schemas/*.yml` and `nml-config.toml`. Their
 runtime dimensions must be known before dependent arrays can be read:
 
 1. `exchange%create` reads `config_project` and establishes project dimensions.
@@ -338,7 +338,13 @@ The [project reference](@ref config_project) and
 
 When adding a configurable namelist dimension, declare it in `nml-config.toml`,
 expose its value in `config_project`, propagate it through the exchange, and wire
-it into the owning component's `set_dims`. Generator defaults alone do not
+it into the owning component's `set_dims`. Also declare its dimension `source`
+as the matching scalar property in `config_project` for CLI/Python inference.
+Explicit CLI dimension overrides take precedence over explicit source assignments;
+without either, the TOML dimension default applies, not the schema property default.
+The `n_domains` dimension defaults to one, matching `config_project`; multi-domain
+files specify their domain count explicitly.
+This inference does not replace Fortran `set_dims` calls. Generator defaults alone do not
 express the project's required capacity. Counts obtained from datasets, such as
 the actual number of lake points, remain data-derived unless needed to size a
 namelist array.
@@ -347,6 +353,20 @@ Use `exchange%nml_n_domains` and `exchange%nml_domain_id` for domain-indexed
 component namelists. With separate domain directories, these are both one;
 the top-level project still describes all domains and supplies sufficient
 allocation capacity for them.
+
+The `standard` project profile groups the `main`, `parameter`, and `output` file
+profiles. The `combined` profile groups `meta`, `parameter`, and `output`;
+its `combine.nml` filename is a hint, and the runtime separately loads domain-local
+configurations. The `member` profile contains only `main` for editing one of those
+domain-local configurations; the enclosing combined run supplies its parameter
+and output settings. Each project profile contains `config_project` in exactly
+one file profile.
+
+Generated readers accept an absent all-optional group in a readable file, setting
+the same defaults and optional-value sentinels as an empty group. This includes
+`output_mhm`, `output_mlm`, and `output_mrm`. Configured output paths still control
+stream activation; output-only dependencies and cadence checks apply only to active
+streams. Missing files and malformed groups still return read errors.
 
 For a new parameter block, register its schema/file profile in `nml-config.toml`
 and its generated config type in `parameter_namelists_t`. The owning component

@@ -68,8 +68,15 @@ directory. CTest similarly uses separate build-tree run directories.
 Generated modules, templates, and reference documentation are updated with:
 
 ```bash
+python -m pip install 'nml-tools==0.6.0'
 nml-tools generate --config nml-config.toml
+nml-tools check --config nml-config.toml --diff
 ```
+
+GitLab installs nml-tools using `required-version` from `nml-config.toml` and runs
+the generated-file check before compilation. All-optional output groups
+may be omitted from an existing output file; omitted groups use the same defaults
+as empty groups. Configured output paths still determine which streams are active.
 
 Namelist reference documents remain in `doc/nml/`. The Doxygen documentation
 includes the scientific overview, source API, installation guidance, and

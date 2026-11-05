@@ -29,7 +29,8 @@ module nml_config_time
     idx_check, &
     to_lower, &
     n_domains__default, &
-    buf
+    buf, &
+    NML_ERR_PARTLY_SET
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     i4
@@ -62,6 +63,10 @@ module nml_config_time
     procedure :: from_file => nml_config_time_from_file
     procedure :: set => nml_config_time_set
     procedure :: is_set => nml_config_time_is_set
+    procedure, private :: set_mask__rank__1 => nml_config_time_set_mask__rank__1
+    generic :: set_mask => &
+      set_mask__rank__1
+    procedure :: filled_shape => nml_config_time_filled_shape
     procedure :: is_valid => nml_config_time_is_valid
   end type nml_config_time_t
 
@@ -193,6 +198,16 @@ contains
 
     status = nml%find("config_time", errmsg=errmsg)
     if (status /= NML_OK) then
+      if (status == NML_ERR_NML_NOT_FOUND) then
+        close_status = nml%close(errmsg=errmsg)
+        if (close_status /= NML_OK) then
+          status = close_status
+          return
+        end if
+        this%is_configured = .true.
+        status = NML_OK
+        return
+      end if
       close_status = nml%close()
       return
     end if
@@ -242,9 +257,6 @@ contains
     logical, intent(in), optional :: share_time_period !< Share time period between domains
     integer(i4), dimension(:), intent(in), optional :: time_step !< Global model time step
     logical, intent(in), optional :: share_time_step !< Share time step between domains
-    integer :: &
-      lb__1, &
-      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -257,9 +269,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'sim_start'"
         return
       end if
-      lb__1 = lbound(this%sim_start, 1)
-      ub__1 = lb__1 + size(sim_start, 1) - 1
-      this%sim_start(lb__1:ub__1) = sim_start
+      this%sim_start(1:size(sim_start, 1)) = sim_start
     end if
     if (present(eval_start)) then
       if (size(eval_start, 1) > size(this%eval_start, 1)) then
@@ -267,9 +277,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'eval_start'"
         return
       end if
-      lb__1 = lbound(this%eval_start, 1)
-      ub__1 = lb__1 + size(eval_start, 1) - 1
-      this%eval_start(lb__1:ub__1) = eval_start
+      this%eval_start(1:size(eval_start, 1)) = eval_start
     end if
     if (present(sim_end)) then
       if (size(sim_end, 1) > size(this%sim_end, 1)) then
@@ -277,9 +285,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'sim_end'"
         return
       end if
-      lb__1 = lbound(this%sim_end, 1)
-      ub__1 = lb__1 + size(sim_end, 1) - 1
-      this%sim_end(lb__1:ub__1) = sim_end
+      this%sim_end(1:size(sim_end, 1)) = sim_end
     end if
     if (present(share_time_period)) this%share_time_period = share_time_period
     if (present(time_step)) then
@@ -288,9 +294,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'time_step'"
         return
       end if
-      lb__1 = lbound(this%time_step, 1)
-      ub__1 = lb__1 + size(time_step, 1) - 1
-      this%time_step(lb__1:ub__1) = time_step
+      this%time_step(1:size(time_step, 1)) = time_step
     end if
     if (present(share_time_step)) this%share_time_step = share_time_step
 
@@ -305,6 +309,7 @@ contains
     character(len=*), intent(in) :: name !< field name
     integer, intent(in), optional :: idx(:) !< optional field index values
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    intrinsic :: shape
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -317,11 +322,11 @@ contains
     case ("sim_start")
       if (.not. allocated(this%sim_start)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: sim_start"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%sim_start), ubound(this%sim_start), &
-          "sim_start", errmsg)
+        status = idx_check(idx, shape(this%sim_start), "sim_start", errmsg)
         if (status /= NML_OK) return
         if (this%sim_start(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -330,11 +335,11 @@ contains
     case ("eval_start")
       if (.not. allocated(this%eval_start)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: eval_start"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%eval_start), ubound(this%eval_start), &
-          "eval_start", errmsg)
+        status = idx_check(idx, shape(this%eval_start), "eval_start", errmsg)
         if (status /= NML_OK) return
         if (this%eval_start(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -343,11 +348,11 @@ contains
     case ("sim_end")
       if (.not. allocated(this%sim_end)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: sim_end"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%sim_end), ubound(this%sim_end), &
-          "sim_end", errmsg)
+        status = idx_check(idx, shape(this%sim_end), "sim_end", errmsg)
         if (status /= NML_OK) return
         if (this%sim_end(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -362,13 +367,12 @@ contains
     case ("time_step")
       if (.not. allocated(this%time_step)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: time_step"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%time_step), ubound(this%time_step), &
-          "time_step", errmsg)
+        status = idx_check(idx, shape(this%time_step), "time_step", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("share_time_step")
       if (present(idx)) then
@@ -384,6 +388,195 @@ contains
       if (len_trim(errmsg) == 0) errmsg = "field not set: " // trim(name)
     end if
   end function nml_config_time_is_set
+
+  !> \brief Obtain the item presence mask with one field-name dispatch
+  integer function nml_config_time_set_mask__rank__1(this, name, mask, errmsg) result(status)
+    class(nml_config_time_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    logical, allocatable, intent(out) :: mask(:) !< item presence
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("sim_start")
+      if (.not. allocated(this%sim_start)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: sim_start"
+        return
+      end if
+      allocate(mask( &
+        size(this%sim_start, 1)))
+      do idx__1 = 1, size(this%sim_start, 1)
+        if (this%sim_start(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("eval_start")
+      if (.not. allocated(this%eval_start)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: eval_start"
+        return
+      end if
+      allocate(mask( &
+        size(this%eval_start, 1)))
+      do idx__1 = 1, size(this%eval_start, 1)
+        if (this%eval_start(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("sim_end")
+      if (.not. allocated(this%sim_end)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: sim_end"
+        return
+      end if
+      allocate(mask( &
+        size(this%sim_end, 1)))
+      do idx__1 = 1, size(this%sim_end, 1)
+        if (this%sim_end(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("share_time_period")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: share_time_period"
+    case ("time_step")
+      if (.not. allocated(this%time_step)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: time_step"
+        return
+      end if
+      allocate(mask( &
+        size(this%time_step, 1)))
+      mask = .true.
+    case ("share_time_step")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: share_time_step"
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_time_set_mask__rank__1
+
+  !> \brief Determine the smallest complete populated prefix starting at index 1
+  integer function nml_config_time_filled_shape(this, name, filled, errmsg) result(status)
+    class(nml_config_time_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    integer, intent(out) :: filled(:) !< prefix extents, retained when the prefix has holes
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    filled = 0
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("sim_start")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'sim_start'"
+        return
+      end if
+      if (.not. allocated(this%sim_start)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: sim_start"
+        return
+      end if
+      do idx__1 = 1, size(this%sim_start, 1)
+        if (this%sim_start(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%sim_start(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: sim_start"
+          return
+        end if
+      end do
+    case ("eval_start")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'eval_start'"
+        return
+      end if
+      if (.not. allocated(this%eval_start)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: eval_start"
+        return
+      end if
+      do idx__1 = 1, size(this%eval_start, 1)
+        if (this%eval_start(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%eval_start(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: eval_start"
+          return
+        end if
+      end do
+    case ("sim_end")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'sim_end'"
+        return
+      end if
+      if (.not. allocated(this%sim_end)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: sim_end"
+        return
+      end if
+      do idx__1 = 1, size(this%sim_end, 1)
+        if (this%sim_end(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%sim_end(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: sim_end"
+          return
+        end if
+      end do
+    case ("share_time_period")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: share_time_period"
+    case ("time_step")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'time_step'"
+        return
+      end if
+      if (.not. allocated(this%time_step)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: time_step"
+        return
+      end if
+      filled(1) = size(this%time_step, 1)
+    case ("share_time_step")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: share_time_step"
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_time_filled_shape
 
   !> \brief Validate required values and constraints
   integer function nml_config_time_is_valid(this, errmsg) result(status)

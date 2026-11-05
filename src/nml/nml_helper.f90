@@ -46,7 +46,7 @@ module nml_helper
   !> \brief Shared constants for generated namelist modules
   integer, parameter, public :: buf = 256 !< String buffer length.
   integer, parameter, public :: max_layers__default = 10 !< Maximum number of soil-layer entries stored per domain in a namelist file.
-  integer, parameter, public :: n_domains__default = 100 !< Number of domains.
+  integer, parameter, public :: n_domains__default = 1 !< Number of domains.
   integer, parameter, public :: n_geo_units__default = 25 !< Number of geological units.
   integer, parameter, public :: max_lakes__default = 50 !< Maximum number of lakes per domain stored in a namelist file (sizing dimension for per-lake arrays).
 
@@ -158,20 +158,19 @@ contains
     end do
   end function to_lower
 
-  !> \brief Validate index bounds for array access
-  integer function idx_check(idx, lower, upper, field, errmsg) result(status)
+  !> \brief Validate one-based indices against array extents
+  integer function idx_check(idx, shp, field, errmsg) result(status)
     integer, intent(in) :: idx(:)
-    integer, intent(in) :: lower(:)
-    integer, intent(in) :: upper(:)
+    integer, intent(in) :: shp(:)
     character(len=*), intent(in) :: field
     character(len=*), intent(out), optional :: errmsg
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
-    if (size(idx) /= size(lower)) then
+    if (size(idx) /= size(shp)) then
       status = NML_ERR_INVALID_INDEX
       if (present(errmsg)) errmsg = "index rank mismatch for '" // trim(field) // "'"
-    else if (any(idx < lower) .or. any(idx > upper)) then
+    else if (any(idx < 1) .or. any(idx > shp)) then
       status = NML_ERR_INVALID_INDEX
       if (present(errmsg)) errmsg = "index out of bounds for '" // trim(field) // "'"
     end if

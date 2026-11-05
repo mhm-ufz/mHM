@@ -29,7 +29,8 @@ module nml_config_mrm
     idx_check, &
     to_lower, &
     n_domains__default, &
-    buf
+    buf, &
+    NML_ERR_PARTLY_SET
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
@@ -91,6 +92,10 @@ module nml_config_mrm
     procedure :: from_file => nml_config_mrm_from_file
     procedure :: set => nml_config_mrm_set
     procedure :: is_set => nml_config_mrm_is_set
+    procedure, private :: set_mask__rank__1 => nml_config_mrm_set_mask__rank__1
+    generic :: set_mask => &
+      set_mask__rank__1
+    procedure :: filled_shape => nml_config_mrm_filled_shape
     procedure :: is_valid => nml_config_mrm_is_valid
   end type nml_config_mrm_t
 
@@ -402,6 +407,16 @@ contains
 
     status = nml%find("config_mrm", errmsg=errmsg)
     if (status /= NML_OK) then
+      if (status == NML_ERR_NML_NOT_FOUND) then
+        close_status = nml%close(errmsg=errmsg)
+        if (close_status /= NML_OK) then
+          status = close_status
+          return
+        end if
+        this%is_configured = .true.
+        status = NML_OK
+        return
+      end if
       close_status = nml%close()
       return
     end if
@@ -490,9 +505,6 @@ contains
     logical, dimension(:), intent(in), optional :: write_restart !< Write restart
     character(len=*), dimension(:), intent(in), optional :: restart_output_path !< Restart output path
     character(len=*), dimension(:), intent(in), optional :: diagnostics_path !< Diagnostics output path
-    integer :: &
-      lb__1, &
-      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -505,9 +517,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'river_net_order_root_based'"
         return
       end if
-      lb__1 = lbound(this%river_net_order_root_based, 1)
-      ub__1 = lb__1 + size(river_net_order_root_based, 1) - 1
-      this%river_net_order_root_based(lb__1:ub__1) = river_net_order_root_based
+      this%river_net_order_root_based(1:size(river_net_order_root_based, 1)) = river_net_order_root_based
     end if
     if (present(river_net_omp_level_min)) then
       if (size(river_net_omp_level_min, 1) > size(this%river_net_omp_level_min, 1)) then
@@ -515,9 +525,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'river_net_omp_level_min'"
         return
       end if
-      lb__1 = lbound(this%river_net_omp_level_min, 1)
-      ub__1 = lb__1 + size(river_net_omp_level_min, 1) - 1
-      this%river_net_omp_level_min(lb__1:ub__1) = river_net_omp_level_min
+      this%river_net_omp_level_min(1:size(river_net_omp_level_min, 1)) = river_net_omp_level_min
     end if
     if (present(max_route_step)) then
       if (size(max_route_step, 1) > size(this%max_route_step, 1)) then
@@ -525,9 +533,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'max_route_step'"
         return
       end if
-      lb__1 = lbound(this%max_route_step, 1)
-      ub__1 = lb__1 + size(max_route_step, 1) - 1
-      this%max_route_step(lb__1:ub__1) = max_route_step
+      this%max_route_step(1:size(max_route_step, 1)) = max_route_step
     end if
     if (present(upscale_mode)) then
       if (size(upscale_mode, 1) > size(this%upscale_mode, 1)) then
@@ -535,9 +541,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'upscale_mode'"
         return
       end if
-      lb__1 = lbound(this%upscale_mode, 1)
-      ub__1 = lb__1 + size(upscale_mode, 1) - 1
-      this%upscale_mode(lb__1:ub__1) = upscale_mode
+      this%upscale_mode(1:size(upscale_mode, 1)) = upscale_mode
     end if
     if (present(length_percentile)) then
       if (size(length_percentile, 1) > size(this%length_percentile, 1)) then
@@ -545,9 +549,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'length_percentile'"
         return
       end if
-      lb__1 = lbound(this%length_percentile, 1)
-      ub__1 = lb__1 + size(length_percentile, 1) - 1
-      this%length_percentile(lb__1:ub__1) = length_percentile
+      this%length_percentile(1:size(length_percentile, 1)) = length_percentile
     end if
     if (present(scc_gauges_path)) then
       if (size(scc_gauges_path, 1) > size(this%scc_gauges_path, 1)) then
@@ -555,9 +557,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'scc_gauges_path'"
         return
       end if
-      lb__1 = lbound(this%scc_gauges_path, 1)
-      ub__1 = lb__1 + size(scc_gauges_path, 1) - 1
-      this%scc_gauges_path(lb__1:ub__1) = scc_gauges_path
+      this%scc_gauges_path(1:size(scc_gauges_path, 1)) = scc_gauges_path
     end if
     if (present(scc_gauges_as_poi)) then
       if (size(scc_gauges_as_poi, 1) > size(this%scc_gauges_as_poi, 1)) then
@@ -565,9 +565,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'scc_gauges_as_poi'"
         return
       end if
-      lb__1 = lbound(this%scc_gauges_as_poi, 1)
-      ub__1 = lb__1 + size(scc_gauges_as_poi, 1) - 1
-      this%scc_gauges_as_poi(lb__1:ub__1) = scc_gauges_as_poi
+      this%scc_gauges_as_poi(1:size(scc_gauges_as_poi, 1)) = scc_gauges_as_poi
     end if
     if (present(poi_gauges_path)) then
       if (size(poi_gauges_path, 1) > size(this%poi_gauges_path, 1)) then
@@ -575,9 +573,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'poi_gauges_path'"
         return
       end if
-      lb__1 = lbound(this%poi_gauges_path, 1)
-      ub__1 = lb__1 + size(poi_gauges_path, 1) - 1
-      this%poi_gauges_path(lb__1:ub__1) = poi_gauges_path
+      this%poi_gauges_path(1:size(poi_gauges_path, 1)) = poi_gauges_path
     end if
     if (present(output_path)) then
       if (size(output_path, 1) > size(this%output_path, 1)) then
@@ -585,9 +581,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'output_path'"
         return
       end if
-      lb__1 = lbound(this%output_path, 1)
-      ub__1 = lb__1 + size(output_path, 1) - 1
-      this%output_path(lb__1:ub__1) = output_path
+      this%output_path(1:size(output_path, 1)) = output_path
     end if
     if (present(output_node_path)) then
       if (size(output_node_path, 1) > size(this%output_node_path, 1)) then
@@ -595,9 +589,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'output_node_path'"
         return
       end if
-      lb__1 = lbound(this%output_node_path, 1)
-      ub__1 = lb__1 + size(output_node_path, 1) - 1
-      this%output_node_path(lb__1:ub__1) = output_node_path
+      this%output_node_path(1:size(output_node_path, 1)) = output_node_path
     end if
     if (present(output_poi_path)) then
       if (size(output_poi_path, 1) > size(this%output_poi_path, 1)) then
@@ -605,9 +597,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'output_poi_path'"
         return
       end if
-      lb__1 = lbound(this%output_poi_path, 1)
-      ub__1 = lb__1 + size(output_poi_path, 1) - 1
-      this%output_poi_path(lb__1:ub__1) = output_poi_path
+      this%output_poi_path(1:size(output_poi_path, 1)) = output_poi_path
     end if
     if (present(poi_timeseries)) then
       if (size(poi_timeseries, 1) > size(this%poi_timeseries, 1)) then
@@ -615,9 +605,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'poi_timeseries'"
         return
       end if
-      lb__1 = lbound(this%poi_timeseries, 1)
-      ub__1 = lb__1 + size(poi_timeseries, 1) - 1
-      this%poi_timeseries(lb__1:ub__1) = poi_timeseries
+      this%poi_timeseries(1:size(poi_timeseries, 1)) = poi_timeseries
     end if
     if (present(node_timeseries)) then
       if (size(node_timeseries, 1) > size(this%node_timeseries, 1)) then
@@ -625,9 +613,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'node_timeseries'"
         return
       end if
-      lb__1 = lbound(this%node_timeseries, 1)
-      ub__1 = lb__1 + size(node_timeseries, 1) - 1
-      this%node_timeseries(lb__1:ub__1) = node_timeseries
+      this%node_timeseries(1:size(node_timeseries, 1)) = node_timeseries
     end if
     if (present(read_restart)) then
       if (size(read_restart, 1) > size(this%read_restart, 1)) then
@@ -635,9 +621,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'read_restart'"
         return
       end if
-      lb__1 = lbound(this%read_restart, 1)
-      ub__1 = lb__1 + size(read_restart, 1) - 1
-      this%read_restart(lb__1:ub__1) = read_restart
+      this%read_restart(1:size(read_restart, 1)) = read_restart
     end if
     if (present(read_restart_fluxes)) then
       if (size(read_restart_fluxes, 1) > size(this%read_restart_fluxes, 1)) then
@@ -645,9 +629,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'read_restart_fluxes'"
         return
       end if
-      lb__1 = lbound(this%read_restart_fluxes, 1)
-      ub__1 = lb__1 + size(read_restart_fluxes, 1) - 1
-      this%read_restart_fluxes(lb__1:ub__1) = read_restart_fluxes
+      this%read_restart_fluxes(1:size(read_restart_fluxes, 1)) = read_restart_fluxes
     end if
     if (present(restart_input_path)) then
       if (size(restart_input_path, 1) > size(this%restart_input_path, 1)) then
@@ -655,9 +637,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'restart_input_path'"
         return
       end if
-      lb__1 = lbound(this%restart_input_path, 1)
-      ub__1 = lb__1 + size(restart_input_path, 1) - 1
-      this%restart_input_path(lb__1:ub__1) = restart_input_path
+      this%restart_input_path(1:size(restart_input_path, 1)) = restart_input_path
     end if
     if (present(write_restart)) then
       if (size(write_restart, 1) > size(this%write_restart, 1)) then
@@ -665,9 +645,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'write_restart'"
         return
       end if
-      lb__1 = lbound(this%write_restart, 1)
-      ub__1 = lb__1 + size(write_restart, 1) - 1
-      this%write_restart(lb__1:ub__1) = write_restart
+      this%write_restart(1:size(write_restart, 1)) = write_restart
     end if
     if (present(restart_output_path)) then
       if (size(restart_output_path, 1) > size(this%restart_output_path, 1)) then
@@ -675,9 +653,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'restart_output_path'"
         return
       end if
-      lb__1 = lbound(this%restart_output_path, 1)
-      ub__1 = lb__1 + size(restart_output_path, 1) - 1
-      this%restart_output_path(lb__1:ub__1) = restart_output_path
+      this%restart_output_path(1:size(restart_output_path, 1)) = restart_output_path
     end if
     if (present(diagnostics_path)) then
       if (size(diagnostics_path, 1) > size(this%diagnostics_path, 1)) then
@@ -685,9 +661,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'diagnostics_path'"
         return
       end if
-      lb__1 = lbound(this%diagnostics_path, 1)
-      ub__1 = lb__1 + size(diagnostics_path, 1) - 1
-      this%diagnostics_path(lb__1:ub__1) = diagnostics_path
+      this%diagnostics_path(1:size(diagnostics_path, 1)) = diagnostics_path
     end if
 
     ! mark as configured
@@ -701,6 +675,7 @@ contains
     character(len=*), intent(in) :: name !< field name
     integer, intent(in), optional :: idx(:) !< optional field index values
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    intrinsic :: shape
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -713,66 +688,61 @@ contains
     case ("river_net_order_root_based")
       if (.not. allocated(this%river_net_order_root_based)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: river_net_order_root_based"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%river_net_order_root_based), ubound(this%river_net_order_root_based), &
-          "river_net_order_root_based", errmsg)
+        status = idx_check(idx, shape(this%river_net_order_root_based), "river_net_order_root_based", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("river_net_omp_level_min")
       if (.not. allocated(this%river_net_omp_level_min)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: river_net_omp_level_min"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%river_net_omp_level_min), ubound(this%river_net_omp_level_min), &
-          "river_net_omp_level_min", errmsg)
+        status = idx_check(idx, shape(this%river_net_omp_level_min), "river_net_omp_level_min", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("max_route_step")
       if (.not. allocated(this%max_route_step)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: max_route_step"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%max_route_step), ubound(this%max_route_step), &
-          "max_route_step", errmsg)
+        status = idx_check(idx, shape(this%max_route_step), "max_route_step", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("upscale_mode")
       if (.not. allocated(this%upscale_mode)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: upscale_mode"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%upscale_mode), ubound(this%upscale_mode), &
-          "upscale_mode", errmsg)
+        status = idx_check(idx, shape(this%upscale_mode), "upscale_mode", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("length_percentile")
       if (.not. allocated(this%length_percentile)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: length_percentile"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%length_percentile), ubound(this%length_percentile), &
-          "length_percentile", errmsg)
+        status = idx_check(idx, shape(this%length_percentile), "length_percentile", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("scc_gauges_path")
       if (.not. allocated(this%scc_gauges_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: scc_gauges_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%scc_gauges_path), ubound(this%scc_gauges_path), &
-          "scc_gauges_path", errmsg)
+        status = idx_check(idx, shape(this%scc_gauges_path), "scc_gauges_path", errmsg)
         if (status /= NML_OK) return
         if (this%scc_gauges_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -781,22 +751,21 @@ contains
     case ("scc_gauges_as_poi")
       if (.not. allocated(this%scc_gauges_as_poi)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: scc_gauges_as_poi"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%scc_gauges_as_poi), ubound(this%scc_gauges_as_poi), &
-          "scc_gauges_as_poi", errmsg)
+        status = idx_check(idx, shape(this%scc_gauges_as_poi), "scc_gauges_as_poi", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("poi_gauges_path")
       if (.not. allocated(this%poi_gauges_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: poi_gauges_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%poi_gauges_path), ubound(this%poi_gauges_path), &
-          "poi_gauges_path", errmsg)
+        status = idx_check(idx, shape(this%poi_gauges_path), "poi_gauges_path", errmsg)
         if (status /= NML_OK) return
         if (this%poi_gauges_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -805,11 +774,11 @@ contains
     case ("output_path")
       if (.not. allocated(this%output_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: output_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%output_path), ubound(this%output_path), &
-          "output_path", errmsg)
+        status = idx_check(idx, shape(this%output_path), "output_path", errmsg)
         if (status /= NML_OK) return
         if (this%output_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -818,11 +787,11 @@ contains
     case ("output_node_path")
       if (.not. allocated(this%output_node_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: output_node_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%output_node_path), ubound(this%output_node_path), &
-          "output_node_path", errmsg)
+        status = idx_check(idx, shape(this%output_node_path), "output_node_path", errmsg)
         if (status /= NML_OK) return
         if (this%output_node_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -831,11 +800,11 @@ contains
     case ("output_poi_path")
       if (.not. allocated(this%output_poi_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: output_poi_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%output_poi_path), ubound(this%output_poi_path), &
-          "output_poi_path", errmsg)
+        status = idx_check(idx, shape(this%output_poi_path), "output_poi_path", errmsg)
         if (status /= NML_OK) return
         if (this%output_poi_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -844,55 +813,51 @@ contains
     case ("poi_timeseries")
       if (.not. allocated(this%poi_timeseries)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: poi_timeseries"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%poi_timeseries), ubound(this%poi_timeseries), &
-          "poi_timeseries", errmsg)
+        status = idx_check(idx, shape(this%poi_timeseries), "poi_timeseries", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("node_timeseries")
       if (.not. allocated(this%node_timeseries)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: node_timeseries"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%node_timeseries), ubound(this%node_timeseries), &
-          "node_timeseries", errmsg)
+        status = idx_check(idx, shape(this%node_timeseries), "node_timeseries", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("read_restart")
       if (.not. allocated(this%read_restart)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: read_restart"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%read_restart), ubound(this%read_restart), &
-          "read_restart", errmsg)
+        status = idx_check(idx, shape(this%read_restart), "read_restart", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("read_restart_fluxes")
       if (.not. allocated(this%read_restart_fluxes)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: read_restart_fluxes"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%read_restart_fluxes), ubound(this%read_restart_fluxes), &
-          "read_restart_fluxes", errmsg)
+        status = idx_check(idx, shape(this%read_restart_fluxes), "read_restart_fluxes", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("restart_input_path")
       if (.not. allocated(this%restart_input_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_input_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%restart_input_path), ubound(this%restart_input_path), &
-          "restart_input_path", errmsg)
+        status = idx_check(idx, shape(this%restart_input_path), "restart_input_path", errmsg)
         if (status /= NML_OK) return
         if (this%restart_input_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -901,22 +866,21 @@ contains
     case ("write_restart")
       if (.not. allocated(this%write_restart)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: write_restart"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%write_restart), ubound(this%write_restart), &
-          "write_restart", errmsg)
+        status = idx_check(idx, shape(this%write_restart), "write_restart", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("restart_output_path")
       if (.not. allocated(this%restart_output_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_output_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%restart_output_path), ubound(this%restart_output_path), &
-          "restart_output_path", errmsg)
+        status = idx_check(idx, shape(this%restart_output_path), "restart_output_path", errmsg)
         if (status /= NML_OK) return
         if (this%restart_output_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -925,11 +889,11 @@ contains
     case ("diagnostics_path")
       if (.not. allocated(this%diagnostics_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: diagnostics_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%diagnostics_path), ubound(this%diagnostics_path), &
-          "diagnostics_path", errmsg)
+        status = idx_check(idx, shape(this%diagnostics_path), "diagnostics_path", errmsg)
         if (status /= NML_OK) return
         if (this%diagnostics_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -943,6 +907,578 @@ contains
       if (len_trim(errmsg) == 0) errmsg = "field not set: " // trim(name)
     end if
   end function nml_config_mrm_is_set
+
+  !> \brief Obtain the item presence mask with one field-name dispatch
+  integer function nml_config_mrm_set_mask__rank__1(this, name, mask, errmsg) result(status)
+    class(nml_config_mrm_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    logical, allocatable, intent(out) :: mask(:) !< item presence
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("river_net_order_root_based")
+      if (.not. allocated(this%river_net_order_root_based)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: river_net_order_root_based"
+        return
+      end if
+      allocate(mask( &
+        size(this%river_net_order_root_based, 1)))
+      mask = .true.
+    case ("river_net_omp_level_min")
+      if (.not. allocated(this%river_net_omp_level_min)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: river_net_omp_level_min"
+        return
+      end if
+      allocate(mask( &
+        size(this%river_net_omp_level_min, 1)))
+      mask = .true.
+    case ("max_route_step")
+      if (.not. allocated(this%max_route_step)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: max_route_step"
+        return
+      end if
+      allocate(mask( &
+        size(this%max_route_step, 1)))
+      mask = .true.
+    case ("upscale_mode")
+      if (.not. allocated(this%upscale_mode)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: upscale_mode"
+        return
+      end if
+      allocate(mask( &
+        size(this%upscale_mode, 1)))
+      mask = .true.
+    case ("length_percentile")
+      if (.not. allocated(this%length_percentile)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: length_percentile"
+        return
+      end if
+      allocate(mask( &
+        size(this%length_percentile, 1)))
+      mask = .true.
+    case ("scc_gauges_path")
+      if (.not. allocated(this%scc_gauges_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: scc_gauges_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%scc_gauges_path, 1)))
+      do idx__1 = 1, size(this%scc_gauges_path, 1)
+        if (this%scc_gauges_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("scc_gauges_as_poi")
+      if (.not. allocated(this%scc_gauges_as_poi)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: scc_gauges_as_poi"
+        return
+      end if
+      allocate(mask( &
+        size(this%scc_gauges_as_poi, 1)))
+      mask = .true.
+    case ("poi_gauges_path")
+      if (.not. allocated(this%poi_gauges_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: poi_gauges_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%poi_gauges_path, 1)))
+      do idx__1 = 1, size(this%poi_gauges_path, 1)
+        if (this%poi_gauges_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("output_path")
+      if (.not. allocated(this%output_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: output_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%output_path, 1)))
+      do idx__1 = 1, size(this%output_path, 1)
+        if (this%output_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("output_node_path")
+      if (.not. allocated(this%output_node_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: output_node_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%output_node_path, 1)))
+      do idx__1 = 1, size(this%output_node_path, 1)
+        if (this%output_node_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("output_poi_path")
+      if (.not. allocated(this%output_poi_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: output_poi_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%output_poi_path, 1)))
+      do idx__1 = 1, size(this%output_poi_path, 1)
+        if (this%output_poi_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("poi_timeseries")
+      if (.not. allocated(this%poi_timeseries)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: poi_timeseries"
+        return
+      end if
+      allocate(mask( &
+        size(this%poi_timeseries, 1)))
+      mask = .true.
+    case ("node_timeseries")
+      if (.not. allocated(this%node_timeseries)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: node_timeseries"
+        return
+      end if
+      allocate(mask( &
+        size(this%node_timeseries, 1)))
+      mask = .true.
+    case ("read_restart")
+      if (.not. allocated(this%read_restart)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: read_restart"
+        return
+      end if
+      allocate(mask( &
+        size(this%read_restart, 1)))
+      mask = .true.
+    case ("read_restart_fluxes")
+      if (.not. allocated(this%read_restart_fluxes)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: read_restart_fluxes"
+        return
+      end if
+      allocate(mask( &
+        size(this%read_restart_fluxes, 1)))
+      mask = .true.
+    case ("restart_input_path")
+      if (.not. allocated(this%restart_input_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_input_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%restart_input_path, 1)))
+      do idx__1 = 1, size(this%restart_input_path, 1)
+        if (this%restart_input_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("write_restart")
+      if (.not. allocated(this%write_restart)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: write_restart"
+        return
+      end if
+      allocate(mask( &
+        size(this%write_restart, 1)))
+      mask = .true.
+    case ("restart_output_path")
+      if (.not. allocated(this%restart_output_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_output_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%restart_output_path, 1)))
+      do idx__1 = 1, size(this%restart_output_path, 1)
+        if (this%restart_output_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("diagnostics_path")
+      if (.not. allocated(this%diagnostics_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: diagnostics_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%diagnostics_path, 1)))
+      do idx__1 = 1, size(this%diagnostics_path, 1)
+        if (this%diagnostics_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_mrm_set_mask__rank__1
+
+  !> \brief Determine the smallest complete populated prefix starting at index 1
+  integer function nml_config_mrm_filled_shape(this, name, filled, errmsg) result(status)
+    class(nml_config_mrm_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    integer, intent(out) :: filled(:) !< prefix extents, retained when the prefix has holes
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    filled = 0
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("river_net_order_root_based")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'river_net_order_root_based'"
+        return
+      end if
+      if (.not. allocated(this%river_net_order_root_based)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: river_net_order_root_based"
+        return
+      end if
+      filled(1) = size(this%river_net_order_root_based, 1)
+    case ("river_net_omp_level_min")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'river_net_omp_level_min'"
+        return
+      end if
+      if (.not. allocated(this%river_net_omp_level_min)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: river_net_omp_level_min"
+        return
+      end if
+      filled(1) = size(this%river_net_omp_level_min, 1)
+    case ("max_route_step")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'max_route_step'"
+        return
+      end if
+      if (.not. allocated(this%max_route_step)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: max_route_step"
+        return
+      end if
+      filled(1) = size(this%max_route_step, 1)
+    case ("upscale_mode")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'upscale_mode'"
+        return
+      end if
+      if (.not. allocated(this%upscale_mode)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: upscale_mode"
+        return
+      end if
+      filled(1) = size(this%upscale_mode, 1)
+    case ("length_percentile")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'length_percentile'"
+        return
+      end if
+      if (.not. allocated(this%length_percentile)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: length_percentile"
+        return
+      end if
+      filled(1) = size(this%length_percentile, 1)
+    case ("scc_gauges_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'scc_gauges_path'"
+        return
+      end if
+      if (.not. allocated(this%scc_gauges_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: scc_gauges_path"
+        return
+      end if
+      do idx__1 = 1, size(this%scc_gauges_path, 1)
+        if (this%scc_gauges_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%scc_gauges_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: scc_gauges_path"
+          return
+        end if
+      end do
+    case ("scc_gauges_as_poi")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'scc_gauges_as_poi'"
+        return
+      end if
+      if (.not. allocated(this%scc_gauges_as_poi)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: scc_gauges_as_poi"
+        return
+      end if
+      filled(1) = size(this%scc_gauges_as_poi, 1)
+    case ("poi_gauges_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'poi_gauges_path'"
+        return
+      end if
+      if (.not. allocated(this%poi_gauges_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: poi_gauges_path"
+        return
+      end if
+      do idx__1 = 1, size(this%poi_gauges_path, 1)
+        if (this%poi_gauges_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%poi_gauges_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: poi_gauges_path"
+          return
+        end if
+      end do
+    case ("output_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'output_path'"
+        return
+      end if
+      if (.not. allocated(this%output_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: output_path"
+        return
+      end if
+      do idx__1 = 1, size(this%output_path, 1)
+        if (this%output_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%output_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: output_path"
+          return
+        end if
+      end do
+    case ("output_node_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'output_node_path'"
+        return
+      end if
+      if (.not. allocated(this%output_node_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: output_node_path"
+        return
+      end if
+      do idx__1 = 1, size(this%output_node_path, 1)
+        if (this%output_node_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%output_node_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: output_node_path"
+          return
+        end if
+      end do
+    case ("output_poi_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'output_poi_path'"
+        return
+      end if
+      if (.not. allocated(this%output_poi_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: output_poi_path"
+        return
+      end if
+      do idx__1 = 1, size(this%output_poi_path, 1)
+        if (this%output_poi_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%output_poi_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: output_poi_path"
+          return
+        end if
+      end do
+    case ("poi_timeseries")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'poi_timeseries'"
+        return
+      end if
+      if (.not. allocated(this%poi_timeseries)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: poi_timeseries"
+        return
+      end if
+      filled(1) = size(this%poi_timeseries, 1)
+    case ("node_timeseries")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'node_timeseries'"
+        return
+      end if
+      if (.not. allocated(this%node_timeseries)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: node_timeseries"
+        return
+      end if
+      filled(1) = size(this%node_timeseries, 1)
+    case ("read_restart")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'read_restart'"
+        return
+      end if
+      if (.not. allocated(this%read_restart)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: read_restart"
+        return
+      end if
+      filled(1) = size(this%read_restart, 1)
+    case ("read_restart_fluxes")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'read_restart_fluxes'"
+        return
+      end if
+      if (.not. allocated(this%read_restart_fluxes)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: read_restart_fluxes"
+        return
+      end if
+      filled(1) = size(this%read_restart_fluxes, 1)
+    case ("restart_input_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'restart_input_path'"
+        return
+      end if
+      if (.not. allocated(this%restart_input_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_input_path"
+        return
+      end if
+      do idx__1 = 1, size(this%restart_input_path, 1)
+        if (this%restart_input_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%restart_input_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: restart_input_path"
+          return
+        end if
+      end do
+    case ("write_restart")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'write_restart'"
+        return
+      end if
+      if (.not. allocated(this%write_restart)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: write_restart"
+        return
+      end if
+      filled(1) = size(this%write_restart, 1)
+    case ("restart_output_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'restart_output_path'"
+        return
+      end if
+      if (.not. allocated(this%restart_output_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_output_path"
+        return
+      end if
+      do idx__1 = 1, size(this%restart_output_path, 1)
+        if (this%restart_output_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%restart_output_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: restart_output_path"
+          return
+        end if
+      end do
+    case ("diagnostics_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'diagnostics_path'"
+        return
+      end if
+      if (.not. allocated(this%diagnostics_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: diagnostics_path"
+        return
+      end if
+      do idx__1 = 1, size(this%diagnostics_path, 1)
+        if (this%diagnostics_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%diagnostics_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: diagnostics_path"
+          return
+        end if
+      end do
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_mrm_filled_shape
 
   !> \brief Validate required values and constraints
   integer function nml_config_mrm_is_valid(this, errmsg) result(status)

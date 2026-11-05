@@ -27,7 +27,8 @@ module nml_config_optimize
     NML_ERR_INVALID_NAME, &
     NML_ERR_INVALID_INDEX, &
     idx_check, &
-    to_lower
+    to_lower, &
+    NML_ERR_PARTLY_SET
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     i4, &
@@ -73,6 +74,10 @@ module nml_config_optimize
     procedure :: from_file => nml_config_optimize_from_file
     procedure :: set => nml_config_optimize_set
     procedure :: is_set => nml_config_optimize_is_set
+    procedure, private :: set_mask__rank__1 => nml_config_optimize_set_mask__rank__1
+    generic :: set_mask => &
+      set_mask__rank__1
+    procedure :: filled_shape => nml_config_optimize_filled_shape
     procedure :: is_valid => nml_config_optimize_is_valid
   end type nml_config_optimize_t
 
@@ -165,6 +170,16 @@ contains
 
     status = nml%find("config_optimize", errmsg=errmsg)
     if (status /= NML_OK) then
+      if (status == NML_ERR_NML_NOT_FOUND) then
+        close_status = nml%close(errmsg=errmsg)
+        if (close_status /= NML_OK) then
+          status = close_status
+          return
+        end if
+        this%is_configured = .true.
+        status = NML_OK
+        return
+      end if
       close_status = nml%close()
       return
     end if
@@ -235,9 +250,6 @@ contains
     logical, intent(in), optional :: mcmc_opti !< MCMC for optimisation
     real(dp), dimension(:), intent(in), optional :: mcmc_error_params !< Parameters of MCMC error model.
     logical, intent(in), optional :: bfi_calc !< Calculate BFI from discharge time series with the Eckhardt filter
-    integer :: &
-      lb__1, &
-      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -261,9 +273,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'mcmc_error_params'"
         return
       end if
-      lb__1 = lbound(this%mcmc_error_params, 1)
-      ub__1 = lb__1 + size(mcmc_error_params, 1) - 1
-      this%mcmc_error_params(lb__1:ub__1) = mcmc_error_params
+      this%mcmc_error_params(1:size(mcmc_error_params, 1)) = mcmc_error_params
     end if
     if (present(bfi_calc)) this%bfi_calc = bfi_calc
 
@@ -278,6 +288,7 @@ contains
     character(len=*), intent(in) :: name !< field name
     integer, intent(in), optional :: idx(:) !< optional field index values
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    intrinsic :: shape
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -355,10 +366,8 @@ contains
       end if
     case ("mcmc_error_params")
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%mcmc_error_params), ubound(this%mcmc_error_params), &
-          "mcmc_error_params", errmsg)
+        status = idx_check(idx, shape(this%mcmc_error_params), "mcmc_error_params", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("bfi_calc")
       if (present(idx)) then
@@ -374,6 +383,134 @@ contains
       if (len_trim(errmsg) == 0) errmsg = "field not set: " // trim(name)
     end if
   end function nml_config_optimize_is_set
+
+  !> \brief Obtain the item presence mask with one field-name dispatch
+  integer function nml_config_optimize_set_mask__rank__1(this, name, mask, errmsg) result(status)
+    class(nml_config_optimize_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    logical, allocatable, intent(out) :: mask(:) !< item presence
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("optimize_restart")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: optimize_restart"
+    case ("opti_method")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: opti_method"
+    case ("opti_function")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: opti_function"
+    case ("iterations")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: iterations"
+    case ("seed")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: seed"
+    case ("dds_r")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: dds_r"
+    case ("sa_temp")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: sa_temp"
+    case ("sce_ngs")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: sce_ngs"
+    case ("sce_npg")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: sce_npg"
+    case ("sce_nps")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: sce_nps"
+    case ("mcmc_opti")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: mcmc_opti"
+    case ("mcmc_error_params")
+      allocate(mask( &
+        size(this%mcmc_error_params, 1)))
+      mask = .true.
+    case ("bfi_calc")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: BFI_calc"
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_optimize_set_mask__rank__1
+
+  !> \brief Determine the smallest complete populated prefix starting at index 1
+  integer function nml_config_optimize_filled_shape(this, name, filled, errmsg) result(status)
+    class(nml_config_optimize_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    integer, intent(out) :: filled(:) !< prefix extents, retained when the prefix has holes
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    filled = 0
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("optimize_restart")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: optimize_restart"
+    case ("opti_method")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: opti_method"
+    case ("opti_function")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: opti_function"
+    case ("iterations")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: iterations"
+    case ("seed")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: seed"
+    case ("dds_r")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: dds_r"
+    case ("sa_temp")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: sa_temp"
+    case ("sce_ngs")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: sce_ngs"
+    case ("sce_npg")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: sce_npg"
+    case ("sce_nps")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: sce_nps"
+    case ("mcmc_opti")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: mcmc_opti"
+    case ("mcmc_error_params")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'mcmc_error_params'"
+        return
+      end if
+      filled(1) = size(this%mcmc_error_params, 1)
+    case ("bfi_calc")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: BFI_calc"
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_optimize_filled_shape
 
   !> \brief Validate required values and constraints
   integer function nml_config_optimize_is_valid(this, errmsg) result(status)

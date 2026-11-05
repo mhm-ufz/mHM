@@ -30,7 +30,8 @@ module nml_config_mpr
     to_lower, &
     n_domains__default, &
     max_layers__default, &
-    buf
+    buf, &
+    NML_ERR_PARTLY_SET
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
@@ -81,6 +82,12 @@ module nml_config_mpr
     procedure :: from_file => nml_config_mpr_from_file
     procedure :: set => nml_config_mpr_set
     procedure :: is_set => nml_config_mpr_is_set
+    procedure, private :: set_mask__rank__1 => nml_config_mpr_set_mask__rank__1
+    procedure, private :: set_mask__rank__2 => nml_config_mpr_set_mask__rank__2
+    generic :: set_mask => &
+      set_mask__rank__1, &
+      set_mask__rank__2
+    procedure :: filled_shape => nml_config_mpr_filled_shape
     procedure :: is_valid => nml_config_mpr_is_valid
   end type nml_config_mpr_t
 
@@ -342,6 +349,16 @@ contains
 
     status = nml%find("config_mpr", errmsg=errmsg)
     if (status /= NML_OK) then
+      if (status == NML_ERR_NML_NOT_FOUND) then
+        close_status = nml%close(errmsg=errmsg)
+        if (close_status /= NML_OK) then
+          status = close_status
+          return
+        end if
+        this%is_configured = .true.
+        status = NML_OK
+        return
+      end if
       close_status = nml%close()
       return
     end if
@@ -415,11 +432,6 @@ contains
     character(len=*), dimension(:), intent(in), optional :: restart_input_path !< Restart input path
     logical, dimension(:), intent(in), optional :: write_restart !< Write restart
     character(len=*), dimension(:), intent(in), optional :: restart_output_path !< Restart output path
-    integer :: &
-      lb__1, &
-      lb__2, &
-      ub__1, &
-      ub__2
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -432,9 +444,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'soil_db_mode'"
         return
       end if
-      lb__1 = lbound(this%soil_db_mode, 1)
-      ub__1 = lb__1 + size(soil_db_mode, 1) - 1
-      this%soil_db_mode(lb__1:ub__1) = soil_db_mode
+      this%soil_db_mode(1:size(soil_db_mode, 1)) = soil_db_mode
     end if
     if (present(tillage_depth)) then
       if (size(tillage_depth, 1) > size(this%tillage_depth, 1)) then
@@ -442,9 +452,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'tillage_depth'"
         return
       end if
-      lb__1 = lbound(this%tillage_depth, 1)
-      ub__1 = lb__1 + size(tillage_depth, 1) - 1
-      this%tillage_depth(lb__1:ub__1) = tillage_depth
+      this%tillage_depth(1:size(tillage_depth, 1)) = tillage_depth
     end if
     if (present(n_layers)) then
       if (size(n_layers, 1) > size(this%n_layers, 1)) then
@@ -452,9 +460,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'n_layers'"
         return
       end if
-      lb__1 = lbound(this%n_layers, 1)
-      ub__1 = lb__1 + size(n_layers, 1) - 1
-      this%n_layers(lb__1:ub__1) = n_layers
+      this%n_layers(1:size(n_layers, 1)) = n_layers
     end if
     if (present(soil_depth)) then
       if (size(soil_depth, 1) > size(this%soil_depth, 1)) then
@@ -462,16 +468,12 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'soil_depth'"
         return
       end if
-      lb__1 = lbound(this%soil_depth, 1)
-      ub__1 = lb__1 + size(soil_depth, 1) - 1
       if (size(soil_depth, 2) > size(this%soil_depth, 2)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "dimension 2 exceeds bounds for 'soil_depth'"
         return
       end if
-      lb__2 = lbound(this%soil_depth, 2)
-      ub__2 = lb__2 + size(soil_depth, 2) - 1
-      this%soil_depth(lb__1:ub__1, lb__2:ub__2) = soil_depth
+      this%soil_depth(1:size(soil_depth, 1), 1:size(soil_depth, 2)) = soil_depth
     end if
     if (present(fracsealed_cityarea)) then
       if (size(fracsealed_cityarea, 1) > size(this%fracsealed_cityarea, 1)) then
@@ -479,9 +481,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'fracsealed_cityarea'"
         return
       end if
-      lb__1 = lbound(this%fracsealed_cityarea, 1)
-      ub__1 = lb__1 + size(fracsealed_cityarea, 1) - 1
-      this%fracsealed_cityarea(lb__1:ub__1) = fracsealed_cityarea
+      this%fracsealed_cityarea(1:size(fracsealed_cityarea, 1)) = fracsealed_cityarea
     end if
     if (present(land_cover_path)) then
       if (size(land_cover_path, 1) > size(this%land_cover_path, 1)) then
@@ -489,9 +489,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'land_cover_path'"
         return
       end if
-      lb__1 = lbound(this%land_cover_path, 1)
-      ub__1 = lb__1 + size(land_cover_path, 1) - 1
-      this%land_cover_path(lb__1:ub__1) = land_cover_path
+      this%land_cover_path(1:size(land_cover_path, 1)) = land_cover_path
     end if
     if (present(land_cover_var)) then
       if (size(land_cover_var, 1) > size(this%land_cover_var, 1)) then
@@ -499,9 +497,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'land_cover_var'"
         return
       end if
-      lb__1 = lbound(this%land_cover_var, 1)
-      ub__1 = lb__1 + size(land_cover_var, 1) - 1
-      this%land_cover_var(lb__1:ub__1) = land_cover_var
+      this%land_cover_var(1:size(land_cover_var, 1)) = land_cover_var
     end if
     if (present(lai_time_step)) then
       if (size(lai_time_step, 1) > size(this%lai_time_step, 1)) then
@@ -509,9 +505,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lai_time_step'"
         return
       end if
-      lb__1 = lbound(this%lai_time_step, 1)
-      ub__1 = lb__1 + size(lai_time_step, 1) - 1
-      this%lai_time_step(lb__1:ub__1) = lai_time_step
+      this%lai_time_step(1:size(lai_time_step, 1)) = lai_time_step
     end if
     if (present(lai_path)) then
       if (size(lai_path, 1) > size(this%lai_path, 1)) then
@@ -519,9 +513,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lai_path'"
         return
       end if
-      lb__1 = lbound(this%lai_path, 1)
-      ub__1 = lb__1 + size(lai_path, 1) - 1
-      this%lai_path(lb__1:ub__1) = lai_path
+      this%lai_path(1:size(lai_path, 1)) = lai_path
     end if
     if (present(lai_var)) then
       if (size(lai_var, 1) > size(this%lai_var, 1)) then
@@ -529,9 +521,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lai_var'"
         return
       end if
-      lb__1 = lbound(this%lai_var, 1)
-      ub__1 = lb__1 + size(lai_var, 1) - 1
-      this%lai_var(lb__1:ub__1) = lai_var
+      this%lai_var(1:size(lai_var, 1)) = lai_var
     end if
     if (present(read_restart)) then
       if (size(read_restart, 1) > size(this%read_restart, 1)) then
@@ -539,9 +529,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'read_restart'"
         return
       end if
-      lb__1 = lbound(this%read_restart, 1)
-      ub__1 = lb__1 + size(read_restart, 1) - 1
-      this%read_restart(lb__1:ub__1) = read_restart
+      this%read_restart(1:size(read_restart, 1)) = read_restart
     end if
     if (present(restart_input_path)) then
       if (size(restart_input_path, 1) > size(this%restart_input_path, 1)) then
@@ -549,9 +537,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'restart_input_path'"
         return
       end if
-      lb__1 = lbound(this%restart_input_path, 1)
-      ub__1 = lb__1 + size(restart_input_path, 1) - 1
-      this%restart_input_path(lb__1:ub__1) = restart_input_path
+      this%restart_input_path(1:size(restart_input_path, 1)) = restart_input_path
     end if
     if (present(write_restart)) then
       if (size(write_restart, 1) > size(this%write_restart, 1)) then
@@ -559,9 +545,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'write_restart'"
         return
       end if
-      lb__1 = lbound(this%write_restart, 1)
-      ub__1 = lb__1 + size(write_restart, 1) - 1
-      this%write_restart(lb__1:ub__1) = write_restart
+      this%write_restart(1:size(write_restart, 1)) = write_restart
     end if
     if (present(restart_output_path)) then
       if (size(restart_output_path, 1) > size(this%restart_output_path, 1)) then
@@ -569,9 +553,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'restart_output_path'"
         return
       end if
-      lb__1 = lbound(this%restart_output_path, 1)
-      ub__1 = lb__1 + size(restart_output_path, 1) - 1
-      this%restart_output_path(lb__1:ub__1) = restart_output_path
+      this%restart_output_path(1:size(restart_output_path, 1)) = restart_output_path
     end if
 
     ! mark as configured
@@ -585,6 +567,7 @@ contains
     character(len=*), intent(in) :: name !< field name
     integer, intent(in), optional :: idx(:) !< optional field index values
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    intrinsic :: shape
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -597,22 +580,21 @@ contains
     case ("soil_db_mode")
       if (.not. allocated(this%soil_db_mode)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_db_mode"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%soil_db_mode), ubound(this%soil_db_mode), &
-          "soil_db_mode", errmsg)
+        status = idx_check(idx, shape(this%soil_db_mode), "soil_db_mode", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("tillage_depth")
       if (.not. allocated(this%tillage_depth)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tillage_depth"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%tillage_depth), ubound(this%tillage_depth), &
-          "tillage_depth", errmsg)
+        status = idx_check(idx, shape(this%tillage_depth), "tillage_depth", errmsg)
         if (status /= NML_OK) return
         if (this%tillage_depth(idx(1)) == -huge(this%tillage_depth(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -621,11 +603,11 @@ contains
     case ("n_layers")
       if (.not. allocated(this%n_layers)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: n_layers"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%n_layers), ubound(this%n_layers), &
-          "n_layers", errmsg)
+        status = idx_check(idx, shape(this%n_layers), "n_layers", errmsg)
         if (status /= NML_OK) return
         if (this%n_layers(idx(1)) == -huge(this%n_layers(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -634,22 +616,21 @@ contains
     case ("soil_depth")
       if (.not. allocated(this%soil_depth)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_depth"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%soil_depth), ubound(this%soil_depth), &
-          "soil_depth", errmsg)
+        status = idx_check(idx, shape(this%soil_depth), "soil_depth", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("fracsealed_cityarea")
       if (.not. allocated(this%fracsealed_cityarea)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: fracSealed_cityArea"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%fracsealed_cityarea), ubound(this%fracsealed_cityarea), &
-          "fracSealed_cityArea", errmsg)
+        status = idx_check(idx, shape(this%fracsealed_cityarea), "fracSealed_cityArea", errmsg)
         if (status /= NML_OK) return
         if (ieee_is_nan(this%fracsealed_cityarea(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -658,11 +639,11 @@ contains
     case ("land_cover_path")
       if (.not. allocated(this%land_cover_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: land_cover_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%land_cover_path), ubound(this%land_cover_path), &
-          "land_cover_path", errmsg)
+        status = idx_check(idx, shape(this%land_cover_path), "land_cover_path", errmsg)
         if (status /= NML_OK) return
         if (this%land_cover_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -671,22 +652,21 @@ contains
     case ("land_cover_var")
       if (.not. allocated(this%land_cover_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: land_cover_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%land_cover_var), ubound(this%land_cover_var), &
-          "land_cover_var", errmsg)
+        status = idx_check(idx, shape(this%land_cover_var), "land_cover_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("lai_time_step")
       if (.not. allocated(this%lai_time_step)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_time_step"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%lai_time_step), ubound(this%lai_time_step), &
-          "lai_time_step", errmsg)
+        status = idx_check(idx, shape(this%lai_time_step), "lai_time_step", errmsg)
         if (status /= NML_OK) return
         if (this%lai_time_step(idx(1)) == -huge(this%lai_time_step(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -695,11 +675,11 @@ contains
     case ("lai_path")
       if (.not. allocated(this%lai_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%lai_path), ubound(this%lai_path), &
-          "lai_path", errmsg)
+        status = idx_check(idx, shape(this%lai_path), "lai_path", errmsg)
         if (status /= NML_OK) return
         if (this%lai_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -708,33 +688,31 @@ contains
     case ("lai_var")
       if (.not. allocated(this%lai_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%lai_var), ubound(this%lai_var), &
-          "lai_var", errmsg)
+        status = idx_check(idx, shape(this%lai_var), "lai_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("read_restart")
       if (.not. allocated(this%read_restart)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: read_restart"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%read_restart), ubound(this%read_restart), &
-          "read_restart", errmsg)
+        status = idx_check(idx, shape(this%read_restart), "read_restart", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("restart_input_path")
       if (.not. allocated(this%restart_input_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_input_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%restart_input_path), ubound(this%restart_input_path), &
-          "restart_input_path", errmsg)
+        status = idx_check(idx, shape(this%restart_input_path), "restart_input_path", errmsg)
         if (status /= NML_OK) return
         if (this%restart_input_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -743,22 +721,21 @@ contains
     case ("write_restart")
       if (.not. allocated(this%write_restart)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: write_restart"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%write_restart), ubound(this%write_restart), &
-          "write_restart", errmsg)
+        status = idx_check(idx, shape(this%write_restart), "write_restart", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("restart_output_path")
       if (.not. allocated(this%restart_output_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_output_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%restart_output_path), ubound(this%restart_output_path), &
-          "restart_output_path", errmsg)
+        status = idx_check(idx, shape(this%restart_output_path), "restart_output_path", errmsg)
         if (status /= NML_OK) return
         if (this%restart_output_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -772,6 +749,541 @@ contains
       if (len_trim(errmsg) == 0) errmsg = "field not set: " // trim(name)
     end if
   end function nml_config_mpr_is_set
+
+  !> \brief Obtain the item presence mask with one field-name dispatch
+  integer function nml_config_mpr_set_mask__rank__1(this, name, mask, errmsg) result(status)
+    class(nml_config_mpr_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    logical, allocatable, intent(out) :: mask(:) !< item presence
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("soil_db_mode")
+      if (.not. allocated(this%soil_db_mode)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_db_mode"
+        return
+      end if
+      allocate(mask( &
+        size(this%soil_db_mode, 1)))
+      mask = .true.
+    case ("tillage_depth")
+      if (.not. allocated(this%tillage_depth)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tillage_depth"
+        return
+      end if
+      allocate(mask( &
+        size(this%tillage_depth, 1)))
+      do idx__1 = 1, size(this%tillage_depth, 1)
+        if (this%tillage_depth(idx__1) == -huge(this%tillage_depth(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("n_layers")
+      if (.not. allocated(this%n_layers)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: n_layers"
+        return
+      end if
+      allocate(mask( &
+        size(this%n_layers, 1)))
+      do idx__1 = 1, size(this%n_layers, 1)
+        if (this%n_layers(idx__1) == -huge(this%n_layers(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("soil_depth")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'soil_depth'"
+    case ("fracsealed_cityarea")
+      if (.not. allocated(this%fracsealed_cityarea)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: fracSealed_cityArea"
+        return
+      end if
+      allocate(mask( &
+        size(this%fracsealed_cityarea, 1)))
+      do idx__1 = 1, size(this%fracsealed_cityarea, 1)
+        if (ieee_is_nan(this%fracsealed_cityarea(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("land_cover_path")
+      if (.not. allocated(this%land_cover_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: land_cover_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%land_cover_path, 1)))
+      do idx__1 = 1, size(this%land_cover_path, 1)
+        if (this%land_cover_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("land_cover_var")
+      if (.not. allocated(this%land_cover_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: land_cover_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%land_cover_var, 1)))
+      mask = .true.
+    case ("lai_time_step")
+      if (.not. allocated(this%lai_time_step)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_time_step"
+        return
+      end if
+      allocate(mask( &
+        size(this%lai_time_step, 1)))
+      do idx__1 = 1, size(this%lai_time_step, 1)
+        if (this%lai_time_step(idx__1) == -huge(this%lai_time_step(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("lai_path")
+      if (.not. allocated(this%lai_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%lai_path, 1)))
+      do idx__1 = 1, size(this%lai_path, 1)
+        if (this%lai_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("lai_var")
+      if (.not. allocated(this%lai_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%lai_var, 1)))
+      mask = .true.
+    case ("read_restart")
+      if (.not. allocated(this%read_restart)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: read_restart"
+        return
+      end if
+      allocate(mask( &
+        size(this%read_restart, 1)))
+      mask = .true.
+    case ("restart_input_path")
+      if (.not. allocated(this%restart_input_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_input_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%restart_input_path, 1)))
+      do idx__1 = 1, size(this%restart_input_path, 1)
+        if (this%restart_input_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("write_restart")
+      if (.not. allocated(this%write_restart)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: write_restart"
+        return
+      end if
+      allocate(mask( &
+        size(this%write_restart, 1)))
+      mask = .true.
+    case ("restart_output_path")
+      if (.not. allocated(this%restart_output_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_output_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%restart_output_path, 1)))
+      do idx__1 = 1, size(this%restart_output_path, 1)
+        if (this%restart_output_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_mpr_set_mask__rank__1
+
+  !> \brief Obtain the item presence mask with one field-name dispatch
+  integer function nml_config_mpr_set_mask__rank__2(this, name, mask, errmsg) result(status)
+    class(nml_config_mpr_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    logical, allocatable, intent(out) :: mask(:, :) !< item presence
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+    integer :: idx__2
+
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("soil_db_mode")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'soil_db_mode'"
+    case ("tillage_depth")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'tillage_depth'"
+    case ("n_layers")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'n_layers'"
+    case ("soil_depth")
+      if (.not. allocated(this%soil_depth)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_depth"
+        return
+      end if
+      allocate(mask( &
+        size(this%soil_depth, 1), &
+        size(this%soil_depth, 2)))
+      mask = .true.
+    case ("fracsealed_cityarea")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'fracSealed_cityArea'"
+    case ("land_cover_path")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'land_cover_path'"
+    case ("land_cover_var")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'land_cover_var'"
+    case ("lai_time_step")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'lai_time_step'"
+    case ("lai_path")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'lai_path'"
+    case ("lai_var")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'lai_var'"
+    case ("read_restart")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'read_restart'"
+    case ("restart_input_path")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'restart_input_path'"
+    case ("write_restart")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'write_restart'"
+    case ("restart_output_path")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'restart_output_path'"
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_mpr_set_mask__rank__2
+
+  !> \brief Determine the smallest complete populated prefix starting at index 1
+  integer function nml_config_mpr_filled_shape(this, name, filled, errmsg) result(status)
+    class(nml_config_mpr_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    integer, intent(out) :: filled(:) !< prefix extents, retained when the prefix has holes
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+    integer :: idx__2
+
+    filled = 0
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("soil_db_mode")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'soil_db_mode'"
+        return
+      end if
+      if (.not. allocated(this%soil_db_mode)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_db_mode"
+        return
+      end if
+      filled(1) = size(this%soil_db_mode, 1)
+    case ("tillage_depth")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'tillage_depth'"
+        return
+      end if
+      if (.not. allocated(this%tillage_depth)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tillage_depth"
+        return
+      end if
+      do idx__1 = 1, size(this%tillage_depth, 1)
+        if (this%tillage_depth(idx__1) == -huge(this%tillage_depth(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%tillage_depth(idx__1) == -huge(this%tillage_depth(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: tillage_depth"
+          return
+        end if
+      end do
+    case ("n_layers")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'n_layers'"
+        return
+      end if
+      if (.not. allocated(this%n_layers)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: n_layers"
+        return
+      end if
+      do idx__1 = 1, size(this%n_layers, 1)
+        if (this%n_layers(idx__1) == -huge(this%n_layers(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%n_layers(idx__1) == -huge(this%n_layers(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: n_layers"
+          return
+        end if
+      end do
+    case ("soil_depth")
+      if (size(filled) /= 2) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'soil_depth'"
+        return
+      end if
+      if (.not. allocated(this%soil_depth)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_depth"
+        return
+      end if
+      filled(1) = size(this%soil_depth, 1)
+      filled(2) = size(this%soil_depth, 2)
+    case ("fracsealed_cityarea")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'fracSealed_cityArea'"
+        return
+      end if
+      if (.not. allocated(this%fracsealed_cityarea)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: fracSealed_cityArea"
+        return
+      end if
+      do idx__1 = 1, size(this%fracsealed_cityarea, 1)
+        if (ieee_is_nan(this%fracsealed_cityarea(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (ieee_is_nan(this%fracsealed_cityarea(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: fracSealed_cityArea"
+          return
+        end if
+      end do
+    case ("land_cover_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'land_cover_path'"
+        return
+      end if
+      if (.not. allocated(this%land_cover_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: land_cover_path"
+        return
+      end if
+      do idx__1 = 1, size(this%land_cover_path, 1)
+        if (this%land_cover_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%land_cover_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: land_cover_path"
+          return
+        end if
+      end do
+    case ("land_cover_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'land_cover_var'"
+        return
+      end if
+      if (.not. allocated(this%land_cover_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: land_cover_var"
+        return
+      end if
+      filled(1) = size(this%land_cover_var, 1)
+    case ("lai_time_step")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'lai_time_step'"
+        return
+      end if
+      if (.not. allocated(this%lai_time_step)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_time_step"
+        return
+      end if
+      do idx__1 = 1, size(this%lai_time_step, 1)
+        if (this%lai_time_step(idx__1) == -huge(this%lai_time_step(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%lai_time_step(idx__1) == -huge(this%lai_time_step(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: lai_time_step"
+          return
+        end if
+      end do
+    case ("lai_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'lai_path'"
+        return
+      end if
+      if (.not. allocated(this%lai_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_path"
+        return
+      end if
+      do idx__1 = 1, size(this%lai_path, 1)
+        if (this%lai_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%lai_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: lai_path"
+          return
+        end if
+      end do
+    case ("lai_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'lai_var'"
+        return
+      end if
+      if (.not. allocated(this%lai_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_var"
+        return
+      end if
+      filled(1) = size(this%lai_var, 1)
+    case ("read_restart")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'read_restart'"
+        return
+      end if
+      if (.not. allocated(this%read_restart)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: read_restart"
+        return
+      end if
+      filled(1) = size(this%read_restart, 1)
+    case ("restart_input_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'restart_input_path'"
+        return
+      end if
+      if (.not. allocated(this%restart_input_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_input_path"
+        return
+      end if
+      do idx__1 = 1, size(this%restart_input_path, 1)
+        if (this%restart_input_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%restart_input_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: restart_input_path"
+          return
+        end if
+      end do
+    case ("write_restart")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'write_restart'"
+        return
+      end if
+      if (.not. allocated(this%write_restart)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: write_restart"
+        return
+      end if
+      filled(1) = size(this%write_restart, 1)
+    case ("restart_output_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'restart_output_path'"
+        return
+      end if
+      if (.not. allocated(this%restart_output_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_output_path"
+        return
+      end if
+      do idx__1 = 1, size(this%restart_output_path, 1)
+        if (this%restart_output_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%restart_output_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: restart_output_path"
+          return
+        end if
+      end do
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_mpr_filled_shape
 
   !> \brief Validate required values and constraints
   integer function nml_config_mpr_is_valid(this, errmsg) result(status)

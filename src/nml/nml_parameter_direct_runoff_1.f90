@@ -179,26 +179,26 @@ contains
     case ("impervious_storage_capacity%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'impervious_storage_capacity'"
+        if (present(errmsg)) errmsg = "index not supported for 'impervious_storage_capacity%value'"
         return
       end if
       if (ieee_is_nan(this%impervious_storage_capacity%value)) status = NML_ERR_NOT_SET
     case ("impervious_storage_capacity%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'impervious_storage_capacity'"
+        if (present(errmsg)) errmsg = "index not supported for 'impervious_storage_capacity%optimize'"
         return
       end if
     case ("impervious_storage_capacity%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'impervious_storage_capacity'"
+        if (present(errmsg)) errmsg = "index not supported for 'impervious_storage_capacity%min'"
         return
       end if
     case ("impervious_storage_capacity%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'impervious_storage_capacity'"
+        if (present(errmsg)) errmsg = "index not supported for 'impervious_storage_capacity%max'"
         return
       end if
     case ("impervious_storage_capacity")
@@ -207,9 +207,7 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'impervious_storage_capacity'"
         return
       end if
-      if (ieee_is_nan(this%impervious_storage_capacity%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%impervious_storage_capacity%value))) status = NML_ERR_NOT_SET
     case default
       status = NML_ERR_INVALID_NAME
       if (present(errmsg)) errmsg = "unknown field: " // trim(name)

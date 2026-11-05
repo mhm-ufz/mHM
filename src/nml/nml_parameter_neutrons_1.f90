@@ -217,26 +217,26 @@ contains
     case ("desilets_n0%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'desilets_n0'"
+        if (present(errmsg)) errmsg = "index not supported for 'desilets_n0%value'"
         return
       end if
       if (ieee_is_nan(this%desilets_n0%value)) status = NML_ERR_NOT_SET
     case ("desilets_n0%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'desilets_n0'"
+        if (present(errmsg)) errmsg = "index not supported for 'desilets_n0%optimize'"
         return
       end if
     case ("desilets_n0%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'desilets_n0'"
+        if (present(errmsg)) errmsg = "index not supported for 'desilets_n0%min'"
         return
       end if
     case ("desilets_n0%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'desilets_n0'"
+        if (present(errmsg)) errmsg = "index not supported for 'desilets_n0%max'"
         return
       end if
     case ("desilets_n0")
@@ -245,32 +245,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'desilets_n0'"
         return
       end if
-      if (ieee_is_nan(this%desilets_n0%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%desilets_n0%value))) status = NML_ERR_NOT_SET
     case ("desilets_lw0%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'desilets_lw0'"
+        if (present(errmsg)) errmsg = "index not supported for 'desilets_lw0%value'"
         return
       end if
       if (ieee_is_nan(this%desilets_lw0%value)) status = NML_ERR_NOT_SET
     case ("desilets_lw0%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'desilets_lw0'"
+        if (present(errmsg)) errmsg = "index not supported for 'desilets_lw0%optimize'"
         return
       end if
     case ("desilets_lw0%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'desilets_lw0'"
+        if (present(errmsg)) errmsg = "index not supported for 'desilets_lw0%min'"
         return
       end if
     case ("desilets_lw0%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'desilets_lw0'"
+        if (present(errmsg)) errmsg = "index not supported for 'desilets_lw0%max'"
         return
       end if
     case ("desilets_lw0")
@@ -279,32 +277,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'desilets_lw0'"
         return
       end if
-      if (ieee_is_nan(this%desilets_lw0%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%desilets_lw0%value))) status = NML_ERR_NOT_SET
     case ("desilets_lw1%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'desilets_lw1'"
+        if (present(errmsg)) errmsg = "index not supported for 'desilets_lw1%value'"
         return
       end if
       if (ieee_is_nan(this%desilets_lw1%value)) status = NML_ERR_NOT_SET
     case ("desilets_lw1%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'desilets_lw1'"
+        if (present(errmsg)) errmsg = "index not supported for 'desilets_lw1%optimize'"
         return
       end if
     case ("desilets_lw1%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'desilets_lw1'"
+        if (present(errmsg)) errmsg = "index not supported for 'desilets_lw1%min'"
         return
       end if
     case ("desilets_lw1%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'desilets_lw1'"
+        if (present(errmsg)) errmsg = "index not supported for 'desilets_lw1%max'"
         return
       end if
     case ("desilets_lw1")
@@ -313,9 +309,7 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'desilets_lw1'"
         return
       end if
-      if (ieee_is_nan(this%desilets_lw1%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%desilets_lw1%value))) status = NML_ERR_NOT_SET
     case default
       status = NML_ERR_INVALID_NAME
       if (present(errmsg)) errmsg = "unknown field: " // trim(name)

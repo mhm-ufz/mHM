@@ -31,7 +31,8 @@ module nml_config_coupling
     NML_ERR_INVALID_INDEX, &
     idx_check, &
     to_lower, &
-    n_domains__default
+    n_domains__default, &
+    NML_ERR_PARTLY_SET
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
@@ -161,6 +162,10 @@ module nml_config_coupling
     procedure :: from_file => nml_config_coupling_from_file
     procedure :: set => nml_config_coupling_set
     procedure :: is_set => nml_config_coupling_is_set
+    procedure, private :: set_mask__rank__1 => nml_config_coupling_set_mask__rank__1
+    generic :: set_mask => &
+      set_mask__rank__1
+    procedure :: filled_shape => nml_config_coupling_filled_shape
     procedure :: is_valid => nml_config_coupling_is_valid
   end type nml_config_coupling_t
 
@@ -940,6 +945,16 @@ contains
 
     status = nml%find("config_coupling", errmsg=errmsg)
     if (status /= NML_OK) then
+      if (status == NML_ERR_NML_NOT_FOUND) then
+        close_status = nml%close(errmsg=errmsg)
+        if (close_status /= NML_OK) then
+          status = close_status
+          return
+        end if
+        this%is_configured = .true.
+        status = NML_OK
+        return
+      end if
       close_status = nml%close()
       return
     end if
@@ -1121,9 +1136,6 @@ contains
     logical, dimension(:), intent(in), optional :: hydro_latlon_coupled !< Hydrological latlon coupled
     logical, dimension(:), intent(in), optional :: morph_latlon_coupled !< Morphological latlon coupled
     logical, dimension(:), intent(in), optional :: route_latlon_coupled !< Routing latlon coupled
-    integer :: &
-      lb__1, &
-      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -1136,9 +1148,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'meteo_grid_nx'"
         return
       end if
-      lb__1 = lbound(this%meteo_grid_nx, 1)
-      ub__1 = lb__1 + size(meteo_grid_nx, 1) - 1
-      this%meteo_grid_nx(lb__1:ub__1) = meteo_grid_nx
+      this%meteo_grid_nx(1:size(meteo_grid_nx, 1)) = meteo_grid_nx
     end if
     if (present(meteo_grid_ny)) then
       if (size(meteo_grid_ny, 1) > size(this%meteo_grid_ny, 1)) then
@@ -1146,9 +1156,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'meteo_grid_ny'"
         return
       end if
-      lb__1 = lbound(this%meteo_grid_ny, 1)
-      ub__1 = lb__1 + size(meteo_grid_ny, 1) - 1
-      this%meteo_grid_ny(lb__1:ub__1) = meteo_grid_ny
+      this%meteo_grid_ny(1:size(meteo_grid_ny, 1)) = meteo_grid_ny
     end if
     if (present(meteo_grid_xll)) then
       if (size(meteo_grid_xll, 1) > size(this%meteo_grid_xll, 1)) then
@@ -1156,9 +1164,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'meteo_grid_xll'"
         return
       end if
-      lb__1 = lbound(this%meteo_grid_xll, 1)
-      ub__1 = lb__1 + size(meteo_grid_xll, 1) - 1
-      this%meteo_grid_xll(lb__1:ub__1) = meteo_grid_xll
+      this%meteo_grid_xll(1:size(meteo_grid_xll, 1)) = meteo_grid_xll
     end if
     if (present(meteo_grid_yll)) then
       if (size(meteo_grid_yll, 1) > size(this%meteo_grid_yll, 1)) then
@@ -1166,9 +1172,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'meteo_grid_yll'"
         return
       end if
-      lb__1 = lbound(this%meteo_grid_yll, 1)
-      ub__1 = lb__1 + size(meteo_grid_yll, 1) - 1
-      this%meteo_grid_yll(lb__1:ub__1) = meteo_grid_yll
+      this%meteo_grid_yll(1:size(meteo_grid_yll, 1)) = meteo_grid_yll
     end if
     if (present(meteo_grid_cellsize)) then
       if (size(meteo_grid_cellsize, 1) > size(this%meteo_grid_cellsize, 1)) then
@@ -1176,9 +1180,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'meteo_grid_cellsize'"
         return
       end if
-      lb__1 = lbound(this%meteo_grid_cellsize, 1)
-      ub__1 = lb__1 + size(meteo_grid_cellsize, 1) - 1
-      this%meteo_grid_cellsize(lb__1:ub__1) = meteo_grid_cellsize
+      this%meteo_grid_cellsize(1:size(meteo_grid_cellsize, 1)) = meteo_grid_cellsize
     end if
     if (present(meteo_grid_ydir)) then
       if (size(meteo_grid_ydir, 1) > size(this%meteo_grid_ydir, 1)) then
@@ -1186,9 +1188,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'meteo_grid_ydir'"
         return
       end if
-      lb__1 = lbound(this%meteo_grid_ydir, 1)
-      ub__1 = lb__1 + size(meteo_grid_ydir, 1) - 1
-      this%meteo_grid_ydir(lb__1:ub__1) = meteo_grid_ydir
+      this%meteo_grid_ydir(1:size(meteo_grid_ydir, 1)) = meteo_grid_ydir
     end if
     if (present(meteo_grid_coordsys)) then
       if (size(meteo_grid_coordsys, 1) > size(this%meteo_grid_coordsys, 1)) then
@@ -1196,9 +1196,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'meteo_grid_coordsys'"
         return
       end if
-      lb__1 = lbound(this%meteo_grid_coordsys, 1)
-      ub__1 = lb__1 + size(meteo_grid_coordsys, 1) - 1
-      this%meteo_grid_coordsys(lb__1:ub__1) = meteo_grid_coordsys
+      this%meteo_grid_coordsys(1:size(meteo_grid_coordsys, 1)) = meteo_grid_coordsys
     end if
     if (present(hydro_grid_nx)) then
       if (size(hydro_grid_nx, 1) > size(this%hydro_grid_nx, 1)) then
@@ -1206,9 +1204,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'hydro_grid_nx'"
         return
       end if
-      lb__1 = lbound(this%hydro_grid_nx, 1)
-      ub__1 = lb__1 + size(hydro_grid_nx, 1) - 1
-      this%hydro_grid_nx(lb__1:ub__1) = hydro_grid_nx
+      this%hydro_grid_nx(1:size(hydro_grid_nx, 1)) = hydro_grid_nx
     end if
     if (present(hydro_grid_ny)) then
       if (size(hydro_grid_ny, 1) > size(this%hydro_grid_ny, 1)) then
@@ -1216,9 +1212,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'hydro_grid_ny'"
         return
       end if
-      lb__1 = lbound(this%hydro_grid_ny, 1)
-      ub__1 = lb__1 + size(hydro_grid_ny, 1) - 1
-      this%hydro_grid_ny(lb__1:ub__1) = hydro_grid_ny
+      this%hydro_grid_ny(1:size(hydro_grid_ny, 1)) = hydro_grid_ny
     end if
     if (present(hydro_grid_xll)) then
       if (size(hydro_grid_xll, 1) > size(this%hydro_grid_xll, 1)) then
@@ -1226,9 +1220,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'hydro_grid_xll'"
         return
       end if
-      lb__1 = lbound(this%hydro_grid_xll, 1)
-      ub__1 = lb__1 + size(hydro_grid_xll, 1) - 1
-      this%hydro_grid_xll(lb__1:ub__1) = hydro_grid_xll
+      this%hydro_grid_xll(1:size(hydro_grid_xll, 1)) = hydro_grid_xll
     end if
     if (present(hydro_grid_yll)) then
       if (size(hydro_grid_yll, 1) > size(this%hydro_grid_yll, 1)) then
@@ -1236,9 +1228,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'hydro_grid_yll'"
         return
       end if
-      lb__1 = lbound(this%hydro_grid_yll, 1)
-      ub__1 = lb__1 + size(hydro_grid_yll, 1) - 1
-      this%hydro_grid_yll(lb__1:ub__1) = hydro_grid_yll
+      this%hydro_grid_yll(1:size(hydro_grid_yll, 1)) = hydro_grid_yll
     end if
     if (present(hydro_grid_cellsize)) then
       if (size(hydro_grid_cellsize, 1) > size(this%hydro_grid_cellsize, 1)) then
@@ -1246,9 +1236,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'hydro_grid_cellsize'"
         return
       end if
-      lb__1 = lbound(this%hydro_grid_cellsize, 1)
-      ub__1 = lb__1 + size(hydro_grid_cellsize, 1) - 1
-      this%hydro_grid_cellsize(lb__1:ub__1) = hydro_grid_cellsize
+      this%hydro_grid_cellsize(1:size(hydro_grid_cellsize, 1)) = hydro_grid_cellsize
     end if
     if (present(hydro_grid_ydir)) then
       if (size(hydro_grid_ydir, 1) > size(this%hydro_grid_ydir, 1)) then
@@ -1256,9 +1244,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'hydro_grid_ydir'"
         return
       end if
-      lb__1 = lbound(this%hydro_grid_ydir, 1)
-      ub__1 = lb__1 + size(hydro_grid_ydir, 1) - 1
-      this%hydro_grid_ydir(lb__1:ub__1) = hydro_grid_ydir
+      this%hydro_grid_ydir(1:size(hydro_grid_ydir, 1)) = hydro_grid_ydir
     end if
     if (present(hydro_grid_coordsys)) then
       if (size(hydro_grid_coordsys, 1) > size(this%hydro_grid_coordsys, 1)) then
@@ -1266,9 +1252,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'hydro_grid_coordsys'"
         return
       end if
-      lb__1 = lbound(this%hydro_grid_coordsys, 1)
-      ub__1 = lb__1 + size(hydro_grid_coordsys, 1) - 1
-      this%hydro_grid_coordsys(lb__1:ub__1) = hydro_grid_coordsys
+      this%hydro_grid_coordsys(1:size(hydro_grid_coordsys, 1)) = hydro_grid_coordsys
     end if
     if (present(morph_grid_nx)) then
       if (size(morph_grid_nx, 1) > size(this%morph_grid_nx, 1)) then
@@ -1276,9 +1260,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'morph_grid_nx'"
         return
       end if
-      lb__1 = lbound(this%morph_grid_nx, 1)
-      ub__1 = lb__1 + size(morph_grid_nx, 1) - 1
-      this%morph_grid_nx(lb__1:ub__1) = morph_grid_nx
+      this%morph_grid_nx(1:size(morph_grid_nx, 1)) = morph_grid_nx
     end if
     if (present(morph_grid_ny)) then
       if (size(morph_grid_ny, 1) > size(this%morph_grid_ny, 1)) then
@@ -1286,9 +1268,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'morph_grid_ny'"
         return
       end if
-      lb__1 = lbound(this%morph_grid_ny, 1)
-      ub__1 = lb__1 + size(morph_grid_ny, 1) - 1
-      this%morph_grid_ny(lb__1:ub__1) = morph_grid_ny
+      this%morph_grid_ny(1:size(morph_grid_ny, 1)) = morph_grid_ny
     end if
     if (present(morph_grid_xll)) then
       if (size(morph_grid_xll, 1) > size(this%morph_grid_xll, 1)) then
@@ -1296,9 +1276,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'morph_grid_xll'"
         return
       end if
-      lb__1 = lbound(this%morph_grid_xll, 1)
-      ub__1 = lb__1 + size(morph_grid_xll, 1) - 1
-      this%morph_grid_xll(lb__1:ub__1) = morph_grid_xll
+      this%morph_grid_xll(1:size(morph_grid_xll, 1)) = morph_grid_xll
     end if
     if (present(morph_grid_yll)) then
       if (size(morph_grid_yll, 1) > size(this%morph_grid_yll, 1)) then
@@ -1306,9 +1284,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'morph_grid_yll'"
         return
       end if
-      lb__1 = lbound(this%morph_grid_yll, 1)
-      ub__1 = lb__1 + size(morph_grid_yll, 1) - 1
-      this%morph_grid_yll(lb__1:ub__1) = morph_grid_yll
+      this%morph_grid_yll(1:size(morph_grid_yll, 1)) = morph_grid_yll
     end if
     if (present(morph_grid_cellsize)) then
       if (size(morph_grid_cellsize, 1) > size(this%morph_grid_cellsize, 1)) then
@@ -1316,9 +1292,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'morph_grid_cellsize'"
         return
       end if
-      lb__1 = lbound(this%morph_grid_cellsize, 1)
-      ub__1 = lb__1 + size(morph_grid_cellsize, 1) - 1
-      this%morph_grid_cellsize(lb__1:ub__1) = morph_grid_cellsize
+      this%morph_grid_cellsize(1:size(morph_grid_cellsize, 1)) = morph_grid_cellsize
     end if
     if (present(morph_grid_ydir)) then
       if (size(morph_grid_ydir, 1) > size(this%morph_grid_ydir, 1)) then
@@ -1326,9 +1300,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'morph_grid_ydir'"
         return
       end if
-      lb__1 = lbound(this%morph_grid_ydir, 1)
-      ub__1 = lb__1 + size(morph_grid_ydir, 1) - 1
-      this%morph_grid_ydir(lb__1:ub__1) = morph_grid_ydir
+      this%morph_grid_ydir(1:size(morph_grid_ydir, 1)) = morph_grid_ydir
     end if
     if (present(morph_grid_coordsys)) then
       if (size(morph_grid_coordsys, 1) > size(this%morph_grid_coordsys, 1)) then
@@ -1336,9 +1308,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'morph_grid_coordsys'"
         return
       end if
-      lb__1 = lbound(this%morph_grid_coordsys, 1)
-      ub__1 = lb__1 + size(morph_grid_coordsys, 1) - 1
-      this%morph_grid_coordsys(lb__1:ub__1) = morph_grid_coordsys
+      this%morph_grid_coordsys(1:size(morph_grid_coordsys, 1)) = morph_grid_coordsys
     end if
     if (present(pre_coupled)) then
       if (size(pre_coupled, 1) > size(this%pre_coupled, 1)) then
@@ -1346,9 +1316,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'pre_coupled'"
         return
       end if
-      lb__1 = lbound(this%pre_coupled, 1)
-      ub__1 = lb__1 + size(pre_coupled, 1) - 1
-      this%pre_coupled(lb__1:ub__1) = pre_coupled
+      this%pre_coupled(1:size(pre_coupled, 1)) = pre_coupled
     end if
     if (present(pet_coupled)) then
       if (size(pet_coupled, 1) > size(this%pet_coupled, 1)) then
@@ -1356,9 +1324,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'pet_coupled'"
         return
       end if
-      lb__1 = lbound(this%pet_coupled, 1)
-      ub__1 = lb__1 + size(pet_coupled, 1) - 1
-      this%pet_coupled(lb__1:ub__1) = pet_coupled
+      this%pet_coupled(1:size(pet_coupled, 1)) = pet_coupled
     end if
     if (present(temp_coupled)) then
       if (size(temp_coupled, 1) > size(this%temp_coupled, 1)) then
@@ -1366,9 +1332,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'temp_coupled'"
         return
       end if
-      lb__1 = lbound(this%temp_coupled, 1)
-      ub__1 = lb__1 + size(temp_coupled, 1) - 1
-      this%temp_coupled(lb__1:ub__1) = temp_coupled
+      this%temp_coupled(1:size(temp_coupled, 1)) = temp_coupled
     end if
     if (present(tann_coupled)) then
       if (size(tann_coupled, 1) > size(this%tann_coupled, 1)) then
@@ -1376,9 +1340,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'tann_coupled'"
         return
       end if
-      lb__1 = lbound(this%tann_coupled, 1)
-      ub__1 = lb__1 + size(tann_coupled, 1) - 1
-      this%tann_coupled(lb__1:ub__1) = tann_coupled
+      this%tann_coupled(1:size(tann_coupled, 1)) = tann_coupled
     end if
     if (present(tmin_coupled)) then
       if (size(tmin_coupled, 1) > size(this%tmin_coupled, 1)) then
@@ -1386,9 +1348,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'tmin_coupled'"
         return
       end if
-      lb__1 = lbound(this%tmin_coupled, 1)
-      ub__1 = lb__1 + size(tmin_coupled, 1) - 1
-      this%tmin_coupled(lb__1:ub__1) = tmin_coupled
+      this%tmin_coupled(1:size(tmin_coupled, 1)) = tmin_coupled
     end if
     if (present(tmax_coupled)) then
       if (size(tmax_coupled, 1) > size(this%tmax_coupled, 1)) then
@@ -1396,9 +1356,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'tmax_coupled'"
         return
       end if
-      lb__1 = lbound(this%tmax_coupled, 1)
-      ub__1 = lb__1 + size(tmax_coupled, 1) - 1
-      this%tmax_coupled(lb__1:ub__1) = tmax_coupled
+      this%tmax_coupled(1:size(tmax_coupled, 1)) = tmax_coupled
     end if
     if (present(ssrd_coupled)) then
       if (size(ssrd_coupled, 1) > size(this%ssrd_coupled, 1)) then
@@ -1406,9 +1364,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'ssrd_coupled'"
         return
       end if
-      lb__1 = lbound(this%ssrd_coupled, 1)
-      ub__1 = lb__1 + size(ssrd_coupled, 1) - 1
-      this%ssrd_coupled(lb__1:ub__1) = ssrd_coupled
+      this%ssrd_coupled(1:size(ssrd_coupled, 1)) = ssrd_coupled
     end if
     if (present(strd_coupled)) then
       if (size(strd_coupled, 1) > size(this%strd_coupled, 1)) then
@@ -1416,9 +1372,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'strd_coupled'"
         return
       end if
-      lb__1 = lbound(this%strd_coupled, 1)
-      ub__1 = lb__1 + size(strd_coupled, 1) - 1
-      this%strd_coupled(lb__1:ub__1) = strd_coupled
+      this%strd_coupled(1:size(strd_coupled, 1)) = strd_coupled
     end if
     if (present(netrad_coupled)) then
       if (size(netrad_coupled, 1) > size(this%netrad_coupled, 1)) then
@@ -1426,9 +1380,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'netrad_coupled'"
         return
       end if
-      lb__1 = lbound(this%netrad_coupled, 1)
-      ub__1 = lb__1 + size(netrad_coupled, 1) - 1
-      this%netrad_coupled(lb__1:ub__1) = netrad_coupled
+      this%netrad_coupled(1:size(netrad_coupled, 1)) = netrad_coupled
     end if
     if (present(eabs_coupled)) then
       if (size(eabs_coupled, 1) > size(this%eabs_coupled, 1)) then
@@ -1436,9 +1388,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'eabs_coupled'"
         return
       end if
-      lb__1 = lbound(this%eabs_coupled, 1)
-      ub__1 = lb__1 + size(eabs_coupled, 1) - 1
-      this%eabs_coupled(lb__1:ub__1) = eabs_coupled
+      this%eabs_coupled(1:size(eabs_coupled, 1)) = eabs_coupled
     end if
     if (present(wind_coupled)) then
       if (size(wind_coupled, 1) > size(this%wind_coupled, 1)) then
@@ -1446,9 +1396,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'wind_coupled'"
         return
       end if
-      lb__1 = lbound(this%wind_coupled, 1)
-      ub__1 = lb__1 + size(wind_coupled, 1) - 1
-      this%wind_coupled(lb__1:ub__1) = wind_coupled
+      this%wind_coupled(1:size(wind_coupled, 1)) = wind_coupled
     end if
     if (present(runoff_coupled)) then
       if (size(runoff_coupled, 1) > size(this%runoff_coupled, 1)) then
@@ -1456,9 +1404,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'runoff_coupled'"
         return
       end if
-      lb__1 = lbound(this%runoff_coupled, 1)
-      ub__1 = lb__1 + size(runoff_coupled, 1) - 1
-      this%runoff_coupled(lb__1:ub__1) = runoff_coupled
+      this%runoff_coupled(1:size(runoff_coupled, 1)) = runoff_coupled
     end if
     if (present(runoff_sealed_coupled)) then
       if (size(runoff_sealed_coupled, 1) > size(this%runoff_sealed_coupled, 1)) then
@@ -1466,9 +1412,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'runoff_sealed_coupled'"
         return
       end if
-      lb__1 = lbound(this%runoff_sealed_coupled, 1)
-      ub__1 = lb__1 + size(runoff_sealed_coupled, 1) - 1
-      this%runoff_sealed_coupled(lb__1:ub__1) = runoff_sealed_coupled
+      this%runoff_sealed_coupled(1:size(runoff_sealed_coupled, 1)) = runoff_sealed_coupled
     end if
     if (present(interflow_fast_coupled)) then
       if (size(interflow_fast_coupled, 1) > size(this%interflow_fast_coupled, 1)) then
@@ -1476,9 +1420,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'interflow_fast_coupled'"
         return
       end if
-      lb__1 = lbound(this%interflow_fast_coupled, 1)
-      ub__1 = lb__1 + size(interflow_fast_coupled, 1) - 1
-      this%interflow_fast_coupled(lb__1:ub__1) = interflow_fast_coupled
+      this%interflow_fast_coupled(1:size(interflow_fast_coupled, 1)) = interflow_fast_coupled
     end if
     if (present(interflow_slow_coupled)) then
       if (size(interflow_slow_coupled, 1) > size(this%interflow_slow_coupled, 1)) then
@@ -1486,9 +1428,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'interflow_slow_coupled'"
         return
       end if
-      lb__1 = lbound(this%interflow_slow_coupled, 1)
-      ub__1 = lb__1 + size(interflow_slow_coupled, 1) - 1
-      this%interflow_slow_coupled(lb__1:ub__1) = interflow_slow_coupled
+      this%interflow_slow_coupled(1:size(interflow_slow_coupled, 1)) = interflow_slow_coupled
     end if
     if (present(baseflow_coupled)) then
       if (size(baseflow_coupled, 1) > size(this%baseflow_coupled, 1)) then
@@ -1496,9 +1436,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'baseflow_coupled'"
         return
       end if
-      lb__1 = lbound(this%baseflow_coupled, 1)
-      ub__1 = lb__1 + size(baseflow_coupled, 1) - 1
-      this%baseflow_coupled(lb__1:ub__1) = baseflow_coupled
+      this%baseflow_coupled(1:size(baseflow_coupled, 1)) = baseflow_coupled
     end if
     if (present(dem_coupled)) then
       if (size(dem_coupled, 1) > size(this%dem_coupled, 1)) then
@@ -1506,9 +1444,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'dem_coupled'"
         return
       end if
-      lb__1 = lbound(this%dem_coupled, 1)
-      ub__1 = lb__1 + size(dem_coupled, 1) - 1
-      this%dem_coupled(lb__1:ub__1) = dem_coupled
+      this%dem_coupled(1:size(dem_coupled, 1)) = dem_coupled
     end if
     if (present(slope_coupled)) then
       if (size(slope_coupled, 1) > size(this%slope_coupled, 1)) then
@@ -1516,9 +1452,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'slope_coupled'"
         return
       end if
-      lb__1 = lbound(this%slope_coupled, 1)
-      ub__1 = lb__1 + size(slope_coupled, 1) - 1
-      this%slope_coupled(lb__1:ub__1) = slope_coupled
+      this%slope_coupled(1:size(slope_coupled, 1)) = slope_coupled
     end if
     if (present(aspect_coupled)) then
       if (size(aspect_coupled, 1) > size(this%aspect_coupled, 1)) then
@@ -1526,9 +1460,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'aspect_coupled'"
         return
       end if
-      lb__1 = lbound(this%aspect_coupled, 1)
-      ub__1 = lb__1 + size(aspect_coupled, 1) - 1
-      this%aspect_coupled(lb__1:ub__1) = aspect_coupled
+      this%aspect_coupled(1:size(aspect_coupled, 1)) = aspect_coupled
     end if
     if (present(geo_class_coupled)) then
       if (size(geo_class_coupled, 1) > size(this%geo_class_coupled, 1)) then
@@ -1536,9 +1468,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'geo_class_coupled'"
         return
       end if
-      lb__1 = lbound(this%geo_class_coupled, 1)
-      ub__1 = lb__1 + size(geo_class_coupled, 1) - 1
-      this%geo_class_coupled(lb__1:ub__1) = geo_class_coupled
+      this%geo_class_coupled(1:size(geo_class_coupled, 1)) = geo_class_coupled
     end if
     if (present(soil_class_coupled)) then
       if (size(soil_class_coupled, 1) > size(this%soil_class_coupled, 1)) then
@@ -1546,9 +1476,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'soil_class_coupled'"
         return
       end if
-      lb__1 = lbound(this%soil_class_coupled, 1)
-      ub__1 = lb__1 + size(soil_class_coupled, 1) - 1
-      this%soil_class_coupled(lb__1:ub__1) = soil_class_coupled
+      this%soil_class_coupled(1:size(soil_class_coupled, 1)) = soil_class_coupled
     end if
     if (present(lai_class_coupled)) then
       if (size(lai_class_coupled, 1) > size(this%lai_class_coupled, 1)) then
@@ -1556,9 +1484,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lai_class_coupled'"
         return
       end if
-      lb__1 = lbound(this%lai_class_coupled, 1)
-      ub__1 = lb__1 + size(lai_class_coupled, 1) - 1
-      this%lai_class_coupled(lb__1:ub__1) = lai_class_coupled
+      this%lai_class_coupled(1:size(lai_class_coupled, 1)) = lai_class_coupled
     end if
     if (present(river_width_coupled)) then
       if (size(river_width_coupled, 1) > size(this%river_width_coupled, 1)) then
@@ -1566,9 +1492,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'river_width_coupled'"
         return
       end if
-      lb__1 = lbound(this%river_width_coupled, 1)
-      ub__1 = lb__1 + size(river_width_coupled, 1) - 1
-      this%river_width_coupled(lb__1:ub__1) = river_width_coupled
+      this%river_width_coupled(1:size(river_width_coupled, 1)) = river_width_coupled
     end if
     if (present(meteo_mask_coupled)) then
       if (size(meteo_mask_coupled, 1) > size(this%meteo_mask_coupled, 1)) then
@@ -1576,9 +1500,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'meteo_mask_coupled'"
         return
       end if
-      lb__1 = lbound(this%meteo_mask_coupled, 1)
-      ub__1 = lb__1 + size(meteo_mask_coupled, 1) - 1
-      this%meteo_mask_coupled(lb__1:ub__1) = meteo_mask_coupled
+      this%meteo_mask_coupled(1:size(meteo_mask_coupled, 1)) = meteo_mask_coupled
     end if
     if (present(hydro_mask_coupled)) then
       if (size(hydro_mask_coupled, 1) > size(this%hydro_mask_coupled, 1)) then
@@ -1586,9 +1508,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'hydro_mask_coupled'"
         return
       end if
-      lb__1 = lbound(this%hydro_mask_coupled, 1)
-      ub__1 = lb__1 + size(hydro_mask_coupled, 1) - 1
-      this%hydro_mask_coupled(lb__1:ub__1) = hydro_mask_coupled
+      this%hydro_mask_coupled(1:size(hydro_mask_coupled, 1)) = hydro_mask_coupled
     end if
     if (present(morph_mask_coupled)) then
       if (size(morph_mask_coupled, 1) > size(this%morph_mask_coupled, 1)) then
@@ -1596,9 +1516,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'morph_mask_coupled'"
         return
       end if
-      lb__1 = lbound(this%morph_mask_coupled, 1)
-      ub__1 = lb__1 + size(morph_mask_coupled, 1) - 1
-      this%morph_mask_coupled(lb__1:ub__1) = morph_mask_coupled
+      this%morph_mask_coupled(1:size(morph_mask_coupled, 1)) = morph_mask_coupled
     end if
     if (present(hydro_latlon_coupled)) then
       if (size(hydro_latlon_coupled, 1) > size(this%hydro_latlon_coupled, 1)) then
@@ -1606,9 +1524,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'hydro_latlon_coupled'"
         return
       end if
-      lb__1 = lbound(this%hydro_latlon_coupled, 1)
-      ub__1 = lb__1 + size(hydro_latlon_coupled, 1) - 1
-      this%hydro_latlon_coupled(lb__1:ub__1) = hydro_latlon_coupled
+      this%hydro_latlon_coupled(1:size(hydro_latlon_coupled, 1)) = hydro_latlon_coupled
     end if
     if (present(morph_latlon_coupled)) then
       if (size(morph_latlon_coupled, 1) > size(this%morph_latlon_coupled, 1)) then
@@ -1616,9 +1532,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'morph_latlon_coupled'"
         return
       end if
-      lb__1 = lbound(this%morph_latlon_coupled, 1)
-      ub__1 = lb__1 + size(morph_latlon_coupled, 1) - 1
-      this%morph_latlon_coupled(lb__1:ub__1) = morph_latlon_coupled
+      this%morph_latlon_coupled(1:size(morph_latlon_coupled, 1)) = morph_latlon_coupled
     end if
     if (present(route_latlon_coupled)) then
       if (size(route_latlon_coupled, 1) > size(this%route_latlon_coupled, 1)) then
@@ -1626,9 +1540,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'route_latlon_coupled'"
         return
       end if
-      lb__1 = lbound(this%route_latlon_coupled, 1)
-      ub__1 = lb__1 + size(route_latlon_coupled, 1) - 1
-      this%route_latlon_coupled(lb__1:ub__1) = route_latlon_coupled
+      this%route_latlon_coupled(1:size(route_latlon_coupled, 1)) = route_latlon_coupled
     end if
 
     ! mark as configured
@@ -1642,6 +1554,7 @@ contains
     character(len=*), intent(in) :: name !< field name
     integer, intent(in), optional :: idx(:) !< optional field index values
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    intrinsic :: shape
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -1654,11 +1567,11 @@ contains
     case ("meteo_grid_nx")
       if (.not. allocated(this%meteo_grid_nx)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_nx"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%meteo_grid_nx), ubound(this%meteo_grid_nx), &
-          "meteo_grid_nx", errmsg)
+        status = idx_check(idx, shape(this%meteo_grid_nx), "meteo_grid_nx", errmsg)
         if (status /= NML_OK) return
         if (this%meteo_grid_nx(idx(1)) == -huge(this%meteo_grid_nx(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -1667,11 +1580,11 @@ contains
     case ("meteo_grid_ny")
       if (.not. allocated(this%meteo_grid_ny)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_ny"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%meteo_grid_ny), ubound(this%meteo_grid_ny), &
-          "meteo_grid_ny", errmsg)
+        status = idx_check(idx, shape(this%meteo_grid_ny), "meteo_grid_ny", errmsg)
         if (status /= NML_OK) return
         if (this%meteo_grid_ny(idx(1)) == -huge(this%meteo_grid_ny(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -1680,11 +1593,11 @@ contains
     case ("meteo_grid_xll")
       if (.not. allocated(this%meteo_grid_xll)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_xll"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%meteo_grid_xll), ubound(this%meteo_grid_xll), &
-          "meteo_grid_xll", errmsg)
+        status = idx_check(idx, shape(this%meteo_grid_xll), "meteo_grid_xll", errmsg)
         if (status /= NML_OK) return
         if (ieee_is_nan(this%meteo_grid_xll(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -1693,11 +1606,11 @@ contains
     case ("meteo_grid_yll")
       if (.not. allocated(this%meteo_grid_yll)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_yll"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%meteo_grid_yll), ubound(this%meteo_grid_yll), &
-          "meteo_grid_yll", errmsg)
+        status = idx_check(idx, shape(this%meteo_grid_yll), "meteo_grid_yll", errmsg)
         if (status /= NML_OK) return
         if (ieee_is_nan(this%meteo_grid_yll(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -1706,11 +1619,11 @@ contains
     case ("meteo_grid_cellsize")
       if (.not. allocated(this%meteo_grid_cellsize)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_cellsize"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%meteo_grid_cellsize), ubound(this%meteo_grid_cellsize), &
-          "meteo_grid_cellsize", errmsg)
+        status = idx_check(idx, shape(this%meteo_grid_cellsize), "meteo_grid_cellsize", errmsg)
         if (status /= NML_OK) return
         if (ieee_is_nan(this%meteo_grid_cellsize(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -1719,33 +1632,31 @@ contains
     case ("meteo_grid_ydir")
       if (.not. allocated(this%meteo_grid_ydir)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_ydir"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%meteo_grid_ydir), ubound(this%meteo_grid_ydir), &
-          "meteo_grid_ydir", errmsg)
+        status = idx_check(idx, shape(this%meteo_grid_ydir), "meteo_grid_ydir", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("meteo_grid_coordsys")
       if (.not. allocated(this%meteo_grid_coordsys)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_coordsys"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%meteo_grid_coordsys), ubound(this%meteo_grid_coordsys), &
-          "meteo_grid_coordsys", errmsg)
+        status = idx_check(idx, shape(this%meteo_grid_coordsys), "meteo_grid_coordsys", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("hydro_grid_nx")
       if (.not. allocated(this%hydro_grid_nx)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_nx"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%hydro_grid_nx), ubound(this%hydro_grid_nx), &
-          "hydro_grid_nx", errmsg)
+        status = idx_check(idx, shape(this%hydro_grid_nx), "hydro_grid_nx", errmsg)
         if (status /= NML_OK) return
         if (this%hydro_grid_nx(idx(1)) == -huge(this%hydro_grid_nx(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -1754,11 +1665,11 @@ contains
     case ("hydro_grid_ny")
       if (.not. allocated(this%hydro_grid_ny)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_ny"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%hydro_grid_ny), ubound(this%hydro_grid_ny), &
-          "hydro_grid_ny", errmsg)
+        status = idx_check(idx, shape(this%hydro_grid_ny), "hydro_grid_ny", errmsg)
         if (status /= NML_OK) return
         if (this%hydro_grid_ny(idx(1)) == -huge(this%hydro_grid_ny(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -1767,11 +1678,11 @@ contains
     case ("hydro_grid_xll")
       if (.not. allocated(this%hydro_grid_xll)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_xll"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%hydro_grid_xll), ubound(this%hydro_grid_xll), &
-          "hydro_grid_xll", errmsg)
+        status = idx_check(idx, shape(this%hydro_grid_xll), "hydro_grid_xll", errmsg)
         if (status /= NML_OK) return
         if (ieee_is_nan(this%hydro_grid_xll(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -1780,11 +1691,11 @@ contains
     case ("hydro_grid_yll")
       if (.not. allocated(this%hydro_grid_yll)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_yll"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%hydro_grid_yll), ubound(this%hydro_grid_yll), &
-          "hydro_grid_yll", errmsg)
+        status = idx_check(idx, shape(this%hydro_grid_yll), "hydro_grid_yll", errmsg)
         if (status /= NML_OK) return
         if (ieee_is_nan(this%hydro_grid_yll(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -1793,11 +1704,11 @@ contains
     case ("hydro_grid_cellsize")
       if (.not. allocated(this%hydro_grid_cellsize)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_cellsize"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%hydro_grid_cellsize), ubound(this%hydro_grid_cellsize), &
-          "hydro_grid_cellsize", errmsg)
+        status = idx_check(idx, shape(this%hydro_grid_cellsize), "hydro_grid_cellsize", errmsg)
         if (status /= NML_OK) return
         if (ieee_is_nan(this%hydro_grid_cellsize(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -1806,33 +1717,31 @@ contains
     case ("hydro_grid_ydir")
       if (.not. allocated(this%hydro_grid_ydir)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_ydir"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%hydro_grid_ydir), ubound(this%hydro_grid_ydir), &
-          "hydro_grid_ydir", errmsg)
+        status = idx_check(idx, shape(this%hydro_grid_ydir), "hydro_grid_ydir", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("hydro_grid_coordsys")
       if (.not. allocated(this%hydro_grid_coordsys)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_coordsys"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%hydro_grid_coordsys), ubound(this%hydro_grid_coordsys), &
-          "hydro_grid_coordsys", errmsg)
+        status = idx_check(idx, shape(this%hydro_grid_coordsys), "hydro_grid_coordsys", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("morph_grid_nx")
       if (.not. allocated(this%morph_grid_nx)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_nx"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%morph_grid_nx), ubound(this%morph_grid_nx), &
-          "morph_grid_nx", errmsg)
+        status = idx_check(idx, shape(this%morph_grid_nx), "morph_grid_nx", errmsg)
         if (status /= NML_OK) return
         if (this%morph_grid_nx(idx(1)) == -huge(this%morph_grid_nx(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -1841,11 +1750,11 @@ contains
     case ("morph_grid_ny")
       if (.not. allocated(this%morph_grid_ny)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_ny"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%morph_grid_ny), ubound(this%morph_grid_ny), &
-          "morph_grid_ny", errmsg)
+        status = idx_check(idx, shape(this%morph_grid_ny), "morph_grid_ny", errmsg)
         if (status /= NML_OK) return
         if (this%morph_grid_ny(idx(1)) == -huge(this%morph_grid_ny(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -1854,11 +1763,11 @@ contains
     case ("morph_grid_xll")
       if (.not. allocated(this%morph_grid_xll)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_xll"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%morph_grid_xll), ubound(this%morph_grid_xll), &
-          "morph_grid_xll", errmsg)
+        status = idx_check(idx, shape(this%morph_grid_xll), "morph_grid_xll", errmsg)
         if (status /= NML_OK) return
         if (ieee_is_nan(this%morph_grid_xll(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -1867,11 +1776,11 @@ contains
     case ("morph_grid_yll")
       if (.not. allocated(this%morph_grid_yll)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_yll"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%morph_grid_yll), ubound(this%morph_grid_yll), &
-          "morph_grid_yll", errmsg)
+        status = idx_check(idx, shape(this%morph_grid_yll), "morph_grid_yll", errmsg)
         if (status /= NML_OK) return
         if (ieee_is_nan(this%morph_grid_yll(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -1880,11 +1789,11 @@ contains
     case ("morph_grid_cellsize")
       if (.not. allocated(this%morph_grid_cellsize)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_cellsize"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%morph_grid_cellsize), ubound(this%morph_grid_cellsize), &
-          "morph_grid_cellsize", errmsg)
+        status = idx_check(idx, shape(this%morph_grid_cellsize), "morph_grid_cellsize", errmsg)
         if (status /= NML_OK) return
         if (ieee_is_nan(this%morph_grid_cellsize(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -1893,343 +1802,312 @@ contains
     case ("morph_grid_ydir")
       if (.not. allocated(this%morph_grid_ydir)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_ydir"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%morph_grid_ydir), ubound(this%morph_grid_ydir), &
-          "morph_grid_ydir", errmsg)
+        status = idx_check(idx, shape(this%morph_grid_ydir), "morph_grid_ydir", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("morph_grid_coordsys")
       if (.not. allocated(this%morph_grid_coordsys)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_coordsys"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%morph_grid_coordsys), ubound(this%morph_grid_coordsys), &
-          "morph_grid_coordsys", errmsg)
+        status = idx_check(idx, shape(this%morph_grid_coordsys), "morph_grid_coordsys", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("pre_coupled")
       if (.not. allocated(this%pre_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pre_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%pre_coupled), ubound(this%pre_coupled), &
-          "pre_coupled", errmsg)
+        status = idx_check(idx, shape(this%pre_coupled), "pre_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("pet_coupled")
       if (.not. allocated(this%pet_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pet_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%pet_coupled), ubound(this%pet_coupled), &
-          "pet_coupled", errmsg)
+        status = idx_check(idx, shape(this%pet_coupled), "pet_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("temp_coupled")
       if (.not. allocated(this%temp_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: temp_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%temp_coupled), ubound(this%temp_coupled), &
-          "temp_coupled", errmsg)
+        status = idx_check(idx, shape(this%temp_coupled), "temp_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("tann_coupled")
       if (.not. allocated(this%tann_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tann_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%tann_coupled), ubound(this%tann_coupled), &
-          "tann_coupled", errmsg)
+        status = idx_check(idx, shape(this%tann_coupled), "tann_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("tmin_coupled")
       if (.not. allocated(this%tmin_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tmin_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%tmin_coupled), ubound(this%tmin_coupled), &
-          "tmin_coupled", errmsg)
+        status = idx_check(idx, shape(this%tmin_coupled), "tmin_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("tmax_coupled")
       if (.not. allocated(this%tmax_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tmax_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%tmax_coupled), ubound(this%tmax_coupled), &
-          "tmax_coupled", errmsg)
+        status = idx_check(idx, shape(this%tmax_coupled), "tmax_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("ssrd_coupled")
       if (.not. allocated(this%ssrd_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: ssrd_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%ssrd_coupled), ubound(this%ssrd_coupled), &
-          "ssrd_coupled", errmsg)
+        status = idx_check(idx, shape(this%ssrd_coupled), "ssrd_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("strd_coupled")
       if (.not. allocated(this%strd_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: strd_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%strd_coupled), ubound(this%strd_coupled), &
-          "strd_coupled", errmsg)
+        status = idx_check(idx, shape(this%strd_coupled), "strd_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("netrad_coupled")
       if (.not. allocated(this%netrad_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: netrad_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%netrad_coupled), ubound(this%netrad_coupled), &
-          "netrad_coupled", errmsg)
+        status = idx_check(idx, shape(this%netrad_coupled), "netrad_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("eabs_coupled")
       if (.not. allocated(this%eabs_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: eabs_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%eabs_coupled), ubound(this%eabs_coupled), &
-          "eabs_coupled", errmsg)
+        status = idx_check(idx, shape(this%eabs_coupled), "eabs_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("wind_coupled")
       if (.not. allocated(this%wind_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: wind_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%wind_coupled), ubound(this%wind_coupled), &
-          "wind_coupled", errmsg)
+        status = idx_check(idx, shape(this%wind_coupled), "wind_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("runoff_coupled")
       if (.not. allocated(this%runoff_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: runoff_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%runoff_coupled), ubound(this%runoff_coupled), &
-          "runoff_coupled", errmsg)
+        status = idx_check(idx, shape(this%runoff_coupled), "runoff_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("runoff_sealed_coupled")
       if (.not. allocated(this%runoff_sealed_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: runoff_sealed_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%runoff_sealed_coupled), ubound(this%runoff_sealed_coupled), &
-          "runoff_sealed_coupled", errmsg)
+        status = idx_check(idx, shape(this%runoff_sealed_coupled), "runoff_sealed_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("interflow_fast_coupled")
       if (.not. allocated(this%interflow_fast_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: interflow_fast_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%interflow_fast_coupled), ubound(this%interflow_fast_coupled), &
-          "interflow_fast_coupled", errmsg)
+        status = idx_check(idx, shape(this%interflow_fast_coupled), "interflow_fast_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("interflow_slow_coupled")
       if (.not. allocated(this%interflow_slow_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: interflow_slow_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%interflow_slow_coupled), ubound(this%interflow_slow_coupled), &
-          "interflow_slow_coupled", errmsg)
+        status = idx_check(idx, shape(this%interflow_slow_coupled), "interflow_slow_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("baseflow_coupled")
       if (.not. allocated(this%baseflow_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%baseflow_coupled), ubound(this%baseflow_coupled), &
-          "baseflow_coupled", errmsg)
+        status = idx_check(idx, shape(this%baseflow_coupled), "baseflow_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("dem_coupled")
       if (.not. allocated(this%dem_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: dem_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%dem_coupled), ubound(this%dem_coupled), &
-          "dem_coupled", errmsg)
+        status = idx_check(idx, shape(this%dem_coupled), "dem_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("slope_coupled")
       if (.not. allocated(this%slope_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: slope_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%slope_coupled), ubound(this%slope_coupled), &
-          "slope_coupled", errmsg)
+        status = idx_check(idx, shape(this%slope_coupled), "slope_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("aspect_coupled")
       if (.not. allocated(this%aspect_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: aspect_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%aspect_coupled), ubound(this%aspect_coupled), &
-          "aspect_coupled", errmsg)
+        status = idx_check(idx, shape(this%aspect_coupled), "aspect_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("geo_class_coupled")
       if (.not. allocated(this%geo_class_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: geo_class_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%geo_class_coupled), ubound(this%geo_class_coupled), &
-          "geo_class_coupled", errmsg)
+        status = idx_check(idx, shape(this%geo_class_coupled), "geo_class_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("soil_class_coupled")
       if (.not. allocated(this%soil_class_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_class_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%soil_class_coupled), ubound(this%soil_class_coupled), &
-          "soil_class_coupled", errmsg)
+        status = idx_check(idx, shape(this%soil_class_coupled), "soil_class_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("lai_class_coupled")
       if (.not. allocated(this%lai_class_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_class_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%lai_class_coupled), ubound(this%lai_class_coupled), &
-          "lai_class_coupled", errmsg)
+        status = idx_check(idx, shape(this%lai_class_coupled), "lai_class_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("river_width_coupled")
       if (.not. allocated(this%river_width_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: river_width_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%river_width_coupled), ubound(this%river_width_coupled), &
-          "river_width_coupled", errmsg)
+        status = idx_check(idx, shape(this%river_width_coupled), "river_width_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("meteo_mask_coupled")
       if (.not. allocated(this%meteo_mask_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_mask_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%meteo_mask_coupled), ubound(this%meteo_mask_coupled), &
-          "meteo_mask_coupled", errmsg)
+        status = idx_check(idx, shape(this%meteo_mask_coupled), "meteo_mask_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("hydro_mask_coupled")
       if (.not. allocated(this%hydro_mask_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_mask_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%hydro_mask_coupled), ubound(this%hydro_mask_coupled), &
-          "hydro_mask_coupled", errmsg)
+        status = idx_check(idx, shape(this%hydro_mask_coupled), "hydro_mask_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("morph_mask_coupled")
       if (.not. allocated(this%morph_mask_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_mask_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%morph_mask_coupled), ubound(this%morph_mask_coupled), &
-          "morph_mask_coupled", errmsg)
+        status = idx_check(idx, shape(this%morph_mask_coupled), "morph_mask_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("hydro_latlon_coupled")
       if (.not. allocated(this%hydro_latlon_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_latlon_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%hydro_latlon_coupled), ubound(this%hydro_latlon_coupled), &
-          "hydro_latlon_coupled", errmsg)
+        status = idx_check(idx, shape(this%hydro_latlon_coupled), "hydro_latlon_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("morph_latlon_coupled")
       if (.not. allocated(this%morph_latlon_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_latlon_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%morph_latlon_coupled), ubound(this%morph_latlon_coupled), &
-          "morph_latlon_coupled", errmsg)
+        status = idx_check(idx, shape(this%morph_latlon_coupled), "morph_latlon_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("route_latlon_coupled")
       if (.not. allocated(this%route_latlon_coupled)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: route_latlon_coupled"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%route_latlon_coupled), ubound(this%route_latlon_coupled), &
-          "route_latlon_coupled", errmsg)
+        status = idx_check(idx, shape(this%route_latlon_coupled), "route_latlon_coupled", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case default
       status = NML_ERR_INVALID_NAME
@@ -2239,6 +2117,1341 @@ contains
       if (len_trim(errmsg) == 0) errmsg = "field not set: " // trim(name)
     end if
   end function nml_config_coupling_is_set
+
+  !> \brief Obtain the item presence mask with one field-name dispatch
+  integer function nml_config_coupling_set_mask__rank__1(this, name, mask, errmsg) result(status)
+    class(nml_config_coupling_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    logical, allocatable, intent(out) :: mask(:) !< item presence
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("meteo_grid_nx")
+      if (.not. allocated(this%meteo_grid_nx)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_nx"
+        return
+      end if
+      allocate(mask( &
+        size(this%meteo_grid_nx, 1)))
+      do idx__1 = 1, size(this%meteo_grid_nx, 1)
+        if (this%meteo_grid_nx(idx__1) == -huge(this%meteo_grid_nx(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("meteo_grid_ny")
+      if (.not. allocated(this%meteo_grid_ny)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_ny"
+        return
+      end if
+      allocate(mask( &
+        size(this%meteo_grid_ny, 1)))
+      do idx__1 = 1, size(this%meteo_grid_ny, 1)
+        if (this%meteo_grid_ny(idx__1) == -huge(this%meteo_grid_ny(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("meteo_grid_xll")
+      if (.not. allocated(this%meteo_grid_xll)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_xll"
+        return
+      end if
+      allocate(mask( &
+        size(this%meteo_grid_xll, 1)))
+      do idx__1 = 1, size(this%meteo_grid_xll, 1)
+        if (ieee_is_nan(this%meteo_grid_xll(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("meteo_grid_yll")
+      if (.not. allocated(this%meteo_grid_yll)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_yll"
+        return
+      end if
+      allocate(mask( &
+        size(this%meteo_grid_yll, 1)))
+      do idx__1 = 1, size(this%meteo_grid_yll, 1)
+        if (ieee_is_nan(this%meteo_grid_yll(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("meteo_grid_cellsize")
+      if (.not. allocated(this%meteo_grid_cellsize)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_cellsize"
+        return
+      end if
+      allocate(mask( &
+        size(this%meteo_grid_cellsize, 1)))
+      do idx__1 = 1, size(this%meteo_grid_cellsize, 1)
+        if (ieee_is_nan(this%meteo_grid_cellsize(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("meteo_grid_ydir")
+      if (.not. allocated(this%meteo_grid_ydir)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_ydir"
+        return
+      end if
+      allocate(mask( &
+        size(this%meteo_grid_ydir, 1)))
+      mask = .true.
+    case ("meteo_grid_coordsys")
+      if (.not. allocated(this%meteo_grid_coordsys)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_coordsys"
+        return
+      end if
+      allocate(mask( &
+        size(this%meteo_grid_coordsys, 1)))
+      mask = .true.
+    case ("hydro_grid_nx")
+      if (.not. allocated(this%hydro_grid_nx)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_nx"
+        return
+      end if
+      allocate(mask( &
+        size(this%hydro_grid_nx, 1)))
+      do idx__1 = 1, size(this%hydro_grid_nx, 1)
+        if (this%hydro_grid_nx(idx__1) == -huge(this%hydro_grid_nx(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("hydro_grid_ny")
+      if (.not. allocated(this%hydro_grid_ny)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_ny"
+        return
+      end if
+      allocate(mask( &
+        size(this%hydro_grid_ny, 1)))
+      do idx__1 = 1, size(this%hydro_grid_ny, 1)
+        if (this%hydro_grid_ny(idx__1) == -huge(this%hydro_grid_ny(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("hydro_grid_xll")
+      if (.not. allocated(this%hydro_grid_xll)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_xll"
+        return
+      end if
+      allocate(mask( &
+        size(this%hydro_grid_xll, 1)))
+      do idx__1 = 1, size(this%hydro_grid_xll, 1)
+        if (ieee_is_nan(this%hydro_grid_xll(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("hydro_grid_yll")
+      if (.not. allocated(this%hydro_grid_yll)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_yll"
+        return
+      end if
+      allocate(mask( &
+        size(this%hydro_grid_yll, 1)))
+      do idx__1 = 1, size(this%hydro_grid_yll, 1)
+        if (ieee_is_nan(this%hydro_grid_yll(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("hydro_grid_cellsize")
+      if (.not. allocated(this%hydro_grid_cellsize)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_cellsize"
+        return
+      end if
+      allocate(mask( &
+        size(this%hydro_grid_cellsize, 1)))
+      do idx__1 = 1, size(this%hydro_grid_cellsize, 1)
+        if (ieee_is_nan(this%hydro_grid_cellsize(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("hydro_grid_ydir")
+      if (.not. allocated(this%hydro_grid_ydir)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_ydir"
+        return
+      end if
+      allocate(mask( &
+        size(this%hydro_grid_ydir, 1)))
+      mask = .true.
+    case ("hydro_grid_coordsys")
+      if (.not. allocated(this%hydro_grid_coordsys)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_coordsys"
+        return
+      end if
+      allocate(mask( &
+        size(this%hydro_grid_coordsys, 1)))
+      mask = .true.
+    case ("morph_grid_nx")
+      if (.not. allocated(this%morph_grid_nx)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_nx"
+        return
+      end if
+      allocate(mask( &
+        size(this%morph_grid_nx, 1)))
+      do idx__1 = 1, size(this%morph_grid_nx, 1)
+        if (this%morph_grid_nx(idx__1) == -huge(this%morph_grid_nx(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("morph_grid_ny")
+      if (.not. allocated(this%morph_grid_ny)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_ny"
+        return
+      end if
+      allocate(mask( &
+        size(this%morph_grid_ny, 1)))
+      do idx__1 = 1, size(this%morph_grid_ny, 1)
+        if (this%morph_grid_ny(idx__1) == -huge(this%morph_grid_ny(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("morph_grid_xll")
+      if (.not. allocated(this%morph_grid_xll)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_xll"
+        return
+      end if
+      allocate(mask( &
+        size(this%morph_grid_xll, 1)))
+      do idx__1 = 1, size(this%morph_grid_xll, 1)
+        if (ieee_is_nan(this%morph_grid_xll(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("morph_grid_yll")
+      if (.not. allocated(this%morph_grid_yll)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_yll"
+        return
+      end if
+      allocate(mask( &
+        size(this%morph_grid_yll, 1)))
+      do idx__1 = 1, size(this%morph_grid_yll, 1)
+        if (ieee_is_nan(this%morph_grid_yll(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("morph_grid_cellsize")
+      if (.not. allocated(this%morph_grid_cellsize)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_cellsize"
+        return
+      end if
+      allocate(mask( &
+        size(this%morph_grid_cellsize, 1)))
+      do idx__1 = 1, size(this%morph_grid_cellsize, 1)
+        if (ieee_is_nan(this%morph_grid_cellsize(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("morph_grid_ydir")
+      if (.not. allocated(this%morph_grid_ydir)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_ydir"
+        return
+      end if
+      allocate(mask( &
+        size(this%morph_grid_ydir, 1)))
+      mask = .true.
+    case ("morph_grid_coordsys")
+      if (.not. allocated(this%morph_grid_coordsys)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_coordsys"
+        return
+      end if
+      allocate(mask( &
+        size(this%morph_grid_coordsys, 1)))
+      mask = .true.
+    case ("pre_coupled")
+      if (.not. allocated(this%pre_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pre_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%pre_coupled, 1)))
+      mask = .true.
+    case ("pet_coupled")
+      if (.not. allocated(this%pet_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pet_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%pet_coupled, 1)))
+      mask = .true.
+    case ("temp_coupled")
+      if (.not. allocated(this%temp_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: temp_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%temp_coupled, 1)))
+      mask = .true.
+    case ("tann_coupled")
+      if (.not. allocated(this%tann_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tann_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%tann_coupled, 1)))
+      mask = .true.
+    case ("tmin_coupled")
+      if (.not. allocated(this%tmin_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tmin_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%tmin_coupled, 1)))
+      mask = .true.
+    case ("tmax_coupled")
+      if (.not. allocated(this%tmax_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tmax_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%tmax_coupled, 1)))
+      mask = .true.
+    case ("ssrd_coupled")
+      if (.not. allocated(this%ssrd_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: ssrd_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%ssrd_coupled, 1)))
+      mask = .true.
+    case ("strd_coupled")
+      if (.not. allocated(this%strd_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: strd_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%strd_coupled, 1)))
+      mask = .true.
+    case ("netrad_coupled")
+      if (.not. allocated(this%netrad_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: netrad_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%netrad_coupled, 1)))
+      mask = .true.
+    case ("eabs_coupled")
+      if (.not. allocated(this%eabs_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: eabs_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%eabs_coupled, 1)))
+      mask = .true.
+    case ("wind_coupled")
+      if (.not. allocated(this%wind_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: wind_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%wind_coupled, 1)))
+      mask = .true.
+    case ("runoff_coupled")
+      if (.not. allocated(this%runoff_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: runoff_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%runoff_coupled, 1)))
+      mask = .true.
+    case ("runoff_sealed_coupled")
+      if (.not. allocated(this%runoff_sealed_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: runoff_sealed_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%runoff_sealed_coupled, 1)))
+      mask = .true.
+    case ("interflow_fast_coupled")
+      if (.not. allocated(this%interflow_fast_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: interflow_fast_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%interflow_fast_coupled, 1)))
+      mask = .true.
+    case ("interflow_slow_coupled")
+      if (.not. allocated(this%interflow_slow_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: interflow_slow_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%interflow_slow_coupled, 1)))
+      mask = .true.
+    case ("baseflow_coupled")
+      if (.not. allocated(this%baseflow_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%baseflow_coupled, 1)))
+      mask = .true.
+    case ("dem_coupled")
+      if (.not. allocated(this%dem_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: dem_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%dem_coupled, 1)))
+      mask = .true.
+    case ("slope_coupled")
+      if (.not. allocated(this%slope_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: slope_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%slope_coupled, 1)))
+      mask = .true.
+    case ("aspect_coupled")
+      if (.not. allocated(this%aspect_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: aspect_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%aspect_coupled, 1)))
+      mask = .true.
+    case ("geo_class_coupled")
+      if (.not. allocated(this%geo_class_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: geo_class_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%geo_class_coupled, 1)))
+      mask = .true.
+    case ("soil_class_coupled")
+      if (.not. allocated(this%soil_class_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_class_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%soil_class_coupled, 1)))
+      mask = .true.
+    case ("lai_class_coupled")
+      if (.not. allocated(this%lai_class_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_class_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%lai_class_coupled, 1)))
+      mask = .true.
+    case ("river_width_coupled")
+      if (.not. allocated(this%river_width_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: river_width_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%river_width_coupled, 1)))
+      mask = .true.
+    case ("meteo_mask_coupled")
+      if (.not. allocated(this%meteo_mask_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_mask_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%meteo_mask_coupled, 1)))
+      mask = .true.
+    case ("hydro_mask_coupled")
+      if (.not. allocated(this%hydro_mask_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_mask_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%hydro_mask_coupled, 1)))
+      mask = .true.
+    case ("morph_mask_coupled")
+      if (.not. allocated(this%morph_mask_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_mask_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%morph_mask_coupled, 1)))
+      mask = .true.
+    case ("hydro_latlon_coupled")
+      if (.not. allocated(this%hydro_latlon_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_latlon_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%hydro_latlon_coupled, 1)))
+      mask = .true.
+    case ("morph_latlon_coupled")
+      if (.not. allocated(this%morph_latlon_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_latlon_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%morph_latlon_coupled, 1)))
+      mask = .true.
+    case ("route_latlon_coupled")
+      if (.not. allocated(this%route_latlon_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: route_latlon_coupled"
+        return
+      end if
+      allocate(mask( &
+        size(this%route_latlon_coupled, 1)))
+      mask = .true.
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_coupling_set_mask__rank__1
+
+  !> \brief Determine the smallest complete populated prefix starting at index 1
+  integer function nml_config_coupling_filled_shape(this, name, filled, errmsg) result(status)
+    class(nml_config_coupling_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    integer, intent(out) :: filled(:) !< prefix extents, retained when the prefix has holes
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    filled = 0
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("meteo_grid_nx")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'meteo_grid_nx'"
+        return
+      end if
+      if (.not. allocated(this%meteo_grid_nx)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_nx"
+        return
+      end if
+      do idx__1 = 1, size(this%meteo_grid_nx, 1)
+        if (this%meteo_grid_nx(idx__1) == -huge(this%meteo_grid_nx(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%meteo_grid_nx(idx__1) == -huge(this%meteo_grid_nx(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: meteo_grid_nx"
+          return
+        end if
+      end do
+    case ("meteo_grid_ny")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'meteo_grid_ny'"
+        return
+      end if
+      if (.not. allocated(this%meteo_grid_ny)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_ny"
+        return
+      end if
+      do idx__1 = 1, size(this%meteo_grid_ny, 1)
+        if (this%meteo_grid_ny(idx__1) == -huge(this%meteo_grid_ny(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%meteo_grid_ny(idx__1) == -huge(this%meteo_grid_ny(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: meteo_grid_ny"
+          return
+        end if
+      end do
+    case ("meteo_grid_xll")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'meteo_grid_xll'"
+        return
+      end if
+      if (.not. allocated(this%meteo_grid_xll)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_xll"
+        return
+      end if
+      do idx__1 = 1, size(this%meteo_grid_xll, 1)
+        if (ieee_is_nan(this%meteo_grid_xll(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (ieee_is_nan(this%meteo_grid_xll(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: meteo_grid_xll"
+          return
+        end if
+      end do
+    case ("meteo_grid_yll")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'meteo_grid_yll'"
+        return
+      end if
+      if (.not. allocated(this%meteo_grid_yll)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_yll"
+        return
+      end if
+      do idx__1 = 1, size(this%meteo_grid_yll, 1)
+        if (ieee_is_nan(this%meteo_grid_yll(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (ieee_is_nan(this%meteo_grid_yll(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: meteo_grid_yll"
+          return
+        end if
+      end do
+    case ("meteo_grid_cellsize")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'meteo_grid_cellsize'"
+        return
+      end if
+      if (.not. allocated(this%meteo_grid_cellsize)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_cellsize"
+        return
+      end if
+      do idx__1 = 1, size(this%meteo_grid_cellsize, 1)
+        if (ieee_is_nan(this%meteo_grid_cellsize(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (ieee_is_nan(this%meteo_grid_cellsize(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: meteo_grid_cellsize"
+          return
+        end if
+      end do
+    case ("meteo_grid_ydir")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'meteo_grid_ydir'"
+        return
+      end if
+      if (.not. allocated(this%meteo_grid_ydir)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_ydir"
+        return
+      end if
+      filled(1) = size(this%meteo_grid_ydir, 1)
+    case ("meteo_grid_coordsys")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'meteo_grid_coordsys'"
+        return
+      end if
+      if (.not. allocated(this%meteo_grid_coordsys)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_grid_coordsys"
+        return
+      end if
+      filled(1) = size(this%meteo_grid_coordsys, 1)
+    case ("hydro_grid_nx")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'hydro_grid_nx'"
+        return
+      end if
+      if (.not. allocated(this%hydro_grid_nx)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_nx"
+        return
+      end if
+      do idx__1 = 1, size(this%hydro_grid_nx, 1)
+        if (this%hydro_grid_nx(idx__1) == -huge(this%hydro_grid_nx(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%hydro_grid_nx(idx__1) == -huge(this%hydro_grid_nx(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: hydro_grid_nx"
+          return
+        end if
+      end do
+    case ("hydro_grid_ny")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'hydro_grid_ny'"
+        return
+      end if
+      if (.not. allocated(this%hydro_grid_ny)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_ny"
+        return
+      end if
+      do idx__1 = 1, size(this%hydro_grid_ny, 1)
+        if (this%hydro_grid_ny(idx__1) == -huge(this%hydro_grid_ny(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%hydro_grid_ny(idx__1) == -huge(this%hydro_grid_ny(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: hydro_grid_ny"
+          return
+        end if
+      end do
+    case ("hydro_grid_xll")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'hydro_grid_xll'"
+        return
+      end if
+      if (.not. allocated(this%hydro_grid_xll)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_xll"
+        return
+      end if
+      do idx__1 = 1, size(this%hydro_grid_xll, 1)
+        if (ieee_is_nan(this%hydro_grid_xll(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (ieee_is_nan(this%hydro_grid_xll(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: hydro_grid_xll"
+          return
+        end if
+      end do
+    case ("hydro_grid_yll")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'hydro_grid_yll'"
+        return
+      end if
+      if (.not. allocated(this%hydro_grid_yll)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_yll"
+        return
+      end if
+      do idx__1 = 1, size(this%hydro_grid_yll, 1)
+        if (ieee_is_nan(this%hydro_grid_yll(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (ieee_is_nan(this%hydro_grid_yll(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: hydro_grid_yll"
+          return
+        end if
+      end do
+    case ("hydro_grid_cellsize")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'hydro_grid_cellsize'"
+        return
+      end if
+      if (.not. allocated(this%hydro_grid_cellsize)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_cellsize"
+        return
+      end if
+      do idx__1 = 1, size(this%hydro_grid_cellsize, 1)
+        if (ieee_is_nan(this%hydro_grid_cellsize(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (ieee_is_nan(this%hydro_grid_cellsize(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: hydro_grid_cellsize"
+          return
+        end if
+      end do
+    case ("hydro_grid_ydir")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'hydro_grid_ydir'"
+        return
+      end if
+      if (.not. allocated(this%hydro_grid_ydir)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_ydir"
+        return
+      end if
+      filled(1) = size(this%hydro_grid_ydir, 1)
+    case ("hydro_grid_coordsys")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'hydro_grid_coordsys'"
+        return
+      end if
+      if (.not. allocated(this%hydro_grid_coordsys)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_grid_coordsys"
+        return
+      end if
+      filled(1) = size(this%hydro_grid_coordsys, 1)
+    case ("morph_grid_nx")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'morph_grid_nx'"
+        return
+      end if
+      if (.not. allocated(this%morph_grid_nx)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_nx"
+        return
+      end if
+      do idx__1 = 1, size(this%morph_grid_nx, 1)
+        if (this%morph_grid_nx(idx__1) == -huge(this%morph_grid_nx(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%morph_grid_nx(idx__1) == -huge(this%morph_grid_nx(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: morph_grid_nx"
+          return
+        end if
+      end do
+    case ("morph_grid_ny")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'morph_grid_ny'"
+        return
+      end if
+      if (.not. allocated(this%morph_grid_ny)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_ny"
+        return
+      end if
+      do idx__1 = 1, size(this%morph_grid_ny, 1)
+        if (this%morph_grid_ny(idx__1) == -huge(this%morph_grid_ny(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%morph_grid_ny(idx__1) == -huge(this%morph_grid_ny(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: morph_grid_ny"
+          return
+        end if
+      end do
+    case ("morph_grid_xll")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'morph_grid_xll'"
+        return
+      end if
+      if (.not. allocated(this%morph_grid_xll)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_xll"
+        return
+      end if
+      do idx__1 = 1, size(this%morph_grid_xll, 1)
+        if (ieee_is_nan(this%morph_grid_xll(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (ieee_is_nan(this%morph_grid_xll(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: morph_grid_xll"
+          return
+        end if
+      end do
+    case ("morph_grid_yll")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'morph_grid_yll'"
+        return
+      end if
+      if (.not. allocated(this%morph_grid_yll)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_yll"
+        return
+      end if
+      do idx__1 = 1, size(this%morph_grid_yll, 1)
+        if (ieee_is_nan(this%morph_grid_yll(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (ieee_is_nan(this%morph_grid_yll(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: morph_grid_yll"
+          return
+        end if
+      end do
+    case ("morph_grid_cellsize")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'morph_grid_cellsize'"
+        return
+      end if
+      if (.not. allocated(this%morph_grid_cellsize)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_cellsize"
+        return
+      end if
+      do idx__1 = 1, size(this%morph_grid_cellsize, 1)
+        if (ieee_is_nan(this%morph_grid_cellsize(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (ieee_is_nan(this%morph_grid_cellsize(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: morph_grid_cellsize"
+          return
+        end if
+      end do
+    case ("morph_grid_ydir")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'morph_grid_ydir'"
+        return
+      end if
+      if (.not. allocated(this%morph_grid_ydir)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_ydir"
+        return
+      end if
+      filled(1) = size(this%morph_grid_ydir, 1)
+    case ("morph_grid_coordsys")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'morph_grid_coordsys'"
+        return
+      end if
+      if (.not. allocated(this%morph_grid_coordsys)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_grid_coordsys"
+        return
+      end if
+      filled(1) = size(this%morph_grid_coordsys, 1)
+    case ("pre_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'pre_coupled'"
+        return
+      end if
+      if (.not. allocated(this%pre_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pre_coupled"
+        return
+      end if
+      filled(1) = size(this%pre_coupled, 1)
+    case ("pet_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'pet_coupled'"
+        return
+      end if
+      if (.not. allocated(this%pet_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pet_coupled"
+        return
+      end if
+      filled(1) = size(this%pet_coupled, 1)
+    case ("temp_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'temp_coupled'"
+        return
+      end if
+      if (.not. allocated(this%temp_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: temp_coupled"
+        return
+      end if
+      filled(1) = size(this%temp_coupled, 1)
+    case ("tann_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'tann_coupled'"
+        return
+      end if
+      if (.not. allocated(this%tann_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tann_coupled"
+        return
+      end if
+      filled(1) = size(this%tann_coupled, 1)
+    case ("tmin_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'tmin_coupled'"
+        return
+      end if
+      if (.not. allocated(this%tmin_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tmin_coupled"
+        return
+      end if
+      filled(1) = size(this%tmin_coupled, 1)
+    case ("tmax_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'tmax_coupled'"
+        return
+      end if
+      if (.not. allocated(this%tmax_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tmax_coupled"
+        return
+      end if
+      filled(1) = size(this%tmax_coupled, 1)
+    case ("ssrd_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'ssrd_coupled'"
+        return
+      end if
+      if (.not. allocated(this%ssrd_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: ssrd_coupled"
+        return
+      end if
+      filled(1) = size(this%ssrd_coupled, 1)
+    case ("strd_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'strd_coupled'"
+        return
+      end if
+      if (.not. allocated(this%strd_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: strd_coupled"
+        return
+      end if
+      filled(1) = size(this%strd_coupled, 1)
+    case ("netrad_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'netrad_coupled'"
+        return
+      end if
+      if (.not. allocated(this%netrad_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: netrad_coupled"
+        return
+      end if
+      filled(1) = size(this%netrad_coupled, 1)
+    case ("eabs_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'eabs_coupled'"
+        return
+      end if
+      if (.not. allocated(this%eabs_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: eabs_coupled"
+        return
+      end if
+      filled(1) = size(this%eabs_coupled, 1)
+    case ("wind_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'wind_coupled'"
+        return
+      end if
+      if (.not. allocated(this%wind_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: wind_coupled"
+        return
+      end if
+      filled(1) = size(this%wind_coupled, 1)
+    case ("runoff_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'runoff_coupled'"
+        return
+      end if
+      if (.not. allocated(this%runoff_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: runoff_coupled"
+        return
+      end if
+      filled(1) = size(this%runoff_coupled, 1)
+    case ("runoff_sealed_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'runoff_sealed_coupled'"
+        return
+      end if
+      if (.not. allocated(this%runoff_sealed_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: runoff_sealed_coupled"
+        return
+      end if
+      filled(1) = size(this%runoff_sealed_coupled, 1)
+    case ("interflow_fast_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'interflow_fast_coupled'"
+        return
+      end if
+      if (.not. allocated(this%interflow_fast_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: interflow_fast_coupled"
+        return
+      end if
+      filled(1) = size(this%interflow_fast_coupled, 1)
+    case ("interflow_slow_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'interflow_slow_coupled'"
+        return
+      end if
+      if (.not. allocated(this%interflow_slow_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: interflow_slow_coupled"
+        return
+      end if
+      filled(1) = size(this%interflow_slow_coupled, 1)
+    case ("baseflow_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'baseflow_coupled'"
+        return
+      end if
+      if (.not. allocated(this%baseflow_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_coupled"
+        return
+      end if
+      filled(1) = size(this%baseflow_coupled, 1)
+    case ("dem_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'dem_coupled'"
+        return
+      end if
+      if (.not. allocated(this%dem_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: dem_coupled"
+        return
+      end if
+      filled(1) = size(this%dem_coupled, 1)
+    case ("slope_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'slope_coupled'"
+        return
+      end if
+      if (.not. allocated(this%slope_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: slope_coupled"
+        return
+      end if
+      filled(1) = size(this%slope_coupled, 1)
+    case ("aspect_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'aspect_coupled'"
+        return
+      end if
+      if (.not. allocated(this%aspect_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: aspect_coupled"
+        return
+      end if
+      filled(1) = size(this%aspect_coupled, 1)
+    case ("geo_class_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'geo_class_coupled'"
+        return
+      end if
+      if (.not. allocated(this%geo_class_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: geo_class_coupled"
+        return
+      end if
+      filled(1) = size(this%geo_class_coupled, 1)
+    case ("soil_class_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'soil_class_coupled'"
+        return
+      end if
+      if (.not. allocated(this%soil_class_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_class_coupled"
+        return
+      end if
+      filled(1) = size(this%soil_class_coupled, 1)
+    case ("lai_class_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'lai_class_coupled'"
+        return
+      end if
+      if (.not. allocated(this%lai_class_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_class_coupled"
+        return
+      end if
+      filled(1) = size(this%lai_class_coupled, 1)
+    case ("river_width_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'river_width_coupled'"
+        return
+      end if
+      if (.not. allocated(this%river_width_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: river_width_coupled"
+        return
+      end if
+      filled(1) = size(this%river_width_coupled, 1)
+    case ("meteo_mask_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'meteo_mask_coupled'"
+        return
+      end if
+      if (.not. allocated(this%meteo_mask_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_mask_coupled"
+        return
+      end if
+      filled(1) = size(this%meteo_mask_coupled, 1)
+    case ("hydro_mask_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'hydro_mask_coupled'"
+        return
+      end if
+      if (.not. allocated(this%hydro_mask_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_mask_coupled"
+        return
+      end if
+      filled(1) = size(this%hydro_mask_coupled, 1)
+    case ("morph_mask_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'morph_mask_coupled'"
+        return
+      end if
+      if (.not. allocated(this%morph_mask_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_mask_coupled"
+        return
+      end if
+      filled(1) = size(this%morph_mask_coupled, 1)
+    case ("hydro_latlon_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'hydro_latlon_coupled'"
+        return
+      end if
+      if (.not. allocated(this%hydro_latlon_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_latlon_coupled"
+        return
+      end if
+      filled(1) = size(this%hydro_latlon_coupled, 1)
+    case ("morph_latlon_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'morph_latlon_coupled'"
+        return
+      end if
+      if (.not. allocated(this%morph_latlon_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_latlon_coupled"
+        return
+      end if
+      filled(1) = size(this%morph_latlon_coupled, 1)
+    case ("route_latlon_coupled")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'route_latlon_coupled'"
+        return
+      end if
+      if (.not. allocated(this%route_latlon_coupled)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: route_latlon_coupled"
+        return
+      end if
+      filled(1) = size(this%route_latlon_coupled, 1)
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_coupling_filled_shape
 
   !> \brief Validate required values and constraints
   integer function nml_config_coupling_is_valid(this, errmsg) result(status)
