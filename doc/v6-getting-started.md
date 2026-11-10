@@ -74,7 +74,7 @@ nml-tools check --config nml-config.toml --diff
 ```
 
 GitLab installs nml-tools using `required-version` from `nml-config.toml` and runs
-the generated-file check before compilation. All-optional output groups
+the generated-file check as an independent `code-analysis` job. All-optional output groups
 may be omitted from an existing output file; omitted groups use the same defaults
 as empty groups. Configured output paths still determine which streams are active.
 

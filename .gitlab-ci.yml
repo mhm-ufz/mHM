@@ -10,7 +10,6 @@ variables:
 
 stages:
   - info
-  - check-nml-tools
   - build
   - check-v6-nmls
   - code-analysis
@@ -31,18 +30,6 @@ show-env-vars:
     S06: "runner token: ${CI_RUNNER_SHORT_TOKEN}"
   script:
     - echo -e "${SEP}\n${S00}$(date)\n${SEP}\n${S01}\n${S02}\n${S03}\n${S04}\n${SEP}\n${S05}${GIT_CLONE_PATH}\n${S06}\n${SEP}"
-
-check-nml-tools:
-  stage: check-nml-tools
-  script:
-    - module purge
-    - module use /global/apps/modulefiles
-    - module load chs-fortran-conda/0.6.0
-    - python -m venv .nml-tools-venv
-    - source .nml-tools-venv/bin/activate
-    - nml_tools_version=$(python -c 'import tomllib; print(tomllib.load(open("nml-config.toml", "rb")).get("required-version", ""))')
-    - python -m pip install "nml-tools${nml_tools_version}"
-    - nml-tools check --config nml-config.toml --diff
 
 #################
 ### TEMPLATES ###
@@ -271,6 +258,23 @@ check-v6-nagfor72:
       artifacts: true
   <<: *check_v6_template
 
+
+#####################
+### CODE ANALYSIS ###
+#####################
+
+check-nml-tools:
+  stage: code-analysis
+  needs: []
+  script:
+    - module purge
+    - module use /global/apps/modulefiles
+    - module load chs-fortran-conda/0.6.0
+    - python -m venv .nml-tools-venv
+    - source .nml-tools-venv/bin/activate
+    - nml_tools_version=$(python -c 'import tomllib; print(tomllib.load(open("nml-config.toml", "rb")).get("required-version", ""))')
+    - python -m pip install "nml-tools${nml_tools_version}"
+    - nml-tools check --config nml-config.toml --diff
 
 unittest-gfortran133:
   variables:
