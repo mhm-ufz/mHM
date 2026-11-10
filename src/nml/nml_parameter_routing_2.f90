@@ -179,26 +179,26 @@ contains
     case ("streamflow_celerity%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'streamflow_celerity'"
+        if (present(errmsg)) errmsg = "index not supported for 'streamflow_celerity%value'"
         return
       end if
       if (ieee_is_nan(this%streamflow_celerity%value)) status = NML_ERR_NOT_SET
     case ("streamflow_celerity%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'streamflow_celerity'"
+        if (present(errmsg)) errmsg = "index not supported for 'streamflow_celerity%optimize'"
         return
       end if
     case ("streamflow_celerity%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'streamflow_celerity'"
+        if (present(errmsg)) errmsg = "index not supported for 'streamflow_celerity%min'"
         return
       end if
     case ("streamflow_celerity%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'streamflow_celerity'"
+        if (present(errmsg)) errmsg = "index not supported for 'streamflow_celerity%max'"
         return
       end if
     case ("streamflow_celerity")
@@ -207,9 +207,7 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'streamflow_celerity'"
         return
       end if
-      if (ieee_is_nan(this%streamflow_celerity%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%streamflow_celerity%value))) status = NML_ERR_NOT_SET
     case default
       status = NML_ERR_INVALID_NAME
       if (present(errmsg)) errmsg = "unknown field: " // trim(name)

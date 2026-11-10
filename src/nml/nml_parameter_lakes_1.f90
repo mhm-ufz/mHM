@@ -65,6 +65,10 @@ module nml_lakes_1
     procedure :: from_file => nml_lakes_1_from_file
     procedure :: set => nml_lakes_1_set
     procedure :: is_set => nml_lakes_1_is_set
+    procedure, private :: set_mask__rank__1 => nml_lakes_1_set_mask__rank__1
+    generic :: set_mask => &
+      set_mask__rank__1
+    procedure :: filled_shape => nml_lakes_1_filled_shape
     procedure :: is_valid => nml_lakes_1_is_valid
   end type nml_lakes_1_t
 
@@ -318,9 +322,6 @@ contains
     type(parameter_t), intent(in) :: ptf_ks_sand !< Lakebed PTF sand multiplier for saturated hydraulic conductivity
     type(parameter_t), intent(in) :: ptf_ks_clay !< Lakebed PTF clay multiplier for saturated hydraulic conductivity
     type(parameter_t), dimension(:), intent(in) :: baseflow_recession !< Lake baseflow recession time for each geological unit [d]
-    integer :: &
-      lb__1, &
-      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -338,9 +339,7 @@ contains
       if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'baseflow_recession'"
       return
     end if
-    lb__1 = lbound(this%baseflow_recession, 1)
-    ub__1 = lb__1 + size(baseflow_recession, 1) - 1
-    this%baseflow_recession(lb__1:ub__1) = baseflow_recession
+    this%baseflow_recession(1:size(baseflow_recession, 1)) = baseflow_recession
 
     ! mark as configured
     this%is_configured = .true.
@@ -353,6 +352,7 @@ contains
     character(len=*), intent(in) :: name !< field name
     integer, intent(in), optional :: idx(:) !< optional field index values
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    intrinsic :: shape
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -365,26 +365,26 @@ contains
     case ("spill_coefficient_of_discharge%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'spill_coefficient_of_discharge'"
+        if (present(errmsg)) errmsg = "index not supported for 'spill_coefficient_of_discharge%value'"
         return
       end if
       if (ieee_is_nan(this%spill_coefficient_of_discharge%value)) status = NML_ERR_NOT_SET
     case ("spill_coefficient_of_discharge%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'spill_coefficient_of_discharge'"
+        if (present(errmsg)) errmsg = "index not supported for 'spill_coefficient_of_discharge%optimize'"
         return
       end if
     case ("spill_coefficient_of_discharge%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'spill_coefficient_of_discharge'"
+        if (present(errmsg)) errmsg = "index not supported for 'spill_coefficient_of_discharge%min'"
         return
       end if
     case ("spill_coefficient_of_discharge%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'spill_coefficient_of_discharge'"
+        if (present(errmsg)) errmsg = "index not supported for 'spill_coefficient_of_discharge%max'"
         return
       end if
     case ("spill_coefficient_of_discharge")
@@ -393,32 +393,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'spill_coefficient_of_discharge'"
         return
       end if
-      if (ieee_is_nan(this%spill_coefficient_of_discharge%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%spill_coefficient_of_discharge%value))) status = NML_ERR_NOT_SET
     case ("spill_exponent%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'spill_exponent'"
+        if (present(errmsg)) errmsg = "index not supported for 'spill_exponent%value'"
         return
       end if
       if (ieee_is_nan(this%spill_exponent%value)) status = NML_ERR_NOT_SET
     case ("spill_exponent%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'spill_exponent'"
+        if (present(errmsg)) errmsg = "index not supported for 'spill_exponent%optimize'"
         return
       end if
     case ("spill_exponent%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'spill_exponent'"
+        if (present(errmsg)) errmsg = "index not supported for 'spill_exponent%min'"
         return
       end if
     case ("spill_exponent%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'spill_exponent'"
+        if (present(errmsg)) errmsg = "index not supported for 'spill_exponent%max'"
         return
       end if
     case ("spill_exponent")
@@ -427,32 +425,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'spill_exponent'"
         return
       end if
-      if (ieee_is_nan(this%spill_exponent%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%spill_exponent%value))) status = NML_ERR_NOT_SET
     case ("spillway_length_multiplier%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'spillway_length_multiplier'"
+        if (present(errmsg)) errmsg = "index not supported for 'spillway_length_multiplier%value'"
         return
       end if
       if (ieee_is_nan(this%spillway_length_multiplier%value)) status = NML_ERR_NOT_SET
     case ("spillway_length_multiplier%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'spillway_length_multiplier'"
+        if (present(errmsg)) errmsg = "index not supported for 'spillway_length_multiplier%optimize'"
         return
       end if
     case ("spillway_length_multiplier%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'spillway_length_multiplier'"
+        if (present(errmsg)) errmsg = "index not supported for 'spillway_length_multiplier%min'"
         return
       end if
     case ("spillway_length_multiplier%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'spillway_length_multiplier'"
+        if (present(errmsg)) errmsg = "index not supported for 'spillway_length_multiplier%max'"
         return
       end if
     case ("spillway_length_multiplier")
@@ -461,32 +457,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'spillway_length_multiplier'"
         return
       end if
-      if (ieee_is_nan(this%spillway_length_multiplier%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%spillway_length_multiplier%value))) status = NML_ERR_NOT_SET
     case ("b%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'b'"
+        if (present(errmsg)) errmsg = "index not supported for 'b%value'"
         return
       end if
       if (ieee_is_nan(this%b%value)) status = NML_ERR_NOT_SET
     case ("b%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'b'"
+        if (present(errmsg)) errmsg = "index not supported for 'b%optimize'"
         return
       end if
     case ("b%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'b'"
+        if (present(errmsg)) errmsg = "index not supported for 'b%min'"
         return
       end if
     case ("b%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'b'"
+        if (present(errmsg)) errmsg = "index not supported for 'b%max'"
         return
       end if
     case ("b")
@@ -495,32 +489,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'b'"
         return
       end if
-      if (ieee_is_nan(this%b%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%b%value))) status = NML_ERR_NOT_SET
     case ("ptf_ks_constant%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant%value'"
         return
       end if
       if (ieee_is_nan(this%ptf_ks_constant%value)) status = NML_ERR_NOT_SET
     case ("ptf_ks_constant%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant%optimize'"
         return
       end if
     case ("ptf_ks_constant%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant%min'"
         return
       end if
     case ("ptf_ks_constant%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant%max'"
         return
       end if
     case ("ptf_ks_constant")
@@ -529,32 +521,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_constant'"
         return
       end if
-      if (ieee_is_nan(this%ptf_ks_constant%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%ptf_ks_constant%value))) status = NML_ERR_NOT_SET
     case ("ptf_ks_sand%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand%value'"
         return
       end if
       if (ieee_is_nan(this%ptf_ks_sand%value)) status = NML_ERR_NOT_SET
     case ("ptf_ks_sand%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand%optimize'"
         return
       end if
     case ("ptf_ks_sand%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand%min'"
         return
       end if
     case ("ptf_ks_sand%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand%max'"
         return
       end if
     case ("ptf_ks_sand")
@@ -563,32 +553,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_sand'"
         return
       end if
-      if (ieee_is_nan(this%ptf_ks_sand%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%ptf_ks_sand%value))) status = NML_ERR_NOT_SET
     case ("ptf_ks_clay%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay%value'"
         return
       end if
       if (ieee_is_nan(this%ptf_ks_clay%value)) status = NML_ERR_NOT_SET
     case ("ptf_ks_clay%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay%optimize'"
         return
       end if
     case ("ptf_ks_clay%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay%min'"
         return
       end if
     case ("ptf_ks_clay%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay'"
+        if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay%max'"
         return
       end if
     case ("ptf_ks_clay")
@@ -597,17 +585,15 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'ptf_ks_clay'"
         return
       end if
-      if (ieee_is_nan(this%ptf_ks_clay%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%ptf_ks_clay%value))) status = NML_ERR_NOT_SET
     case ("baseflow_recession%value")
       if (.not. allocated(this%baseflow_recession)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%value"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%baseflow_recession), ubound(this%baseflow_recession), &
-          "baseflow_recession", errmsg)
+        status = idx_check(idx, shape(this%baseflow_recession), "baseflow_recession%value", errmsg)
         if (status /= NML_OK) return
         if (ieee_is_nan(this%baseflow_recession(idx(1))%value)) status = NML_ERR_NOT_SET
       else
@@ -616,49 +602,47 @@ contains
     case ("baseflow_recession%optimize")
       if (.not. allocated(this%baseflow_recession)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%optimize"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%baseflow_recession), ubound(this%baseflow_recession), &
-          "baseflow_recession", errmsg)
+        status = idx_check(idx, shape(this%baseflow_recession), "baseflow_recession%optimize", errmsg)
         if (status /= NML_OK) return
       end if
     case ("baseflow_recession%min")
       if (.not. allocated(this%baseflow_recession)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%min"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%baseflow_recession), ubound(this%baseflow_recession), &
-          "baseflow_recession", errmsg)
+        status = idx_check(idx, shape(this%baseflow_recession), "baseflow_recession%min", errmsg)
         if (status /= NML_OK) return
       end if
     case ("baseflow_recession%max")
       if (.not. allocated(this%baseflow_recession)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%max"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%baseflow_recession), ubound(this%baseflow_recession), &
-          "baseflow_recession", errmsg)
+        status = idx_check(idx, shape(this%baseflow_recession), "baseflow_recession%max", errmsg)
         if (status /= NML_OK) return
       end if
     case ("baseflow_recession")
       if (.not. allocated(this%baseflow_recession)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%baseflow_recession), ubound(this%baseflow_recession), &
-          "baseflow_recession", errmsg)
+        status = idx_check(idx, shape(this%baseflow_recession), "baseflow_recession", errmsg)
         if (status /= NML_OK) return
-        if (ieee_is_nan(this%baseflow_recession(idx(1))%value)) then
-          status = NML_ERR_NOT_SET
-        end if
+        if ((ieee_is_nan(this%baseflow_recession(idx(1))%value))) status = NML_ERR_NOT_SET
       else
-        if (all(ieee_is_nan(this%baseflow_recession%value))) then
+        if (all((ieee_is_nan(this%baseflow_recession%value)))) then
           status = NML_ERR_NOT_SET
-        else if (any(ieee_is_nan(this%baseflow_recession%value))) then
+        else if (any((ieee_is_nan(this%baseflow_recession%value)))) then
           status = NML_ERR_PARTLY_SET
         end if
       end if
@@ -670,6 +654,398 @@ contains
       if (len_trim(errmsg) == 0) errmsg = "field not set: " // trim(name)
     end if
   end function nml_lakes_1_is_set
+
+  !> \brief Obtain the item presence mask with one field-name dispatch
+  integer function nml_lakes_1_set_mask__rank__1(this, name, mask, errmsg) result(status)
+    class(nml_lakes_1_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    logical, allocatable, intent(out) :: mask(:) !< item presence
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("spill_coefficient_of_discharge%value")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spill_coefficient_of_discharge%value"
+    case ("spill_coefficient_of_discharge%optimize")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spill_coefficient_of_discharge%optimize"
+    case ("spill_coefficient_of_discharge%min")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spill_coefficient_of_discharge%min"
+    case ("spill_coefficient_of_discharge%max")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spill_coefficient_of_discharge%max"
+    case ("spill_coefficient_of_discharge")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spill_coefficient_of_discharge"
+    case ("spill_exponent%value")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spill_exponent%value"
+    case ("spill_exponent%optimize")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spill_exponent%optimize"
+    case ("spill_exponent%min")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spill_exponent%min"
+    case ("spill_exponent%max")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spill_exponent%max"
+    case ("spill_exponent")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spill_exponent"
+    case ("spillway_length_multiplier%value")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spillway_length_multiplier%value"
+    case ("spillway_length_multiplier%optimize")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spillway_length_multiplier%optimize"
+    case ("spillway_length_multiplier%min")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spillway_length_multiplier%min"
+    case ("spillway_length_multiplier%max")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spillway_length_multiplier%max"
+    case ("spillway_length_multiplier")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spillway_length_multiplier"
+    case ("b%value")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: b%value"
+    case ("b%optimize")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: b%optimize"
+    case ("b%min")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: b%min"
+    case ("b%max")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: b%max"
+    case ("b")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: b"
+    case ("ptf_ks_constant%value")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_constant%value"
+    case ("ptf_ks_constant%optimize")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_constant%optimize"
+    case ("ptf_ks_constant%min")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_constant%min"
+    case ("ptf_ks_constant%max")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_constant%max"
+    case ("ptf_ks_constant")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_constant"
+    case ("ptf_ks_sand%value")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_sand%value"
+    case ("ptf_ks_sand%optimize")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_sand%optimize"
+    case ("ptf_ks_sand%min")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_sand%min"
+    case ("ptf_ks_sand%max")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_sand%max"
+    case ("ptf_ks_sand")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_sand"
+    case ("ptf_ks_clay%value")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_clay%value"
+    case ("ptf_ks_clay%optimize")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_clay%optimize"
+    case ("ptf_ks_clay%min")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_clay%min"
+    case ("ptf_ks_clay%max")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_clay%max"
+    case ("ptf_ks_clay")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_clay"
+    case ("baseflow_recession%value")
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%value"
+        return
+      end if
+      allocate(mask( &
+        size(this%baseflow_recession, 1)))
+      do idx__1 = 1, size(this%baseflow_recession, 1)
+        if (ieee_is_nan(this%baseflow_recession(idx__1)%value)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("baseflow_recession%optimize")
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%optimize"
+        return
+      end if
+      allocate(mask( &
+        size(this%baseflow_recession, 1)))
+      mask = .true.
+    case ("baseflow_recession%min")
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%min"
+        return
+      end if
+      allocate(mask( &
+        size(this%baseflow_recession, 1)))
+      mask = .true.
+    case ("baseflow_recession%max")
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%max"
+        return
+      end if
+      allocate(mask( &
+        size(this%baseflow_recession, 1)))
+      mask = .true.
+    case ("baseflow_recession")
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession"
+        return
+      end if
+      allocate(mask( &
+        size(this%baseflow_recession, 1)))
+      do idx__1 = 1, size(this%baseflow_recession, 1)
+        if ((ieee_is_nan(this%baseflow_recession(idx__1)%value))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_lakes_1_set_mask__rank__1
+
+  !> \brief Determine the smallest complete populated prefix starting at index 1
+  integer function nml_lakes_1_filled_shape(this, name, filled, errmsg) result(status)
+    class(nml_lakes_1_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    integer, intent(out) :: filled(:) !< prefix extents, retained when the prefix has holes
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    filled = 0
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("spill_coefficient_of_discharge%value")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spill_coefficient_of_discharge%value"
+    case ("spill_coefficient_of_discharge%optimize")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spill_coefficient_of_discharge%optimize"
+    case ("spill_coefficient_of_discharge%min")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spill_coefficient_of_discharge%min"
+    case ("spill_coefficient_of_discharge%max")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spill_coefficient_of_discharge%max"
+    case ("spill_coefficient_of_discharge")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spill_coefficient_of_discharge"
+    case ("spill_exponent%value")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spill_exponent%value"
+    case ("spill_exponent%optimize")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spill_exponent%optimize"
+    case ("spill_exponent%min")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spill_exponent%min"
+    case ("spill_exponent%max")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spill_exponent%max"
+    case ("spill_exponent")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spill_exponent"
+    case ("spillway_length_multiplier%value")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spillway_length_multiplier%value"
+    case ("spillway_length_multiplier%optimize")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spillway_length_multiplier%optimize"
+    case ("spillway_length_multiplier%min")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spillway_length_multiplier%min"
+    case ("spillway_length_multiplier%max")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spillway_length_multiplier%max"
+    case ("spillway_length_multiplier")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: spillway_length_multiplier"
+    case ("b%value")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: b%value"
+    case ("b%optimize")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: b%optimize"
+    case ("b%min")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: b%min"
+    case ("b%max")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: b%max"
+    case ("b")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: b"
+    case ("ptf_ks_constant%value")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_constant%value"
+    case ("ptf_ks_constant%optimize")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_constant%optimize"
+    case ("ptf_ks_constant%min")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_constant%min"
+    case ("ptf_ks_constant%max")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_constant%max"
+    case ("ptf_ks_constant")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_constant"
+    case ("ptf_ks_sand%value")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_sand%value"
+    case ("ptf_ks_sand%optimize")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_sand%optimize"
+    case ("ptf_ks_sand%min")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_sand%min"
+    case ("ptf_ks_sand%max")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_sand%max"
+    case ("ptf_ks_sand")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_sand"
+    case ("ptf_ks_clay%value")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_clay%value"
+    case ("ptf_ks_clay%optimize")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_clay%optimize"
+    case ("ptf_ks_clay%min")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_clay%min"
+    case ("ptf_ks_clay%max")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_clay%max"
+    case ("ptf_ks_clay")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: ptf_ks_clay"
+    case ("baseflow_recession%value")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'baseflow_recession%value'"
+        return
+      end if
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%value"
+        return
+      end if
+      do idx__1 = 1, size(this%baseflow_recession, 1)
+        if (ieee_is_nan(this%baseflow_recession(idx__1)%value)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (ieee_is_nan(this%baseflow_recession(idx__1)%value)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: baseflow_recession%value"
+          return
+        end if
+      end do
+    case ("baseflow_recession%optimize")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'baseflow_recession%optimize'"
+        return
+      end if
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%optimize"
+        return
+      end if
+      filled(1) = size(this%baseflow_recession, 1)
+    case ("baseflow_recession%min")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'baseflow_recession%min'"
+        return
+      end if
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%min"
+        return
+      end if
+      filled(1) = size(this%baseflow_recession, 1)
+    case ("baseflow_recession%max")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'baseflow_recession%max'"
+        return
+      end if
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%max"
+        return
+      end if
+      filled(1) = size(this%baseflow_recession, 1)
+    case ("baseflow_recession")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'baseflow_recession'"
+        return
+      end if
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession"
+        return
+      end if
+      do idx__1 = 1, size(this%baseflow_recession, 1)
+        if ((ieee_is_nan(this%baseflow_recession(idx__1)%value))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if ((ieee_is_nan(this%baseflow_recession(idx__1)%value))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: baseflow_recession"
+          return
+        end if
+      end do
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_lakes_1_filled_shape
 
   !> \brief Validate required values and constraints
   integer function nml_lakes_1_is_valid(this, errmsg) result(status)

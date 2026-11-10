@@ -68,8 +68,15 @@ directory. CTest similarly uses separate build-tree run directories.
 Generated modules, templates, and reference documentation are updated with:
 
 ```bash
+python -m pip install 'nml-tools==0.6.0'
 nml-tools generate --config nml-config.toml
+nml-tools check --config nml-config.toml --diff
 ```
+
+GitLab installs nml-tools using `required-version` from `nml-config.toml` and runs
+the generated-file check as an independent `code-analysis` job. All-optional output groups
+may be omitted from an existing output file; omitted groups use the same defaults
+as empty groups. Configured output paths still determine which streams are active.
 
 Namelist reference documents remain in `doc/nml/`. The Doxygen documentation
 includes the scientific overview, source API, installation guidance, and
@@ -94,10 +101,11 @@ Build the PDF with system TeX Live using `make -C latex`. The extra stylesheet
 cells, captions, and labels use Doxygen's standard table renderer. Install the
 corresponding TeX Live packages for local PDF builds, including `newunicodechar`
 for symbols in source listings. The Unicode mapping supports pdfLaTeX and XeTeX
-(including Tectonic). GitLab compiles with Tectonic, runs TeX Live's `makeindex`,
-then compiles again to include the index. Its Fortran compiler comes from the
-`chs-fortran-conda` module's `FC` setting. Each pipeline documents its checked-out
-commit and retains `html/`, `mhm_doc.pdf`, and the Doxygen/PDF logs as artifacts.
+(including Tectonic). GitLab compiles with Tectonic using `-Z continue-on-errors`,
+runs TeX Live's `makeindex`, then compiles again to include the index. Its Fortran
+compiler comes from the `chs-fortran-conda` module's `FC` setting. Each pipeline
+documents its checked-out commit and retains `html/`, `mhm_doc.pdf`, and the
+Doxygen/PDF logs as artifacts.
 GitLab Pages publishes only the `main` branch build at its root; Read the Docs
 provides versioned documentation. Tectonic chooses its own reruns;
 `-r 10` would force ten additional passes rather than set a maximum.

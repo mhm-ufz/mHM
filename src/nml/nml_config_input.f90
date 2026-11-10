@@ -31,7 +31,8 @@ module nml_config_input
     idx_check, &
     to_lower, &
     n_domains__default, &
-    buf
+    buf, &
+    NML_ERR_PARTLY_SET
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
     i4
@@ -176,6 +177,10 @@ module nml_config_input
     procedure :: from_file => nml_config_input_from_file
     procedure :: set => nml_config_input_set
     procedure :: is_set => nml_config_input_is_set
+    procedure, private :: set_mask__rank__1 => nml_config_input_set_mask__rank__1
+    generic :: set_mask => &
+      set_mask__rank__1
+    procedure :: filled_shape => nml_config_input_filled_shape
     procedure :: is_valid => nml_config_input_is_valid
   end type nml_config_input_t
 
@@ -947,6 +952,16 @@ contains
 
     status = nml%find("config_input", errmsg=errmsg)
     if (status /= NML_OK) then
+      if (status == NML_ERR_NML_NOT_FOUND) then
+        close_status = nml%close(errmsg=errmsg)
+        if (close_status /= NML_OK) then
+          status = close_status
+          return
+        end if
+        this%is_configured = .true.
+        status = NML_OK
+        return
+      end if
       close_status = nml%close()
       return
     end if
@@ -1200,9 +1215,6 @@ contains
     character(len=*), dimension(:), intent(in), optional :: morph_lon_var !< Morphology longitude variable name
     character(len=*), dimension(:), intent(in), optional :: route_lat_var !< Routing latitude variable name
     character(len=*), dimension(:), intent(in), optional :: route_lon_var !< Routing longitude variable name
-    integer :: &
-      lb__1, &
-      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -1215,9 +1227,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'chunking'"
         return
       end if
-      lb__1 = lbound(this%chunking, 1)
-      ub__1 = lb__1 + size(chunking, 1) - 1
-      this%chunking(lb__1:ub__1) = chunking
+      this%chunking(1:size(chunking, 1)) = chunking
     end if
     if (present(time_stamp_location)) then
       if (size(time_stamp_location, 1) > size(this%time_stamp_location, 1)) then
@@ -1225,9 +1235,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'time_stamp_location'"
         return
       end if
-      lb__1 = lbound(this%time_stamp_location, 1)
-      ub__1 = lb__1 + size(time_stamp_location, 1) - 1
-      this%time_stamp_location(lb__1:ub__1) = time_stamp_location
+      this%time_stamp_location(1:size(time_stamp_location, 1)) = time_stamp_location
     end if
     if (present(latlon_path)) then
       if (size(latlon_path, 1) > size(this%latlon_path, 1)) then
@@ -1235,9 +1243,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'latlon_path'"
         return
       end if
-      lb__1 = lbound(this%latlon_path, 1)
-      ub__1 = lb__1 + size(latlon_path, 1) - 1
-      this%latlon_path(lb__1:ub__1) = latlon_path
+      this%latlon_path(1:size(latlon_path, 1)) = latlon_path
     end if
     if (present(morph_latlon)) then
       if (size(morph_latlon, 1) > size(this%morph_latlon, 1)) then
@@ -1245,9 +1251,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'morph_latlon'"
         return
       end if
-      lb__1 = lbound(this%morph_latlon, 1)
-      ub__1 = lb__1 + size(morph_latlon, 1) - 1
-      this%morph_latlon(lb__1:ub__1) = morph_latlon
+      this%morph_latlon(1:size(morph_latlon, 1)) = morph_latlon
     end if
     if (present(pre_path)) then
       if (size(pre_path, 1) > size(this%pre_path, 1)) then
@@ -1255,9 +1259,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'pre_path'"
         return
       end if
-      lb__1 = lbound(this%pre_path, 1)
-      ub__1 = lb__1 + size(pre_path, 1) - 1
-      this%pre_path(lb__1:ub__1) = pre_path
+      this%pre_path(1:size(pre_path, 1)) = pre_path
     end if
     if (present(pet_path)) then
       if (size(pet_path, 1) > size(this%pet_path, 1)) then
@@ -1265,9 +1267,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'pet_path'"
         return
       end if
-      lb__1 = lbound(this%pet_path, 1)
-      ub__1 = lb__1 + size(pet_path, 1) - 1
-      this%pet_path(lb__1:ub__1) = pet_path
+      this%pet_path(1:size(pet_path, 1)) = pet_path
     end if
     if (present(temp_path)) then
       if (size(temp_path, 1) > size(this%temp_path, 1)) then
@@ -1275,9 +1275,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'temp_path'"
         return
       end if
-      lb__1 = lbound(this%temp_path, 1)
-      ub__1 = lb__1 + size(temp_path, 1) - 1
-      this%temp_path(lb__1:ub__1) = temp_path
+      this%temp_path(1:size(temp_path, 1)) = temp_path
     end if
     if (present(tann_path)) then
       if (size(tann_path, 1) > size(this%tann_path, 1)) then
@@ -1285,9 +1283,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'tann_path'"
         return
       end if
-      lb__1 = lbound(this%tann_path, 1)
-      ub__1 = lb__1 + size(tann_path, 1) - 1
-      this%tann_path(lb__1:ub__1) = tann_path
+      this%tann_path(1:size(tann_path, 1)) = tann_path
     end if
     if (present(tmin_path)) then
       if (size(tmin_path, 1) > size(this%tmin_path, 1)) then
@@ -1295,9 +1291,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'tmin_path'"
         return
       end if
-      lb__1 = lbound(this%tmin_path, 1)
-      ub__1 = lb__1 + size(tmin_path, 1) - 1
-      this%tmin_path(lb__1:ub__1) = tmin_path
+      this%tmin_path(1:size(tmin_path, 1)) = tmin_path
     end if
     if (present(tmax_path)) then
       if (size(tmax_path, 1) > size(this%tmax_path, 1)) then
@@ -1305,9 +1299,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'tmax_path'"
         return
       end if
-      lb__1 = lbound(this%tmax_path, 1)
-      ub__1 = lb__1 + size(tmax_path, 1) - 1
-      this%tmax_path(lb__1:ub__1) = tmax_path
+      this%tmax_path(1:size(tmax_path, 1)) = tmax_path
     end if
     if (present(ssrd_path)) then
       if (size(ssrd_path, 1) > size(this%ssrd_path, 1)) then
@@ -1315,9 +1307,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'ssrd_path'"
         return
       end if
-      lb__1 = lbound(this%ssrd_path, 1)
-      ub__1 = lb__1 + size(ssrd_path, 1) - 1
-      this%ssrd_path(lb__1:ub__1) = ssrd_path
+      this%ssrd_path(1:size(ssrd_path, 1)) = ssrd_path
     end if
     if (present(strd_path)) then
       if (size(strd_path, 1) > size(this%strd_path, 1)) then
@@ -1325,9 +1315,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'strd_path'"
         return
       end if
-      lb__1 = lbound(this%strd_path, 1)
-      ub__1 = lb__1 + size(strd_path, 1) - 1
-      this%strd_path(lb__1:ub__1) = strd_path
+      this%strd_path(1:size(strd_path, 1)) = strd_path
     end if
     if (present(netrad_path)) then
       if (size(netrad_path, 1) > size(this%netrad_path, 1)) then
@@ -1335,9 +1323,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'netrad_path'"
         return
       end if
-      lb__1 = lbound(this%netrad_path, 1)
-      ub__1 = lb__1 + size(netrad_path, 1) - 1
-      this%netrad_path(lb__1:ub__1) = netrad_path
+      this%netrad_path(1:size(netrad_path, 1)) = netrad_path
     end if
     if (present(eabs_path)) then
       if (size(eabs_path, 1) > size(this%eabs_path, 1)) then
@@ -1345,9 +1331,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'eabs_path'"
         return
       end if
-      lb__1 = lbound(this%eabs_path, 1)
-      ub__1 = lb__1 + size(eabs_path, 1) - 1
-      this%eabs_path(lb__1:ub__1) = eabs_path
+      this%eabs_path(1:size(eabs_path, 1)) = eabs_path
     end if
     if (present(wind_path)) then
       if (size(wind_path, 1) > size(this%wind_path, 1)) then
@@ -1355,9 +1339,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'wind_path'"
         return
       end if
-      lb__1 = lbound(this%wind_path, 1)
-      ub__1 = lb__1 + size(wind_path, 1) - 1
-      this%wind_path(lb__1:ub__1) = wind_path
+      this%wind_path(1:size(wind_path, 1)) = wind_path
     end if
     if (present(tdew_path)) then
       if (size(tdew_path, 1) > size(this%tdew_path, 1)) then
@@ -1365,9 +1347,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'tdew_path'"
         return
       end if
-      lb__1 = lbound(this%tdew_path, 1)
-      ub__1 = lb__1 + size(tdew_path, 1) - 1
-      this%tdew_path(lb__1:ub__1) = tdew_path
+      this%tdew_path(1:size(tdew_path, 1)) = tdew_path
     end if
     if (present(meteo_mask_path)) then
       if (size(meteo_mask_path, 1) > size(this%meteo_mask_path, 1)) then
@@ -1375,9 +1355,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'meteo_mask_path'"
         return
       end if
-      lb__1 = lbound(this%meteo_mask_path, 1)
-      ub__1 = lb__1 + size(meteo_mask_path, 1) - 1
-      this%meteo_mask_path(lb__1:ub__1) = meteo_mask_path
+      this%meteo_mask_path(1:size(meteo_mask_path, 1)) = meteo_mask_path
     end if
     if (present(runoff_path)) then
       if (size(runoff_path, 1) > size(this%runoff_path, 1)) then
@@ -1385,9 +1363,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'runoff_path'"
         return
       end if
-      lb__1 = lbound(this%runoff_path, 1)
-      ub__1 = lb__1 + size(runoff_path, 1) - 1
-      this%runoff_path(lb__1:ub__1) = runoff_path
+      this%runoff_path(1:size(runoff_path, 1)) = runoff_path
     end if
     if (present(runoff_sealed_path)) then
       if (size(runoff_sealed_path, 1) > size(this%runoff_sealed_path, 1)) then
@@ -1395,9 +1371,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'runoff_sealed_path'"
         return
       end if
-      lb__1 = lbound(this%runoff_sealed_path, 1)
-      ub__1 = lb__1 + size(runoff_sealed_path, 1) - 1
-      this%runoff_sealed_path(lb__1:ub__1) = runoff_sealed_path
+      this%runoff_sealed_path(1:size(runoff_sealed_path, 1)) = runoff_sealed_path
     end if
     if (present(interflow_fast_path)) then
       if (size(interflow_fast_path, 1) > size(this%interflow_fast_path, 1)) then
@@ -1405,9 +1379,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'interflow_fast_path'"
         return
       end if
-      lb__1 = lbound(this%interflow_fast_path, 1)
-      ub__1 = lb__1 + size(interflow_fast_path, 1) - 1
-      this%interflow_fast_path(lb__1:ub__1) = interflow_fast_path
+      this%interflow_fast_path(1:size(interflow_fast_path, 1)) = interflow_fast_path
     end if
     if (present(interflow_slow_path)) then
       if (size(interflow_slow_path, 1) > size(this%interflow_slow_path, 1)) then
@@ -1415,9 +1387,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'interflow_slow_path'"
         return
       end if
-      lb__1 = lbound(this%interflow_slow_path, 1)
-      ub__1 = lb__1 + size(interflow_slow_path, 1) - 1
-      this%interflow_slow_path(lb__1:ub__1) = interflow_slow_path
+      this%interflow_slow_path(1:size(interflow_slow_path, 1)) = interflow_slow_path
     end if
     if (present(baseflow_path)) then
       if (size(baseflow_path, 1) > size(this%baseflow_path, 1)) then
@@ -1425,9 +1395,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'baseflow_path'"
         return
       end if
-      lb__1 = lbound(this%baseflow_path, 1)
-      ub__1 = lb__1 + size(baseflow_path, 1) - 1
-      this%baseflow_path(lb__1:ub__1) = baseflow_path
+      this%baseflow_path(1:size(baseflow_path, 1)) = baseflow_path
     end if
     if (present(hydro_mask_path)) then
       if (size(hydro_mask_path, 1) > size(this%hydro_mask_path, 1)) then
@@ -1435,9 +1403,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'hydro_mask_path'"
         return
       end if
-      lb__1 = lbound(this%hydro_mask_path, 1)
-      ub__1 = lb__1 + size(hydro_mask_path, 1) - 1
-      this%hydro_mask_path(lb__1:ub__1) = hydro_mask_path
+      this%hydro_mask_path(1:size(hydro_mask_path, 1)) = hydro_mask_path
     end if
     if (present(dem_path)) then
       if (size(dem_path, 1) > size(this%dem_path, 1)) then
@@ -1445,9 +1411,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'dem_path'"
         return
       end if
-      lb__1 = lbound(this%dem_path, 1)
-      ub__1 = lb__1 + size(dem_path, 1) - 1
-      this%dem_path(lb__1:ub__1) = dem_path
+      this%dem_path(1:size(dem_path, 1)) = dem_path
     end if
     if (present(slope_path)) then
       if (size(slope_path, 1) > size(this%slope_path, 1)) then
@@ -1455,9 +1419,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'slope_path'"
         return
       end if
-      lb__1 = lbound(this%slope_path, 1)
-      ub__1 = lb__1 + size(slope_path, 1) - 1
-      this%slope_path(lb__1:ub__1) = slope_path
+      this%slope_path(1:size(slope_path, 1)) = slope_path
     end if
     if (present(aspect_path)) then
       if (size(aspect_path, 1) > size(this%aspect_path, 1)) then
@@ -1465,9 +1427,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'aspect_path'"
         return
       end if
-      lb__1 = lbound(this%aspect_path, 1)
-      ub__1 = lb__1 + size(aspect_path, 1) - 1
-      this%aspect_path(lb__1:ub__1) = aspect_path
+      this%aspect_path(1:size(aspect_path, 1)) = aspect_path
     end if
     if (present(fdir_path)) then
       if (size(fdir_path, 1) > size(this%fdir_path, 1)) then
@@ -1475,9 +1435,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'fdir_path'"
         return
       end if
-      lb__1 = lbound(this%fdir_path, 1)
-      ub__1 = lb__1 + size(fdir_path, 1) - 1
-      this%fdir_path(lb__1:ub__1) = fdir_path
+      this%fdir_path(1:size(fdir_path, 1)) = fdir_path
     end if
     if (present(lake_definition_path)) then
       if (size(lake_definition_path, 1) > size(this%lake_definition_path, 1)) then
@@ -1485,9 +1443,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lake_definition_path'"
         return
       end if
-      lb__1 = lbound(this%lake_definition_path, 1)
-      ub__1 = lb__1 + size(lake_definition_path, 1) - 1
-      this%lake_definition_path(lb__1:ub__1) = lake_definition_path
+      this%lake_definition_path(1:size(lake_definition_path, 1)) = lake_definition_path
     end if
     if (present(facc_path)) then
       if (size(facc_path, 1) > size(this%facc_path, 1)) then
@@ -1495,9 +1451,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'facc_path'"
         return
       end if
-      lb__1 = lbound(this%facc_path, 1)
-      ub__1 = lb__1 + size(facc_path, 1) - 1
-      this%facc_path(lb__1:ub__1) = facc_path
+      this%facc_path(1:size(facc_path, 1)) = facc_path
     end if
     if (present(geo_class_path)) then
       if (size(geo_class_path, 1) > size(this%geo_class_path, 1)) then
@@ -1505,9 +1459,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'geo_class_path'"
         return
       end if
-      lb__1 = lbound(this%geo_class_path, 1)
-      ub__1 = lb__1 + size(geo_class_path, 1) - 1
-      this%geo_class_path(lb__1:ub__1) = geo_class_path
+      this%geo_class_path(1:size(geo_class_path, 1)) = geo_class_path
     end if
     if (present(soil_class_path)) then
       if (size(soil_class_path, 1) > size(this%soil_class_path, 1)) then
@@ -1515,9 +1467,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'soil_class_path'"
         return
       end if
-      lb__1 = lbound(this%soil_class_path, 1)
-      ub__1 = lb__1 + size(soil_class_path, 1) - 1
-      this%soil_class_path(lb__1:ub__1) = soil_class_path
+      this%soil_class_path(1:size(soil_class_path, 1)) = soil_class_path
     end if
     if (present(soil_horizon_class_path)) then
       if (size(soil_horizon_class_path, 1) > size(this%soil_horizon_class_path, 1)) then
@@ -1525,9 +1475,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'soil_horizon_class_path'"
         return
       end if
-      lb__1 = lbound(this%soil_horizon_class_path, 1)
-      ub__1 = lb__1 + size(soil_horizon_class_path, 1) - 1
-      this%soil_horizon_class_path(lb__1:ub__1) = soil_horizon_class_path
+      this%soil_horizon_class_path(1:size(soil_horizon_class_path, 1)) = soil_horizon_class_path
     end if
     if (present(lai_class_path)) then
       if (size(lai_class_path, 1) > size(this%lai_class_path, 1)) then
@@ -1535,9 +1483,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lai_class_path'"
         return
       end if
-      lb__1 = lbound(this%lai_class_path, 1)
-      ub__1 = lb__1 + size(lai_class_path, 1) - 1
-      this%lai_class_path(lb__1:ub__1) = lai_class_path
+      this%lai_class_path(1:size(lai_class_path, 1)) = lai_class_path
     end if
     if (present(river_width_path)) then
       if (size(river_width_path, 1) > size(this%river_width_path, 1)) then
@@ -1545,9 +1491,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'river_width_path'"
         return
       end if
-      lb__1 = lbound(this%river_width_path, 1)
-      ub__1 = lb__1 + size(river_width_path, 1) - 1
-      this%river_width_path(lb__1:ub__1) = river_width_path
+      this%river_width_path(1:size(river_width_path, 1)) = river_width_path
     end if
     if (present(morph_mask_path)) then
       if (size(morph_mask_path, 1) > size(this%morph_mask_path, 1)) then
@@ -1555,9 +1499,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'morph_mask_path'"
         return
       end if
-      lb__1 = lbound(this%morph_mask_path, 1)
-      ub__1 = lb__1 + size(morph_mask_path, 1) - 1
-      this%morph_mask_path(lb__1:ub__1) = morph_mask_path
+      this%morph_mask_path(1:size(morph_mask_path, 1)) = morph_mask_path
     end if
     if (present(pre_var)) then
       if (size(pre_var, 1) > size(this%pre_var, 1)) then
@@ -1565,9 +1507,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'pre_var'"
         return
       end if
-      lb__1 = lbound(this%pre_var, 1)
-      ub__1 = lb__1 + size(pre_var, 1) - 1
-      this%pre_var(lb__1:ub__1) = pre_var
+      this%pre_var(1:size(pre_var, 1)) = pre_var
     end if
     if (present(pet_var)) then
       if (size(pet_var, 1) > size(this%pet_var, 1)) then
@@ -1575,9 +1515,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'pet_var'"
         return
       end if
-      lb__1 = lbound(this%pet_var, 1)
-      ub__1 = lb__1 + size(pet_var, 1) - 1
-      this%pet_var(lb__1:ub__1) = pet_var
+      this%pet_var(1:size(pet_var, 1)) = pet_var
     end if
     if (present(temp_var)) then
       if (size(temp_var, 1) > size(this%temp_var, 1)) then
@@ -1585,9 +1523,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'temp_var'"
         return
       end if
-      lb__1 = lbound(this%temp_var, 1)
-      ub__1 = lb__1 + size(temp_var, 1) - 1
-      this%temp_var(lb__1:ub__1) = temp_var
+      this%temp_var(1:size(temp_var, 1)) = temp_var
     end if
     if (present(tann_var)) then
       if (size(tann_var, 1) > size(this%tann_var, 1)) then
@@ -1595,9 +1531,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'tann_var'"
         return
       end if
-      lb__1 = lbound(this%tann_var, 1)
-      ub__1 = lb__1 + size(tann_var, 1) - 1
-      this%tann_var(lb__1:ub__1) = tann_var
+      this%tann_var(1:size(tann_var, 1)) = tann_var
     end if
     if (present(tmin_var)) then
       if (size(tmin_var, 1) > size(this%tmin_var, 1)) then
@@ -1605,9 +1539,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'tmin_var'"
         return
       end if
-      lb__1 = lbound(this%tmin_var, 1)
-      ub__1 = lb__1 + size(tmin_var, 1) - 1
-      this%tmin_var(lb__1:ub__1) = tmin_var
+      this%tmin_var(1:size(tmin_var, 1)) = tmin_var
     end if
     if (present(tmax_var)) then
       if (size(tmax_var, 1) > size(this%tmax_var, 1)) then
@@ -1615,9 +1547,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'tmax_var'"
         return
       end if
-      lb__1 = lbound(this%tmax_var, 1)
-      ub__1 = lb__1 + size(tmax_var, 1) - 1
-      this%tmax_var(lb__1:ub__1) = tmax_var
+      this%tmax_var(1:size(tmax_var, 1)) = tmax_var
     end if
     if (present(ssrd_var)) then
       if (size(ssrd_var, 1) > size(this%ssrd_var, 1)) then
@@ -1625,9 +1555,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'ssrd_var'"
         return
       end if
-      lb__1 = lbound(this%ssrd_var, 1)
-      ub__1 = lb__1 + size(ssrd_var, 1) - 1
-      this%ssrd_var(lb__1:ub__1) = ssrd_var
+      this%ssrd_var(1:size(ssrd_var, 1)) = ssrd_var
     end if
     if (present(strd_var)) then
       if (size(strd_var, 1) > size(this%strd_var, 1)) then
@@ -1635,9 +1563,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'strd_var'"
         return
       end if
-      lb__1 = lbound(this%strd_var, 1)
-      ub__1 = lb__1 + size(strd_var, 1) - 1
-      this%strd_var(lb__1:ub__1) = strd_var
+      this%strd_var(1:size(strd_var, 1)) = strd_var
     end if
     if (present(netrad_var)) then
       if (size(netrad_var, 1) > size(this%netrad_var, 1)) then
@@ -1645,9 +1571,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'netrad_var'"
         return
       end if
-      lb__1 = lbound(this%netrad_var, 1)
-      ub__1 = lb__1 + size(netrad_var, 1) - 1
-      this%netrad_var(lb__1:ub__1) = netrad_var
+      this%netrad_var(1:size(netrad_var, 1)) = netrad_var
     end if
     if (present(eabs_var)) then
       if (size(eabs_var, 1) > size(this%eabs_var, 1)) then
@@ -1655,9 +1579,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'eabs_var'"
         return
       end if
-      lb__1 = lbound(this%eabs_var, 1)
-      ub__1 = lb__1 + size(eabs_var, 1) - 1
-      this%eabs_var(lb__1:ub__1) = eabs_var
+      this%eabs_var(1:size(eabs_var, 1)) = eabs_var
     end if
     if (present(wind_var)) then
       if (size(wind_var, 1) > size(this%wind_var, 1)) then
@@ -1665,9 +1587,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'wind_var'"
         return
       end if
-      lb__1 = lbound(this%wind_var, 1)
-      ub__1 = lb__1 + size(wind_var, 1) - 1
-      this%wind_var(lb__1:ub__1) = wind_var
+      this%wind_var(1:size(wind_var, 1)) = wind_var
     end if
     if (present(tdew_var)) then
       if (size(tdew_var, 1) > size(this%tdew_var, 1)) then
@@ -1675,9 +1595,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'tdew_var'"
         return
       end if
-      lb__1 = lbound(this%tdew_var, 1)
-      ub__1 = lb__1 + size(tdew_var, 1) - 1
-      this%tdew_var(lb__1:ub__1) = tdew_var
+      this%tdew_var(1:size(tdew_var, 1)) = tdew_var
     end if
     if (present(meteo_mask_var)) then
       if (size(meteo_mask_var, 1) > size(this%meteo_mask_var, 1)) then
@@ -1685,9 +1603,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'meteo_mask_var'"
         return
       end if
-      lb__1 = lbound(this%meteo_mask_var, 1)
-      ub__1 = lb__1 + size(meteo_mask_var, 1) - 1
-      this%meteo_mask_var(lb__1:ub__1) = meteo_mask_var
+      this%meteo_mask_var(1:size(meteo_mask_var, 1)) = meteo_mask_var
     end if
     if (present(runoff_var)) then
       if (size(runoff_var, 1) > size(this%runoff_var, 1)) then
@@ -1695,9 +1611,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'runoff_var'"
         return
       end if
-      lb__1 = lbound(this%runoff_var, 1)
-      ub__1 = lb__1 + size(runoff_var, 1) - 1
-      this%runoff_var(lb__1:ub__1) = runoff_var
+      this%runoff_var(1:size(runoff_var, 1)) = runoff_var
     end if
     if (present(runoff_sealed_var)) then
       if (size(runoff_sealed_var, 1) > size(this%runoff_sealed_var, 1)) then
@@ -1705,9 +1619,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'runoff_sealed_var'"
         return
       end if
-      lb__1 = lbound(this%runoff_sealed_var, 1)
-      ub__1 = lb__1 + size(runoff_sealed_var, 1) - 1
-      this%runoff_sealed_var(lb__1:ub__1) = runoff_sealed_var
+      this%runoff_sealed_var(1:size(runoff_sealed_var, 1)) = runoff_sealed_var
     end if
     if (present(interflow_fast_var)) then
       if (size(interflow_fast_var, 1) > size(this%interflow_fast_var, 1)) then
@@ -1715,9 +1627,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'interflow_fast_var'"
         return
       end if
-      lb__1 = lbound(this%interflow_fast_var, 1)
-      ub__1 = lb__1 + size(interflow_fast_var, 1) - 1
-      this%interflow_fast_var(lb__1:ub__1) = interflow_fast_var
+      this%interflow_fast_var(1:size(interflow_fast_var, 1)) = interflow_fast_var
     end if
     if (present(interflow_slow_var)) then
       if (size(interflow_slow_var, 1) > size(this%interflow_slow_var, 1)) then
@@ -1725,9 +1635,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'interflow_slow_var'"
         return
       end if
-      lb__1 = lbound(this%interflow_slow_var, 1)
-      ub__1 = lb__1 + size(interflow_slow_var, 1) - 1
-      this%interflow_slow_var(lb__1:ub__1) = interflow_slow_var
+      this%interflow_slow_var(1:size(interflow_slow_var, 1)) = interflow_slow_var
     end if
     if (present(baseflow_var)) then
       if (size(baseflow_var, 1) > size(this%baseflow_var, 1)) then
@@ -1735,9 +1643,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'baseflow_var'"
         return
       end if
-      lb__1 = lbound(this%baseflow_var, 1)
-      ub__1 = lb__1 + size(baseflow_var, 1) - 1
-      this%baseflow_var(lb__1:ub__1) = baseflow_var
+      this%baseflow_var(1:size(baseflow_var, 1)) = baseflow_var
     end if
     if (present(hydro_mask_var)) then
       if (size(hydro_mask_var, 1) > size(this%hydro_mask_var, 1)) then
@@ -1745,9 +1651,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'hydro_mask_var'"
         return
       end if
-      lb__1 = lbound(this%hydro_mask_var, 1)
-      ub__1 = lb__1 + size(hydro_mask_var, 1) - 1
-      this%hydro_mask_var(lb__1:ub__1) = hydro_mask_var
+      this%hydro_mask_var(1:size(hydro_mask_var, 1)) = hydro_mask_var
     end if
     if (present(dem_var)) then
       if (size(dem_var, 1) > size(this%dem_var, 1)) then
@@ -1755,9 +1659,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'dem_var'"
         return
       end if
-      lb__1 = lbound(this%dem_var, 1)
-      ub__1 = lb__1 + size(dem_var, 1) - 1
-      this%dem_var(lb__1:ub__1) = dem_var
+      this%dem_var(1:size(dem_var, 1)) = dem_var
     end if
     if (present(slope_var)) then
       if (size(slope_var, 1) > size(this%slope_var, 1)) then
@@ -1765,9 +1667,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'slope_var'"
         return
       end if
-      lb__1 = lbound(this%slope_var, 1)
-      ub__1 = lb__1 + size(slope_var, 1) - 1
-      this%slope_var(lb__1:ub__1) = slope_var
+      this%slope_var(1:size(slope_var, 1)) = slope_var
     end if
     if (present(aspect_var)) then
       if (size(aspect_var, 1) > size(this%aspect_var, 1)) then
@@ -1775,9 +1675,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'aspect_var'"
         return
       end if
-      lb__1 = lbound(this%aspect_var, 1)
-      ub__1 = lb__1 + size(aspect_var, 1) - 1
-      this%aspect_var(lb__1:ub__1) = aspect_var
+      this%aspect_var(1:size(aspect_var, 1)) = aspect_var
     end if
     if (present(fdir_var)) then
       if (size(fdir_var, 1) > size(this%fdir_var, 1)) then
@@ -1785,9 +1683,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'fdir_var'"
         return
       end if
-      lb__1 = lbound(this%fdir_var, 1)
-      ub__1 = lb__1 + size(fdir_var, 1) - 1
-      this%fdir_var(lb__1:ub__1) = fdir_var
+      this%fdir_var(1:size(fdir_var, 1)) = fdir_var
     end if
     if (present(lake_spill_reference_level_var)) then
       if (size(lake_spill_reference_level_var, 1) > size(this%lake_spill_reference_level_var, 1)) then
@@ -1795,9 +1691,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lake_spill_reference_level_var'"
         return
       end if
-      lb__1 = lbound(this%lake_spill_reference_level_var, 1)
-      ub__1 = lb__1 + size(lake_spill_reference_level_var, 1) - 1
-      this%lake_spill_reference_level_var(lb__1:ub__1) = lake_spill_reference_level_var
+      this%lake_spill_reference_level_var(1:size(lake_spill_reference_level_var, 1)) = lake_spill_reference_level_var
     end if
     if (present(lake_spill_reference_surface_area_var)) then
       if (size(lake_spill_reference_surface_area_var, 1) > size(this%lake_spill_reference_surface_area_var, 1)) then
@@ -1805,9 +1699,9 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lake_spill_reference_surface_area_var'"
         return
       end if
-      lb__1 = lbound(this%lake_spill_reference_surface_area_var, 1)
-      ub__1 = lb__1 + size(lake_spill_reference_surface_area_var, 1) - 1
-      this%lake_spill_reference_surface_area_var(lb__1:ub__1) = lake_spill_reference_surface_area_var
+      this%lake_spill_reference_surface_area_var( &
+        1:size(lake_spill_reference_surface_area_var, 1) &
+      ) = lake_spill_reference_surface_area_var
     end if
     if (present(lake_spill_reference_volume_var)) then
       if (size(lake_spill_reference_volume_var, 1) > size(this%lake_spill_reference_volume_var, 1)) then
@@ -1815,9 +1709,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lake_spill_reference_volume_var'"
         return
       end if
-      lb__1 = lbound(this%lake_spill_reference_volume_var, 1)
-      ub__1 = lb__1 + size(lake_spill_reference_volume_var, 1) - 1
-      this%lake_spill_reference_volume_var(lb__1:ub__1) = lake_spill_reference_volume_var
+      this%lake_spill_reference_volume_var(1:size(lake_spill_reference_volume_var, 1)) = lake_spill_reference_volume_var
     end if
     if (present(lake_initial_level_var)) then
       if (size(lake_initial_level_var, 1) > size(this%lake_initial_level_var, 1)) then
@@ -1825,9 +1717,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lake_initial_level_var'"
         return
       end if
-      lb__1 = lbound(this%lake_initial_level_var, 1)
-      ub__1 = lb__1 + size(lake_initial_level_var, 1) - 1
-      this%lake_initial_level_var(lb__1:ub__1) = lake_initial_level_var
+      this%lake_initial_level_var(1:size(lake_initial_level_var, 1)) = lake_initial_level_var
     end if
     if (present(facc_var)) then
       if (size(facc_var, 1) > size(this%facc_var, 1)) then
@@ -1835,9 +1725,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'facc_var'"
         return
       end if
-      lb__1 = lbound(this%facc_var, 1)
-      ub__1 = lb__1 + size(facc_var, 1) - 1
-      this%facc_var(lb__1:ub__1) = facc_var
+      this%facc_var(1:size(facc_var, 1)) = facc_var
     end if
     if (present(geo_class_var)) then
       if (size(geo_class_var, 1) > size(this%geo_class_var, 1)) then
@@ -1845,9 +1733,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'geo_class_var'"
         return
       end if
-      lb__1 = lbound(this%geo_class_var, 1)
-      ub__1 = lb__1 + size(geo_class_var, 1) - 1
-      this%geo_class_var(lb__1:ub__1) = geo_class_var
+      this%geo_class_var(1:size(geo_class_var, 1)) = geo_class_var
     end if
     if (present(soil_class_var)) then
       if (size(soil_class_var, 1) > size(this%soil_class_var, 1)) then
@@ -1855,9 +1741,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'soil_class_var'"
         return
       end if
-      lb__1 = lbound(this%soil_class_var, 1)
-      ub__1 = lb__1 + size(soil_class_var, 1) - 1
-      this%soil_class_var(lb__1:ub__1) = soil_class_var
+      this%soil_class_var(1:size(soil_class_var, 1)) = soil_class_var
     end if
     if (present(lai_class_var)) then
       if (size(lai_class_var, 1) > size(this%lai_class_var, 1)) then
@@ -1865,9 +1749,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lai_class_var'"
         return
       end if
-      lb__1 = lbound(this%lai_class_var, 1)
-      ub__1 = lb__1 + size(lai_class_var, 1) - 1
-      this%lai_class_var(lb__1:ub__1) = lai_class_var
+      this%lai_class_var(1:size(lai_class_var, 1)) = lai_class_var
     end if
     if (present(river_width_var)) then
       if (size(river_width_var, 1) > size(this%river_width_var, 1)) then
@@ -1875,9 +1757,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'river_width_var'"
         return
       end if
-      lb__1 = lbound(this%river_width_var, 1)
-      ub__1 = lb__1 + size(river_width_var, 1) - 1
-      this%river_width_var(lb__1:ub__1) = river_width_var
+      this%river_width_var(1:size(river_width_var, 1)) = river_width_var
     end if
     if (present(morph_mask_var)) then
       if (size(morph_mask_var, 1) > size(this%morph_mask_var, 1)) then
@@ -1885,9 +1765,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'morph_mask_var'"
         return
       end if
-      lb__1 = lbound(this%morph_mask_var, 1)
-      ub__1 = lb__1 + size(morph_mask_var, 1) - 1
-      this%morph_mask_var(lb__1:ub__1) = morph_mask_var
+      this%morph_mask_var(1:size(morph_mask_var, 1)) = morph_mask_var
     end if
     if (present(hydro_lat_var)) then
       if (size(hydro_lat_var, 1) > size(this%hydro_lat_var, 1)) then
@@ -1895,9 +1773,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'hydro_lat_var'"
         return
       end if
-      lb__1 = lbound(this%hydro_lat_var, 1)
-      ub__1 = lb__1 + size(hydro_lat_var, 1) - 1
-      this%hydro_lat_var(lb__1:ub__1) = hydro_lat_var
+      this%hydro_lat_var(1:size(hydro_lat_var, 1)) = hydro_lat_var
     end if
     if (present(hydro_lon_var)) then
       if (size(hydro_lon_var, 1) > size(this%hydro_lon_var, 1)) then
@@ -1905,9 +1781,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'hydro_lon_var'"
         return
       end if
-      lb__1 = lbound(this%hydro_lon_var, 1)
-      ub__1 = lb__1 + size(hydro_lon_var, 1) - 1
-      this%hydro_lon_var(lb__1:ub__1) = hydro_lon_var
+      this%hydro_lon_var(1:size(hydro_lon_var, 1)) = hydro_lon_var
     end if
     if (present(morph_lat_var)) then
       if (size(morph_lat_var, 1) > size(this%morph_lat_var, 1)) then
@@ -1915,9 +1789,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'morph_lat_var'"
         return
       end if
-      lb__1 = lbound(this%morph_lat_var, 1)
-      ub__1 = lb__1 + size(morph_lat_var, 1) - 1
-      this%morph_lat_var(lb__1:ub__1) = morph_lat_var
+      this%morph_lat_var(1:size(morph_lat_var, 1)) = morph_lat_var
     end if
     if (present(morph_lon_var)) then
       if (size(morph_lon_var, 1) > size(this%morph_lon_var, 1)) then
@@ -1925,9 +1797,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'morph_lon_var'"
         return
       end if
-      lb__1 = lbound(this%morph_lon_var, 1)
-      ub__1 = lb__1 + size(morph_lon_var, 1) - 1
-      this%morph_lon_var(lb__1:ub__1) = morph_lon_var
+      this%morph_lon_var(1:size(morph_lon_var, 1)) = morph_lon_var
     end if
     if (present(route_lat_var)) then
       if (size(route_lat_var, 1) > size(this%route_lat_var, 1)) then
@@ -1935,9 +1805,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'route_lat_var'"
         return
       end if
-      lb__1 = lbound(this%route_lat_var, 1)
-      ub__1 = lb__1 + size(route_lat_var, 1) - 1
-      this%route_lat_var(lb__1:ub__1) = route_lat_var
+      this%route_lat_var(1:size(route_lat_var, 1)) = route_lat_var
     end if
     if (present(route_lon_var)) then
       if (size(route_lon_var, 1) > size(this%route_lon_var, 1)) then
@@ -1945,9 +1813,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'route_lon_var'"
         return
       end if
-      lb__1 = lbound(this%route_lon_var, 1)
-      ub__1 = lb__1 + size(route_lon_var, 1) - 1
-      this%route_lon_var(lb__1:ub__1) = route_lon_var
+      this%route_lon_var(1:size(route_lon_var, 1)) = route_lon_var
     end if
 
     ! mark as configured
@@ -1961,6 +1827,7 @@ contains
     character(len=*), intent(in) :: name !< field name
     integer, intent(in), optional :: idx(:) !< optional field index values
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    intrinsic :: shape
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -1973,33 +1840,31 @@ contains
     case ("chunking")
       if (.not. allocated(this%chunking)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: chunking"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%chunking), ubound(this%chunking), &
-          "chunking", errmsg)
+        status = idx_check(idx, shape(this%chunking), "chunking", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("time_stamp_location")
       if (.not. allocated(this%time_stamp_location)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: time_stamp_location"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%time_stamp_location), ubound(this%time_stamp_location), &
-          "time_stamp_location", errmsg)
+        status = idx_check(idx, shape(this%time_stamp_location), "time_stamp_location", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("latlon_path")
       if (.not. allocated(this%latlon_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: latlon_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%latlon_path), ubound(this%latlon_path), &
-          "latlon_path", errmsg)
+        status = idx_check(idx, shape(this%latlon_path), "latlon_path", errmsg)
         if (status /= NML_OK) return
         if (this%latlon_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2008,22 +1873,21 @@ contains
     case ("morph_latlon")
       if (.not. allocated(this%morph_latlon)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_latlon"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%morph_latlon), ubound(this%morph_latlon), &
-          "morph_latlon", errmsg)
+        status = idx_check(idx, shape(this%morph_latlon), "morph_latlon", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("pre_path")
       if (.not. allocated(this%pre_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pre_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%pre_path), ubound(this%pre_path), &
-          "pre_path", errmsg)
+        status = idx_check(idx, shape(this%pre_path), "pre_path", errmsg)
         if (status /= NML_OK) return
         if (this%pre_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2032,11 +1896,11 @@ contains
     case ("pet_path")
       if (.not. allocated(this%pet_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pet_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%pet_path), ubound(this%pet_path), &
-          "pet_path", errmsg)
+        status = idx_check(idx, shape(this%pet_path), "pet_path", errmsg)
         if (status /= NML_OK) return
         if (this%pet_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2045,11 +1909,11 @@ contains
     case ("temp_path")
       if (.not. allocated(this%temp_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: temp_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%temp_path), ubound(this%temp_path), &
-          "temp_path", errmsg)
+        status = idx_check(idx, shape(this%temp_path), "temp_path", errmsg)
         if (status /= NML_OK) return
         if (this%temp_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2058,11 +1922,11 @@ contains
     case ("tann_path")
       if (.not. allocated(this%tann_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tann_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%tann_path), ubound(this%tann_path), &
-          "tann_path", errmsg)
+        status = idx_check(idx, shape(this%tann_path), "tann_path", errmsg)
         if (status /= NML_OK) return
         if (this%tann_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2071,11 +1935,11 @@ contains
     case ("tmin_path")
       if (.not. allocated(this%tmin_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tmin_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%tmin_path), ubound(this%tmin_path), &
-          "tmin_path", errmsg)
+        status = idx_check(idx, shape(this%tmin_path), "tmin_path", errmsg)
         if (status /= NML_OK) return
         if (this%tmin_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2084,11 +1948,11 @@ contains
     case ("tmax_path")
       if (.not. allocated(this%tmax_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tmax_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%tmax_path), ubound(this%tmax_path), &
-          "tmax_path", errmsg)
+        status = idx_check(idx, shape(this%tmax_path), "tmax_path", errmsg)
         if (status /= NML_OK) return
         if (this%tmax_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2097,11 +1961,11 @@ contains
     case ("ssrd_path")
       if (.not. allocated(this%ssrd_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: ssrd_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%ssrd_path), ubound(this%ssrd_path), &
-          "ssrd_path", errmsg)
+        status = idx_check(idx, shape(this%ssrd_path), "ssrd_path", errmsg)
         if (status /= NML_OK) return
         if (this%ssrd_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2110,11 +1974,11 @@ contains
     case ("strd_path")
       if (.not. allocated(this%strd_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: strd_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%strd_path), ubound(this%strd_path), &
-          "strd_path", errmsg)
+        status = idx_check(idx, shape(this%strd_path), "strd_path", errmsg)
         if (status /= NML_OK) return
         if (this%strd_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2123,11 +1987,11 @@ contains
     case ("netrad_path")
       if (.not. allocated(this%netrad_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: netrad_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%netrad_path), ubound(this%netrad_path), &
-          "netrad_path", errmsg)
+        status = idx_check(idx, shape(this%netrad_path), "netrad_path", errmsg)
         if (status /= NML_OK) return
         if (this%netrad_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2136,11 +2000,11 @@ contains
     case ("eabs_path")
       if (.not. allocated(this%eabs_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: eabs_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%eabs_path), ubound(this%eabs_path), &
-          "eabs_path", errmsg)
+        status = idx_check(idx, shape(this%eabs_path), "eabs_path", errmsg)
         if (status /= NML_OK) return
         if (this%eabs_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2149,11 +2013,11 @@ contains
     case ("wind_path")
       if (.not. allocated(this%wind_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: wind_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%wind_path), ubound(this%wind_path), &
-          "wind_path", errmsg)
+        status = idx_check(idx, shape(this%wind_path), "wind_path", errmsg)
         if (status /= NML_OK) return
         if (this%wind_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2162,11 +2026,11 @@ contains
     case ("tdew_path")
       if (.not. allocated(this%tdew_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tdew_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%tdew_path), ubound(this%tdew_path), &
-          "tdew_path", errmsg)
+        status = idx_check(idx, shape(this%tdew_path), "tdew_path", errmsg)
         if (status /= NML_OK) return
         if (this%tdew_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2175,11 +2039,11 @@ contains
     case ("meteo_mask_path")
       if (.not. allocated(this%meteo_mask_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_mask_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%meteo_mask_path), ubound(this%meteo_mask_path), &
-          "meteo_mask_path", errmsg)
+        status = idx_check(idx, shape(this%meteo_mask_path), "meteo_mask_path", errmsg)
         if (status /= NML_OK) return
         if (this%meteo_mask_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2188,11 +2052,11 @@ contains
     case ("runoff_path")
       if (.not. allocated(this%runoff_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: runoff_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%runoff_path), ubound(this%runoff_path), &
-          "runoff_path", errmsg)
+        status = idx_check(idx, shape(this%runoff_path), "runoff_path", errmsg)
         if (status /= NML_OK) return
         if (this%runoff_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2201,11 +2065,11 @@ contains
     case ("runoff_sealed_path")
       if (.not. allocated(this%runoff_sealed_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: runoff_sealed_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%runoff_sealed_path), ubound(this%runoff_sealed_path), &
-          "runoff_sealed_path", errmsg)
+        status = idx_check(idx, shape(this%runoff_sealed_path), "runoff_sealed_path", errmsg)
         if (status /= NML_OK) return
         if (this%runoff_sealed_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2214,11 +2078,11 @@ contains
     case ("interflow_fast_path")
       if (.not. allocated(this%interflow_fast_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: interflow_fast_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%interflow_fast_path), ubound(this%interflow_fast_path), &
-          "interflow_fast_path", errmsg)
+        status = idx_check(idx, shape(this%interflow_fast_path), "interflow_fast_path", errmsg)
         if (status /= NML_OK) return
         if (this%interflow_fast_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2227,11 +2091,11 @@ contains
     case ("interflow_slow_path")
       if (.not. allocated(this%interflow_slow_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: interflow_slow_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%interflow_slow_path), ubound(this%interflow_slow_path), &
-          "interflow_slow_path", errmsg)
+        status = idx_check(idx, shape(this%interflow_slow_path), "interflow_slow_path", errmsg)
         if (status /= NML_OK) return
         if (this%interflow_slow_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2240,11 +2104,11 @@ contains
     case ("baseflow_path")
       if (.not. allocated(this%baseflow_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%baseflow_path), ubound(this%baseflow_path), &
-          "baseflow_path", errmsg)
+        status = idx_check(idx, shape(this%baseflow_path), "baseflow_path", errmsg)
         if (status /= NML_OK) return
         if (this%baseflow_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2253,11 +2117,11 @@ contains
     case ("hydro_mask_path")
       if (.not. allocated(this%hydro_mask_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_mask_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%hydro_mask_path), ubound(this%hydro_mask_path), &
-          "hydro_mask_path", errmsg)
+        status = idx_check(idx, shape(this%hydro_mask_path), "hydro_mask_path", errmsg)
         if (status /= NML_OK) return
         if (this%hydro_mask_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2266,11 +2130,11 @@ contains
     case ("dem_path")
       if (.not. allocated(this%dem_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: dem_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%dem_path), ubound(this%dem_path), &
-          "dem_path", errmsg)
+        status = idx_check(idx, shape(this%dem_path), "dem_path", errmsg)
         if (status /= NML_OK) return
         if (this%dem_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2279,11 +2143,11 @@ contains
     case ("slope_path")
       if (.not. allocated(this%slope_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: slope_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%slope_path), ubound(this%slope_path), &
-          "slope_path", errmsg)
+        status = idx_check(idx, shape(this%slope_path), "slope_path", errmsg)
         if (status /= NML_OK) return
         if (this%slope_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2292,11 +2156,11 @@ contains
     case ("aspect_path")
       if (.not. allocated(this%aspect_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: aspect_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%aspect_path), ubound(this%aspect_path), &
-          "aspect_path", errmsg)
+        status = idx_check(idx, shape(this%aspect_path), "aspect_path", errmsg)
         if (status /= NML_OK) return
         if (this%aspect_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2305,11 +2169,11 @@ contains
     case ("fdir_path")
       if (.not. allocated(this%fdir_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: fdir_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%fdir_path), ubound(this%fdir_path), &
-          "fdir_path", errmsg)
+        status = idx_check(idx, shape(this%fdir_path), "fdir_path", errmsg)
         if (status /= NML_OK) return
         if (this%fdir_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2318,11 +2182,11 @@ contains
     case ("lake_definition_path")
       if (.not. allocated(this%lake_definition_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lake_definition_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%lake_definition_path), ubound(this%lake_definition_path), &
-          "lake_definition_path", errmsg)
+        status = idx_check(idx, shape(this%lake_definition_path), "lake_definition_path", errmsg)
         if (status /= NML_OK) return
         if (this%lake_definition_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2331,11 +2195,11 @@ contains
     case ("facc_path")
       if (.not. allocated(this%facc_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: facc_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%facc_path), ubound(this%facc_path), &
-          "facc_path", errmsg)
+        status = idx_check(idx, shape(this%facc_path), "facc_path", errmsg)
         if (status /= NML_OK) return
         if (this%facc_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2344,11 +2208,11 @@ contains
     case ("geo_class_path")
       if (.not. allocated(this%geo_class_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: geo_class_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%geo_class_path), ubound(this%geo_class_path), &
-          "geo_class_path", errmsg)
+        status = idx_check(idx, shape(this%geo_class_path), "geo_class_path", errmsg)
         if (status /= NML_OK) return
         if (this%geo_class_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2357,11 +2221,11 @@ contains
     case ("soil_class_path")
       if (.not. allocated(this%soil_class_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_class_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%soil_class_path), ubound(this%soil_class_path), &
-          "soil_class_path", errmsg)
+        status = idx_check(idx, shape(this%soil_class_path), "soil_class_path", errmsg)
         if (status /= NML_OK) return
         if (this%soil_class_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2370,11 +2234,11 @@ contains
     case ("soil_horizon_class_path")
       if (.not. allocated(this%soil_horizon_class_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_horizon_class_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%soil_horizon_class_path), ubound(this%soil_horizon_class_path), &
-          "soil_horizon_class_path", errmsg)
+        status = idx_check(idx, shape(this%soil_horizon_class_path), "soil_horizon_class_path", errmsg)
         if (status /= NML_OK) return
         if (this%soil_horizon_class_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2383,11 +2247,11 @@ contains
     case ("lai_class_path")
       if (.not. allocated(this%lai_class_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_class_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%lai_class_path), ubound(this%lai_class_path), &
-          "lai_class_path", errmsg)
+        status = idx_check(idx, shape(this%lai_class_path), "lai_class_path", errmsg)
         if (status /= NML_OK) return
         if (this%lai_class_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2396,11 +2260,11 @@ contains
     case ("river_width_path")
       if (.not. allocated(this%river_width_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: river_width_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%river_width_path), ubound(this%river_width_path), &
-          "river_width_path", errmsg)
+        status = idx_check(idx, shape(this%river_width_path), "river_width_path", errmsg)
         if (status /= NML_OK) return
         if (this%river_width_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2409,11 +2273,11 @@ contains
     case ("morph_mask_path")
       if (.not. allocated(this%morph_mask_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_mask_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%morph_mask_path), ubound(this%morph_mask_path), &
-          "morph_mask_path", errmsg)
+        status = idx_check(idx, shape(this%morph_mask_path), "morph_mask_path", errmsg)
         if (status /= NML_OK) return
         if (this%morph_mask_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -2422,431 +2286,392 @@ contains
     case ("pre_var")
       if (.not. allocated(this%pre_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pre_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%pre_var), ubound(this%pre_var), &
-          "pre_var", errmsg)
+        status = idx_check(idx, shape(this%pre_var), "pre_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("pet_var")
       if (.not. allocated(this%pet_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pet_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%pet_var), ubound(this%pet_var), &
-          "pet_var", errmsg)
+        status = idx_check(idx, shape(this%pet_var), "pet_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("temp_var")
       if (.not. allocated(this%temp_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: temp_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%temp_var), ubound(this%temp_var), &
-          "temp_var", errmsg)
+        status = idx_check(idx, shape(this%temp_var), "temp_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("tann_var")
       if (.not. allocated(this%tann_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tann_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%tann_var), ubound(this%tann_var), &
-          "tann_var", errmsg)
+        status = idx_check(idx, shape(this%tann_var), "tann_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("tmin_var")
       if (.not. allocated(this%tmin_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tmin_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%tmin_var), ubound(this%tmin_var), &
-          "tmin_var", errmsg)
+        status = idx_check(idx, shape(this%tmin_var), "tmin_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("tmax_var")
       if (.not. allocated(this%tmax_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tmax_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%tmax_var), ubound(this%tmax_var), &
-          "tmax_var", errmsg)
+        status = idx_check(idx, shape(this%tmax_var), "tmax_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("ssrd_var")
       if (.not. allocated(this%ssrd_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: ssrd_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%ssrd_var), ubound(this%ssrd_var), &
-          "ssrd_var", errmsg)
+        status = idx_check(idx, shape(this%ssrd_var), "ssrd_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("strd_var")
       if (.not. allocated(this%strd_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: strd_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%strd_var), ubound(this%strd_var), &
-          "strd_var", errmsg)
+        status = idx_check(idx, shape(this%strd_var), "strd_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("netrad_var")
       if (.not. allocated(this%netrad_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: netrad_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%netrad_var), ubound(this%netrad_var), &
-          "netrad_var", errmsg)
+        status = idx_check(idx, shape(this%netrad_var), "netrad_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("eabs_var")
       if (.not. allocated(this%eabs_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: eabs_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%eabs_var), ubound(this%eabs_var), &
-          "eabs_var", errmsg)
+        status = idx_check(idx, shape(this%eabs_var), "eabs_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("wind_var")
       if (.not. allocated(this%wind_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: wind_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%wind_var), ubound(this%wind_var), &
-          "wind_var", errmsg)
+        status = idx_check(idx, shape(this%wind_var), "wind_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("tdew_var")
       if (.not. allocated(this%tdew_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tdew_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%tdew_var), ubound(this%tdew_var), &
-          "tdew_var", errmsg)
+        status = idx_check(idx, shape(this%tdew_var), "tdew_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("meteo_mask_var")
       if (.not. allocated(this%meteo_mask_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_mask_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%meteo_mask_var), ubound(this%meteo_mask_var), &
-          "meteo_mask_var", errmsg)
+        status = idx_check(idx, shape(this%meteo_mask_var), "meteo_mask_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("runoff_var")
       if (.not. allocated(this%runoff_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: runoff_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%runoff_var), ubound(this%runoff_var), &
-          "runoff_var", errmsg)
+        status = idx_check(idx, shape(this%runoff_var), "runoff_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("runoff_sealed_var")
       if (.not. allocated(this%runoff_sealed_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: runoff_sealed_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%runoff_sealed_var), ubound(this%runoff_sealed_var), &
-          "runoff_sealed_var", errmsg)
+        status = idx_check(idx, shape(this%runoff_sealed_var), "runoff_sealed_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("interflow_fast_var")
       if (.not. allocated(this%interflow_fast_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: interflow_fast_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%interflow_fast_var), ubound(this%interflow_fast_var), &
-          "interflow_fast_var", errmsg)
+        status = idx_check(idx, shape(this%interflow_fast_var), "interflow_fast_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("interflow_slow_var")
       if (.not. allocated(this%interflow_slow_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: interflow_slow_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%interflow_slow_var), ubound(this%interflow_slow_var), &
-          "interflow_slow_var", errmsg)
+        status = idx_check(idx, shape(this%interflow_slow_var), "interflow_slow_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("baseflow_var")
       if (.not. allocated(this%baseflow_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%baseflow_var), ubound(this%baseflow_var), &
-          "baseflow_var", errmsg)
+        status = idx_check(idx, shape(this%baseflow_var), "baseflow_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("hydro_mask_var")
       if (.not. allocated(this%hydro_mask_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_mask_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%hydro_mask_var), ubound(this%hydro_mask_var), &
-          "hydro_mask_var", errmsg)
+        status = idx_check(idx, shape(this%hydro_mask_var), "hydro_mask_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("dem_var")
       if (.not. allocated(this%dem_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: dem_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%dem_var), ubound(this%dem_var), &
-          "dem_var", errmsg)
+        status = idx_check(idx, shape(this%dem_var), "dem_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("slope_var")
       if (.not. allocated(this%slope_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: slope_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%slope_var), ubound(this%slope_var), &
-          "slope_var", errmsg)
+        status = idx_check(idx, shape(this%slope_var), "slope_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("aspect_var")
       if (.not. allocated(this%aspect_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: aspect_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%aspect_var), ubound(this%aspect_var), &
-          "aspect_var", errmsg)
+        status = idx_check(idx, shape(this%aspect_var), "aspect_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("fdir_var")
       if (.not. allocated(this%fdir_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: fdir_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%fdir_var), ubound(this%fdir_var), &
-          "fdir_var", errmsg)
+        status = idx_check(idx, shape(this%fdir_var), "fdir_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("lake_spill_reference_level_var")
       if (.not. allocated(this%lake_spill_reference_level_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lake_spill_reference_level_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%lake_spill_reference_level_var), ubound(this%lake_spill_reference_level_var), &
-          "lake_spill_reference_level_var", errmsg)
+        status = idx_check(idx, shape(this%lake_spill_reference_level_var), "lake_spill_reference_level_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("lake_spill_reference_surface_area_var")
       if (.not. allocated(this%lake_spill_reference_surface_area_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lake_spill_reference_surface_area_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%lake_spill_reference_surface_area_var), ubound(this%lake_spill_reference_surface_area_var), &
-          "lake_spill_reference_surface_area_var", errmsg)
+        status = idx_check(idx, shape(this%lake_spill_reference_surface_area_var), "lake_spill_reference_surface_area_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("lake_spill_reference_volume_var")
       if (.not. allocated(this%lake_spill_reference_volume_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lake_spill_reference_volume_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%lake_spill_reference_volume_var), ubound(this%lake_spill_reference_volume_var), &
-          "lake_spill_reference_volume_var", errmsg)
+        status = idx_check(idx, shape(this%lake_spill_reference_volume_var), "lake_spill_reference_volume_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("lake_initial_level_var")
       if (.not. allocated(this%lake_initial_level_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lake_initial_level_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%lake_initial_level_var), ubound(this%lake_initial_level_var), &
-          "lake_initial_level_var", errmsg)
+        status = idx_check(idx, shape(this%lake_initial_level_var), "lake_initial_level_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("facc_var")
       if (.not. allocated(this%facc_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: facc_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%facc_var), ubound(this%facc_var), &
-          "facc_var", errmsg)
+        status = idx_check(idx, shape(this%facc_var), "facc_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("geo_class_var")
       if (.not. allocated(this%geo_class_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: geo_class_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%geo_class_var), ubound(this%geo_class_var), &
-          "geo_class_var", errmsg)
+        status = idx_check(idx, shape(this%geo_class_var), "geo_class_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("soil_class_var")
       if (.not. allocated(this%soil_class_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_class_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%soil_class_var), ubound(this%soil_class_var), &
-          "soil_class_var", errmsg)
+        status = idx_check(idx, shape(this%soil_class_var), "soil_class_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("lai_class_var")
       if (.not. allocated(this%lai_class_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_class_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%lai_class_var), ubound(this%lai_class_var), &
-          "lai_class_var", errmsg)
+        status = idx_check(idx, shape(this%lai_class_var), "lai_class_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("river_width_var")
       if (.not. allocated(this%river_width_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: river_width_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%river_width_var), ubound(this%river_width_var), &
-          "river_width_var", errmsg)
+        status = idx_check(idx, shape(this%river_width_var), "river_width_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("morph_mask_var")
       if (.not. allocated(this%morph_mask_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_mask_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%morph_mask_var), ubound(this%morph_mask_var), &
-          "morph_mask_var", errmsg)
+        status = idx_check(idx, shape(this%morph_mask_var), "morph_mask_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("hydro_lat_var")
       if (.not. allocated(this%hydro_lat_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_lat_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%hydro_lat_var), ubound(this%hydro_lat_var), &
-          "hydro_lat_var", errmsg)
+        status = idx_check(idx, shape(this%hydro_lat_var), "hydro_lat_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("hydro_lon_var")
       if (.not. allocated(this%hydro_lon_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_lon_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%hydro_lon_var), ubound(this%hydro_lon_var), &
-          "hydro_lon_var", errmsg)
+        status = idx_check(idx, shape(this%hydro_lon_var), "hydro_lon_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("morph_lat_var")
       if (.not. allocated(this%morph_lat_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_lat_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%morph_lat_var), ubound(this%morph_lat_var), &
-          "morph_lat_var", errmsg)
+        status = idx_check(idx, shape(this%morph_lat_var), "morph_lat_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("morph_lon_var")
       if (.not. allocated(this%morph_lon_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_lon_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%morph_lon_var), ubound(this%morph_lon_var), &
-          "morph_lon_var", errmsg)
+        status = idx_check(idx, shape(this%morph_lon_var), "morph_lon_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("route_lat_var")
       if (.not. allocated(this%route_lat_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: route_lat_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%route_lat_var), ubound(this%route_lat_var), &
-          "route_lat_var", errmsg)
+        status = idx_check(idx, shape(this%route_lat_var), "route_lat_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("route_lon_var")
       if (.not. allocated(this%route_lon_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: route_lon_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%route_lon_var), ubound(this%route_lon_var), &
-          "route_lon_var", errmsg)
+        status = idx_check(idx, shape(this%route_lon_var), "route_lon_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case default
       status = NML_ERR_INVALID_NAME
@@ -2856,6 +2681,2117 @@ contains
       if (len_trim(errmsg) == 0) errmsg = "field not set: " // trim(name)
     end if
   end function nml_config_input_is_set
+
+  !> \brief Obtain the item presence mask with one field-name dispatch
+  integer function nml_config_input_set_mask__rank__1(this, name, mask, errmsg) result(status)
+    class(nml_config_input_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    logical, allocatable, intent(out) :: mask(:) !< item presence
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("chunking")
+      if (.not. allocated(this%chunking)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: chunking"
+        return
+      end if
+      allocate(mask( &
+        size(this%chunking, 1)))
+      mask = .true.
+    case ("time_stamp_location")
+      if (.not. allocated(this%time_stamp_location)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: time_stamp_location"
+        return
+      end if
+      allocate(mask( &
+        size(this%time_stamp_location, 1)))
+      mask = .true.
+    case ("latlon_path")
+      if (.not. allocated(this%latlon_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: latlon_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%latlon_path, 1)))
+      do idx__1 = 1, size(this%latlon_path, 1)
+        if (this%latlon_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("morph_latlon")
+      if (.not. allocated(this%morph_latlon)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_latlon"
+        return
+      end if
+      allocate(mask( &
+        size(this%morph_latlon, 1)))
+      mask = .true.
+    case ("pre_path")
+      if (.not. allocated(this%pre_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pre_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%pre_path, 1)))
+      do idx__1 = 1, size(this%pre_path, 1)
+        if (this%pre_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("pet_path")
+      if (.not. allocated(this%pet_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pet_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%pet_path, 1)))
+      do idx__1 = 1, size(this%pet_path, 1)
+        if (this%pet_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("temp_path")
+      if (.not. allocated(this%temp_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: temp_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%temp_path, 1)))
+      do idx__1 = 1, size(this%temp_path, 1)
+        if (this%temp_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("tann_path")
+      if (.not. allocated(this%tann_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tann_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%tann_path, 1)))
+      do idx__1 = 1, size(this%tann_path, 1)
+        if (this%tann_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("tmin_path")
+      if (.not. allocated(this%tmin_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tmin_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%tmin_path, 1)))
+      do idx__1 = 1, size(this%tmin_path, 1)
+        if (this%tmin_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("tmax_path")
+      if (.not. allocated(this%tmax_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tmax_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%tmax_path, 1)))
+      do idx__1 = 1, size(this%tmax_path, 1)
+        if (this%tmax_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("ssrd_path")
+      if (.not. allocated(this%ssrd_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: ssrd_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%ssrd_path, 1)))
+      do idx__1 = 1, size(this%ssrd_path, 1)
+        if (this%ssrd_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("strd_path")
+      if (.not. allocated(this%strd_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: strd_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%strd_path, 1)))
+      do idx__1 = 1, size(this%strd_path, 1)
+        if (this%strd_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("netrad_path")
+      if (.not. allocated(this%netrad_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: netrad_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%netrad_path, 1)))
+      do idx__1 = 1, size(this%netrad_path, 1)
+        if (this%netrad_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("eabs_path")
+      if (.not. allocated(this%eabs_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: eabs_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%eabs_path, 1)))
+      do idx__1 = 1, size(this%eabs_path, 1)
+        if (this%eabs_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("wind_path")
+      if (.not. allocated(this%wind_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: wind_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%wind_path, 1)))
+      do idx__1 = 1, size(this%wind_path, 1)
+        if (this%wind_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("tdew_path")
+      if (.not. allocated(this%tdew_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tdew_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%tdew_path, 1)))
+      do idx__1 = 1, size(this%tdew_path, 1)
+        if (this%tdew_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("meteo_mask_path")
+      if (.not. allocated(this%meteo_mask_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_mask_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%meteo_mask_path, 1)))
+      do idx__1 = 1, size(this%meteo_mask_path, 1)
+        if (this%meteo_mask_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("runoff_path")
+      if (.not. allocated(this%runoff_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: runoff_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%runoff_path, 1)))
+      do idx__1 = 1, size(this%runoff_path, 1)
+        if (this%runoff_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("runoff_sealed_path")
+      if (.not. allocated(this%runoff_sealed_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: runoff_sealed_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%runoff_sealed_path, 1)))
+      do idx__1 = 1, size(this%runoff_sealed_path, 1)
+        if (this%runoff_sealed_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("interflow_fast_path")
+      if (.not. allocated(this%interflow_fast_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: interflow_fast_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%interflow_fast_path, 1)))
+      do idx__1 = 1, size(this%interflow_fast_path, 1)
+        if (this%interflow_fast_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("interflow_slow_path")
+      if (.not. allocated(this%interflow_slow_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: interflow_slow_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%interflow_slow_path, 1)))
+      do idx__1 = 1, size(this%interflow_slow_path, 1)
+        if (this%interflow_slow_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("baseflow_path")
+      if (.not. allocated(this%baseflow_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%baseflow_path, 1)))
+      do idx__1 = 1, size(this%baseflow_path, 1)
+        if (this%baseflow_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("hydro_mask_path")
+      if (.not. allocated(this%hydro_mask_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_mask_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%hydro_mask_path, 1)))
+      do idx__1 = 1, size(this%hydro_mask_path, 1)
+        if (this%hydro_mask_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("dem_path")
+      if (.not. allocated(this%dem_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: dem_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%dem_path, 1)))
+      do idx__1 = 1, size(this%dem_path, 1)
+        if (this%dem_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("slope_path")
+      if (.not. allocated(this%slope_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: slope_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%slope_path, 1)))
+      do idx__1 = 1, size(this%slope_path, 1)
+        if (this%slope_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("aspect_path")
+      if (.not. allocated(this%aspect_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: aspect_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%aspect_path, 1)))
+      do idx__1 = 1, size(this%aspect_path, 1)
+        if (this%aspect_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("fdir_path")
+      if (.not. allocated(this%fdir_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: fdir_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%fdir_path, 1)))
+      do idx__1 = 1, size(this%fdir_path, 1)
+        if (this%fdir_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("lake_definition_path")
+      if (.not. allocated(this%lake_definition_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lake_definition_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%lake_definition_path, 1)))
+      do idx__1 = 1, size(this%lake_definition_path, 1)
+        if (this%lake_definition_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("facc_path")
+      if (.not. allocated(this%facc_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: facc_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%facc_path, 1)))
+      do idx__1 = 1, size(this%facc_path, 1)
+        if (this%facc_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("geo_class_path")
+      if (.not. allocated(this%geo_class_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: geo_class_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%geo_class_path, 1)))
+      do idx__1 = 1, size(this%geo_class_path, 1)
+        if (this%geo_class_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("soil_class_path")
+      if (.not. allocated(this%soil_class_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_class_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%soil_class_path, 1)))
+      do idx__1 = 1, size(this%soil_class_path, 1)
+        if (this%soil_class_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("soil_horizon_class_path")
+      if (.not. allocated(this%soil_horizon_class_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_horizon_class_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%soil_horizon_class_path, 1)))
+      do idx__1 = 1, size(this%soil_horizon_class_path, 1)
+        if (this%soil_horizon_class_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("lai_class_path")
+      if (.not. allocated(this%lai_class_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_class_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%lai_class_path, 1)))
+      do idx__1 = 1, size(this%lai_class_path, 1)
+        if (this%lai_class_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("river_width_path")
+      if (.not. allocated(this%river_width_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: river_width_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%river_width_path, 1)))
+      do idx__1 = 1, size(this%river_width_path, 1)
+        if (this%river_width_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("morph_mask_path")
+      if (.not. allocated(this%morph_mask_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_mask_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%morph_mask_path, 1)))
+      do idx__1 = 1, size(this%morph_mask_path, 1)
+        if (this%morph_mask_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("pre_var")
+      if (.not. allocated(this%pre_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pre_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%pre_var, 1)))
+      mask = .true.
+    case ("pet_var")
+      if (.not. allocated(this%pet_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pet_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%pet_var, 1)))
+      mask = .true.
+    case ("temp_var")
+      if (.not. allocated(this%temp_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: temp_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%temp_var, 1)))
+      mask = .true.
+    case ("tann_var")
+      if (.not. allocated(this%tann_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tann_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%tann_var, 1)))
+      mask = .true.
+    case ("tmin_var")
+      if (.not. allocated(this%tmin_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tmin_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%tmin_var, 1)))
+      mask = .true.
+    case ("tmax_var")
+      if (.not. allocated(this%tmax_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tmax_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%tmax_var, 1)))
+      mask = .true.
+    case ("ssrd_var")
+      if (.not. allocated(this%ssrd_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: ssrd_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%ssrd_var, 1)))
+      mask = .true.
+    case ("strd_var")
+      if (.not. allocated(this%strd_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: strd_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%strd_var, 1)))
+      mask = .true.
+    case ("netrad_var")
+      if (.not. allocated(this%netrad_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: netrad_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%netrad_var, 1)))
+      mask = .true.
+    case ("eabs_var")
+      if (.not. allocated(this%eabs_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: eabs_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%eabs_var, 1)))
+      mask = .true.
+    case ("wind_var")
+      if (.not. allocated(this%wind_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: wind_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%wind_var, 1)))
+      mask = .true.
+    case ("tdew_var")
+      if (.not. allocated(this%tdew_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tdew_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%tdew_var, 1)))
+      mask = .true.
+    case ("meteo_mask_var")
+      if (.not. allocated(this%meteo_mask_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_mask_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%meteo_mask_var, 1)))
+      mask = .true.
+    case ("runoff_var")
+      if (.not. allocated(this%runoff_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: runoff_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%runoff_var, 1)))
+      mask = .true.
+    case ("runoff_sealed_var")
+      if (.not. allocated(this%runoff_sealed_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: runoff_sealed_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%runoff_sealed_var, 1)))
+      mask = .true.
+    case ("interflow_fast_var")
+      if (.not. allocated(this%interflow_fast_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: interflow_fast_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%interflow_fast_var, 1)))
+      mask = .true.
+    case ("interflow_slow_var")
+      if (.not. allocated(this%interflow_slow_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: interflow_slow_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%interflow_slow_var, 1)))
+      mask = .true.
+    case ("baseflow_var")
+      if (.not. allocated(this%baseflow_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%baseflow_var, 1)))
+      mask = .true.
+    case ("hydro_mask_var")
+      if (.not. allocated(this%hydro_mask_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_mask_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%hydro_mask_var, 1)))
+      mask = .true.
+    case ("dem_var")
+      if (.not. allocated(this%dem_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: dem_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%dem_var, 1)))
+      mask = .true.
+    case ("slope_var")
+      if (.not. allocated(this%slope_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: slope_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%slope_var, 1)))
+      mask = .true.
+    case ("aspect_var")
+      if (.not. allocated(this%aspect_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: aspect_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%aspect_var, 1)))
+      mask = .true.
+    case ("fdir_var")
+      if (.not. allocated(this%fdir_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: fdir_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%fdir_var, 1)))
+      mask = .true.
+    case ("lake_spill_reference_level_var")
+      if (.not. allocated(this%lake_spill_reference_level_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lake_spill_reference_level_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%lake_spill_reference_level_var, 1)))
+      mask = .true.
+    case ("lake_spill_reference_surface_area_var")
+      if (.not. allocated(this%lake_spill_reference_surface_area_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lake_spill_reference_surface_area_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%lake_spill_reference_surface_area_var, 1)))
+      mask = .true.
+    case ("lake_spill_reference_volume_var")
+      if (.not. allocated(this%lake_spill_reference_volume_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lake_spill_reference_volume_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%lake_spill_reference_volume_var, 1)))
+      mask = .true.
+    case ("lake_initial_level_var")
+      if (.not. allocated(this%lake_initial_level_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lake_initial_level_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%lake_initial_level_var, 1)))
+      mask = .true.
+    case ("facc_var")
+      if (.not. allocated(this%facc_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: facc_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%facc_var, 1)))
+      mask = .true.
+    case ("geo_class_var")
+      if (.not. allocated(this%geo_class_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: geo_class_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%geo_class_var, 1)))
+      mask = .true.
+    case ("soil_class_var")
+      if (.not. allocated(this%soil_class_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_class_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%soil_class_var, 1)))
+      mask = .true.
+    case ("lai_class_var")
+      if (.not. allocated(this%lai_class_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_class_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%lai_class_var, 1)))
+      mask = .true.
+    case ("river_width_var")
+      if (.not. allocated(this%river_width_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: river_width_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%river_width_var, 1)))
+      mask = .true.
+    case ("morph_mask_var")
+      if (.not. allocated(this%morph_mask_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_mask_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%morph_mask_var, 1)))
+      mask = .true.
+    case ("hydro_lat_var")
+      if (.not. allocated(this%hydro_lat_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_lat_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%hydro_lat_var, 1)))
+      mask = .true.
+    case ("hydro_lon_var")
+      if (.not. allocated(this%hydro_lon_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_lon_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%hydro_lon_var, 1)))
+      mask = .true.
+    case ("morph_lat_var")
+      if (.not. allocated(this%morph_lat_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_lat_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%morph_lat_var, 1)))
+      mask = .true.
+    case ("morph_lon_var")
+      if (.not. allocated(this%morph_lon_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_lon_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%morph_lon_var, 1)))
+      mask = .true.
+    case ("route_lat_var")
+      if (.not. allocated(this%route_lat_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: route_lat_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%route_lat_var, 1)))
+      mask = .true.
+    case ("route_lon_var")
+      if (.not. allocated(this%route_lon_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: route_lon_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%route_lon_var, 1)))
+      mask = .true.
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_input_set_mask__rank__1
+
+  !> \brief Determine the smallest complete populated prefix starting at index 1
+  integer function nml_config_input_filled_shape(this, name, filled, errmsg) result(status)
+    class(nml_config_input_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    integer, intent(out) :: filled(:) !< prefix extents, retained when the prefix has holes
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    filled = 0
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("chunking")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'chunking'"
+        return
+      end if
+      if (.not. allocated(this%chunking)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: chunking"
+        return
+      end if
+      filled(1) = size(this%chunking, 1)
+    case ("time_stamp_location")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'time_stamp_location'"
+        return
+      end if
+      if (.not. allocated(this%time_stamp_location)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: time_stamp_location"
+        return
+      end if
+      filled(1) = size(this%time_stamp_location, 1)
+    case ("latlon_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'latlon_path'"
+        return
+      end if
+      if (.not. allocated(this%latlon_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: latlon_path"
+        return
+      end if
+      do idx__1 = 1, size(this%latlon_path, 1)
+        if (this%latlon_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%latlon_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: latlon_path"
+          return
+        end if
+      end do
+    case ("morph_latlon")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'morph_latlon'"
+        return
+      end if
+      if (.not. allocated(this%morph_latlon)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_latlon"
+        return
+      end if
+      filled(1) = size(this%morph_latlon, 1)
+    case ("pre_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'pre_path'"
+        return
+      end if
+      if (.not. allocated(this%pre_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pre_path"
+        return
+      end if
+      do idx__1 = 1, size(this%pre_path, 1)
+        if (this%pre_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%pre_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: pre_path"
+          return
+        end if
+      end do
+    case ("pet_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'pet_path'"
+        return
+      end if
+      if (.not. allocated(this%pet_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pet_path"
+        return
+      end if
+      do idx__1 = 1, size(this%pet_path, 1)
+        if (this%pet_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%pet_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: pet_path"
+          return
+        end if
+      end do
+    case ("temp_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'temp_path'"
+        return
+      end if
+      if (.not. allocated(this%temp_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: temp_path"
+        return
+      end if
+      do idx__1 = 1, size(this%temp_path, 1)
+        if (this%temp_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%temp_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: temp_path"
+          return
+        end if
+      end do
+    case ("tann_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'tann_path'"
+        return
+      end if
+      if (.not. allocated(this%tann_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tann_path"
+        return
+      end if
+      do idx__1 = 1, size(this%tann_path, 1)
+        if (this%tann_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%tann_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: tann_path"
+          return
+        end if
+      end do
+    case ("tmin_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'tmin_path'"
+        return
+      end if
+      if (.not. allocated(this%tmin_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tmin_path"
+        return
+      end if
+      do idx__1 = 1, size(this%tmin_path, 1)
+        if (this%tmin_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%tmin_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: tmin_path"
+          return
+        end if
+      end do
+    case ("tmax_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'tmax_path'"
+        return
+      end if
+      if (.not. allocated(this%tmax_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tmax_path"
+        return
+      end if
+      do idx__1 = 1, size(this%tmax_path, 1)
+        if (this%tmax_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%tmax_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: tmax_path"
+          return
+        end if
+      end do
+    case ("ssrd_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'ssrd_path'"
+        return
+      end if
+      if (.not. allocated(this%ssrd_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: ssrd_path"
+        return
+      end if
+      do idx__1 = 1, size(this%ssrd_path, 1)
+        if (this%ssrd_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%ssrd_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: ssrd_path"
+          return
+        end if
+      end do
+    case ("strd_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'strd_path'"
+        return
+      end if
+      if (.not. allocated(this%strd_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: strd_path"
+        return
+      end if
+      do idx__1 = 1, size(this%strd_path, 1)
+        if (this%strd_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%strd_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: strd_path"
+          return
+        end if
+      end do
+    case ("netrad_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'netrad_path'"
+        return
+      end if
+      if (.not. allocated(this%netrad_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: netrad_path"
+        return
+      end if
+      do idx__1 = 1, size(this%netrad_path, 1)
+        if (this%netrad_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%netrad_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: netrad_path"
+          return
+        end if
+      end do
+    case ("eabs_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'eabs_path'"
+        return
+      end if
+      if (.not. allocated(this%eabs_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: eabs_path"
+        return
+      end if
+      do idx__1 = 1, size(this%eabs_path, 1)
+        if (this%eabs_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%eabs_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: eabs_path"
+          return
+        end if
+      end do
+    case ("wind_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'wind_path'"
+        return
+      end if
+      if (.not. allocated(this%wind_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: wind_path"
+        return
+      end if
+      do idx__1 = 1, size(this%wind_path, 1)
+        if (this%wind_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%wind_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: wind_path"
+          return
+        end if
+      end do
+    case ("tdew_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'tdew_path'"
+        return
+      end if
+      if (.not. allocated(this%tdew_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tdew_path"
+        return
+      end if
+      do idx__1 = 1, size(this%tdew_path, 1)
+        if (this%tdew_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%tdew_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: tdew_path"
+          return
+        end if
+      end do
+    case ("meteo_mask_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'meteo_mask_path'"
+        return
+      end if
+      if (.not. allocated(this%meteo_mask_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_mask_path"
+        return
+      end if
+      do idx__1 = 1, size(this%meteo_mask_path, 1)
+        if (this%meteo_mask_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%meteo_mask_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: meteo_mask_path"
+          return
+        end if
+      end do
+    case ("runoff_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'runoff_path'"
+        return
+      end if
+      if (.not. allocated(this%runoff_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: runoff_path"
+        return
+      end if
+      do idx__1 = 1, size(this%runoff_path, 1)
+        if (this%runoff_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%runoff_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: runoff_path"
+          return
+        end if
+      end do
+    case ("runoff_sealed_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'runoff_sealed_path'"
+        return
+      end if
+      if (.not. allocated(this%runoff_sealed_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: runoff_sealed_path"
+        return
+      end if
+      do idx__1 = 1, size(this%runoff_sealed_path, 1)
+        if (this%runoff_sealed_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%runoff_sealed_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: runoff_sealed_path"
+          return
+        end if
+      end do
+    case ("interflow_fast_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'interflow_fast_path'"
+        return
+      end if
+      if (.not. allocated(this%interflow_fast_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: interflow_fast_path"
+        return
+      end if
+      do idx__1 = 1, size(this%interflow_fast_path, 1)
+        if (this%interflow_fast_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%interflow_fast_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: interflow_fast_path"
+          return
+        end if
+      end do
+    case ("interflow_slow_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'interflow_slow_path'"
+        return
+      end if
+      if (.not. allocated(this%interflow_slow_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: interflow_slow_path"
+        return
+      end if
+      do idx__1 = 1, size(this%interflow_slow_path, 1)
+        if (this%interflow_slow_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%interflow_slow_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: interflow_slow_path"
+          return
+        end if
+      end do
+    case ("baseflow_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'baseflow_path'"
+        return
+      end if
+      if (.not. allocated(this%baseflow_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_path"
+        return
+      end if
+      do idx__1 = 1, size(this%baseflow_path, 1)
+        if (this%baseflow_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%baseflow_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: baseflow_path"
+          return
+        end if
+      end do
+    case ("hydro_mask_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'hydro_mask_path'"
+        return
+      end if
+      if (.not. allocated(this%hydro_mask_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_mask_path"
+        return
+      end if
+      do idx__1 = 1, size(this%hydro_mask_path, 1)
+        if (this%hydro_mask_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%hydro_mask_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: hydro_mask_path"
+          return
+        end if
+      end do
+    case ("dem_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'dem_path'"
+        return
+      end if
+      if (.not. allocated(this%dem_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: dem_path"
+        return
+      end if
+      do idx__1 = 1, size(this%dem_path, 1)
+        if (this%dem_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%dem_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: dem_path"
+          return
+        end if
+      end do
+    case ("slope_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'slope_path'"
+        return
+      end if
+      if (.not. allocated(this%slope_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: slope_path"
+        return
+      end if
+      do idx__1 = 1, size(this%slope_path, 1)
+        if (this%slope_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%slope_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: slope_path"
+          return
+        end if
+      end do
+    case ("aspect_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'aspect_path'"
+        return
+      end if
+      if (.not. allocated(this%aspect_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: aspect_path"
+        return
+      end if
+      do idx__1 = 1, size(this%aspect_path, 1)
+        if (this%aspect_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%aspect_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: aspect_path"
+          return
+        end if
+      end do
+    case ("fdir_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'fdir_path'"
+        return
+      end if
+      if (.not. allocated(this%fdir_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: fdir_path"
+        return
+      end if
+      do idx__1 = 1, size(this%fdir_path, 1)
+        if (this%fdir_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%fdir_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: fdir_path"
+          return
+        end if
+      end do
+    case ("lake_definition_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'lake_definition_path'"
+        return
+      end if
+      if (.not. allocated(this%lake_definition_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lake_definition_path"
+        return
+      end if
+      do idx__1 = 1, size(this%lake_definition_path, 1)
+        if (this%lake_definition_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%lake_definition_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: lake_definition_path"
+          return
+        end if
+      end do
+    case ("facc_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'facc_path'"
+        return
+      end if
+      if (.not. allocated(this%facc_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: facc_path"
+        return
+      end if
+      do idx__1 = 1, size(this%facc_path, 1)
+        if (this%facc_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%facc_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: facc_path"
+          return
+        end if
+      end do
+    case ("geo_class_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'geo_class_path'"
+        return
+      end if
+      if (.not. allocated(this%geo_class_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: geo_class_path"
+        return
+      end if
+      do idx__1 = 1, size(this%geo_class_path, 1)
+        if (this%geo_class_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%geo_class_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: geo_class_path"
+          return
+        end if
+      end do
+    case ("soil_class_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'soil_class_path'"
+        return
+      end if
+      if (.not. allocated(this%soil_class_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_class_path"
+        return
+      end if
+      do idx__1 = 1, size(this%soil_class_path, 1)
+        if (this%soil_class_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%soil_class_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: soil_class_path"
+          return
+        end if
+      end do
+    case ("soil_horizon_class_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'soil_horizon_class_path'"
+        return
+      end if
+      if (.not. allocated(this%soil_horizon_class_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_horizon_class_path"
+        return
+      end if
+      do idx__1 = 1, size(this%soil_horizon_class_path, 1)
+        if (this%soil_horizon_class_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%soil_horizon_class_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: soil_horizon_class_path"
+          return
+        end if
+      end do
+    case ("lai_class_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'lai_class_path'"
+        return
+      end if
+      if (.not. allocated(this%lai_class_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_class_path"
+        return
+      end if
+      do idx__1 = 1, size(this%lai_class_path, 1)
+        if (this%lai_class_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%lai_class_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: lai_class_path"
+          return
+        end if
+      end do
+    case ("river_width_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'river_width_path'"
+        return
+      end if
+      if (.not. allocated(this%river_width_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: river_width_path"
+        return
+      end if
+      do idx__1 = 1, size(this%river_width_path, 1)
+        if (this%river_width_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%river_width_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: river_width_path"
+          return
+        end if
+      end do
+    case ("morph_mask_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'morph_mask_path'"
+        return
+      end if
+      if (.not. allocated(this%morph_mask_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_mask_path"
+        return
+      end if
+      do idx__1 = 1, size(this%morph_mask_path, 1)
+        if (this%morph_mask_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%morph_mask_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: morph_mask_path"
+          return
+        end if
+      end do
+    case ("pre_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'pre_var'"
+        return
+      end if
+      if (.not. allocated(this%pre_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pre_var"
+        return
+      end if
+      filled(1) = size(this%pre_var, 1)
+    case ("pet_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'pet_var'"
+        return
+      end if
+      if (.not. allocated(this%pet_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pet_var"
+        return
+      end if
+      filled(1) = size(this%pet_var, 1)
+    case ("temp_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'temp_var'"
+        return
+      end if
+      if (.not. allocated(this%temp_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: temp_var"
+        return
+      end if
+      filled(1) = size(this%temp_var, 1)
+    case ("tann_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'tann_var'"
+        return
+      end if
+      if (.not. allocated(this%tann_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tann_var"
+        return
+      end if
+      filled(1) = size(this%tann_var, 1)
+    case ("tmin_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'tmin_var'"
+        return
+      end if
+      if (.not. allocated(this%tmin_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tmin_var"
+        return
+      end if
+      filled(1) = size(this%tmin_var, 1)
+    case ("tmax_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'tmax_var'"
+        return
+      end if
+      if (.not. allocated(this%tmax_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tmax_var"
+        return
+      end if
+      filled(1) = size(this%tmax_var, 1)
+    case ("ssrd_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'ssrd_var'"
+        return
+      end if
+      if (.not. allocated(this%ssrd_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: ssrd_var"
+        return
+      end if
+      filled(1) = size(this%ssrd_var, 1)
+    case ("strd_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'strd_var'"
+        return
+      end if
+      if (.not. allocated(this%strd_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: strd_var"
+        return
+      end if
+      filled(1) = size(this%strd_var, 1)
+    case ("netrad_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'netrad_var'"
+        return
+      end if
+      if (.not. allocated(this%netrad_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: netrad_var"
+        return
+      end if
+      filled(1) = size(this%netrad_var, 1)
+    case ("eabs_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'eabs_var'"
+        return
+      end if
+      if (.not. allocated(this%eabs_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: eabs_var"
+        return
+      end if
+      filled(1) = size(this%eabs_var, 1)
+    case ("wind_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'wind_var'"
+        return
+      end if
+      if (.not. allocated(this%wind_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: wind_var"
+        return
+      end if
+      filled(1) = size(this%wind_var, 1)
+    case ("tdew_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'tdew_var'"
+        return
+      end if
+      if (.not. allocated(this%tdew_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: tdew_var"
+        return
+      end if
+      filled(1) = size(this%tdew_var, 1)
+    case ("meteo_mask_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'meteo_mask_var'"
+        return
+      end if
+      if (.not. allocated(this%meteo_mask_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: meteo_mask_var"
+        return
+      end if
+      filled(1) = size(this%meteo_mask_var, 1)
+    case ("runoff_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'runoff_var'"
+        return
+      end if
+      if (.not. allocated(this%runoff_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: runoff_var"
+        return
+      end if
+      filled(1) = size(this%runoff_var, 1)
+    case ("runoff_sealed_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'runoff_sealed_var'"
+        return
+      end if
+      if (.not. allocated(this%runoff_sealed_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: runoff_sealed_var"
+        return
+      end if
+      filled(1) = size(this%runoff_sealed_var, 1)
+    case ("interflow_fast_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'interflow_fast_var'"
+        return
+      end if
+      if (.not. allocated(this%interflow_fast_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: interflow_fast_var"
+        return
+      end if
+      filled(1) = size(this%interflow_fast_var, 1)
+    case ("interflow_slow_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'interflow_slow_var'"
+        return
+      end if
+      if (.not. allocated(this%interflow_slow_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: interflow_slow_var"
+        return
+      end if
+      filled(1) = size(this%interflow_slow_var, 1)
+    case ("baseflow_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'baseflow_var'"
+        return
+      end if
+      if (.not. allocated(this%baseflow_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_var"
+        return
+      end if
+      filled(1) = size(this%baseflow_var, 1)
+    case ("hydro_mask_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'hydro_mask_var'"
+        return
+      end if
+      if (.not. allocated(this%hydro_mask_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_mask_var"
+        return
+      end if
+      filled(1) = size(this%hydro_mask_var, 1)
+    case ("dem_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'dem_var'"
+        return
+      end if
+      if (.not. allocated(this%dem_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: dem_var"
+        return
+      end if
+      filled(1) = size(this%dem_var, 1)
+    case ("slope_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'slope_var'"
+        return
+      end if
+      if (.not. allocated(this%slope_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: slope_var"
+        return
+      end if
+      filled(1) = size(this%slope_var, 1)
+    case ("aspect_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'aspect_var'"
+        return
+      end if
+      if (.not. allocated(this%aspect_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: aspect_var"
+        return
+      end if
+      filled(1) = size(this%aspect_var, 1)
+    case ("fdir_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'fdir_var'"
+        return
+      end if
+      if (.not. allocated(this%fdir_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: fdir_var"
+        return
+      end if
+      filled(1) = size(this%fdir_var, 1)
+    case ("lake_spill_reference_level_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'lake_spill_reference_level_var'"
+        return
+      end if
+      if (.not. allocated(this%lake_spill_reference_level_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lake_spill_reference_level_var"
+        return
+      end if
+      filled(1) = size(this%lake_spill_reference_level_var, 1)
+    case ("lake_spill_reference_surface_area_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'lake_spill_reference_surface_area_var'"
+        return
+      end if
+      if (.not. allocated(this%lake_spill_reference_surface_area_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lake_spill_reference_surface_area_var"
+        return
+      end if
+      filled(1) = size(this%lake_spill_reference_surface_area_var, 1)
+    case ("lake_spill_reference_volume_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'lake_spill_reference_volume_var'"
+        return
+      end if
+      if (.not. allocated(this%lake_spill_reference_volume_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lake_spill_reference_volume_var"
+        return
+      end if
+      filled(1) = size(this%lake_spill_reference_volume_var, 1)
+    case ("lake_initial_level_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'lake_initial_level_var'"
+        return
+      end if
+      if (.not. allocated(this%lake_initial_level_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lake_initial_level_var"
+        return
+      end if
+      filled(1) = size(this%lake_initial_level_var, 1)
+    case ("facc_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'facc_var'"
+        return
+      end if
+      if (.not. allocated(this%facc_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: facc_var"
+        return
+      end if
+      filled(1) = size(this%facc_var, 1)
+    case ("geo_class_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'geo_class_var'"
+        return
+      end if
+      if (.not. allocated(this%geo_class_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: geo_class_var"
+        return
+      end if
+      filled(1) = size(this%geo_class_var, 1)
+    case ("soil_class_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'soil_class_var'"
+        return
+      end if
+      if (.not. allocated(this%soil_class_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_class_var"
+        return
+      end if
+      filled(1) = size(this%soil_class_var, 1)
+    case ("lai_class_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'lai_class_var'"
+        return
+      end if
+      if (.not. allocated(this%lai_class_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_class_var"
+        return
+      end if
+      filled(1) = size(this%lai_class_var, 1)
+    case ("river_width_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'river_width_var'"
+        return
+      end if
+      if (.not. allocated(this%river_width_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: river_width_var"
+        return
+      end if
+      filled(1) = size(this%river_width_var, 1)
+    case ("morph_mask_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'morph_mask_var'"
+        return
+      end if
+      if (.not. allocated(this%morph_mask_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_mask_var"
+        return
+      end if
+      filled(1) = size(this%morph_mask_var, 1)
+    case ("hydro_lat_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'hydro_lat_var'"
+        return
+      end if
+      if (.not. allocated(this%hydro_lat_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_lat_var"
+        return
+      end if
+      filled(1) = size(this%hydro_lat_var, 1)
+    case ("hydro_lon_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'hydro_lon_var'"
+        return
+      end if
+      if (.not. allocated(this%hydro_lon_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: hydro_lon_var"
+        return
+      end if
+      filled(1) = size(this%hydro_lon_var, 1)
+    case ("morph_lat_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'morph_lat_var'"
+        return
+      end if
+      if (.not. allocated(this%morph_lat_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_lat_var"
+        return
+      end if
+      filled(1) = size(this%morph_lat_var, 1)
+    case ("morph_lon_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'morph_lon_var'"
+        return
+      end if
+      if (.not. allocated(this%morph_lon_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: morph_lon_var"
+        return
+      end if
+      filled(1) = size(this%morph_lon_var, 1)
+    case ("route_lat_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'route_lat_var'"
+        return
+      end if
+      if (.not. allocated(this%route_lat_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: route_lat_var"
+        return
+      end if
+      filled(1) = size(this%route_lat_var, 1)
+    case ("route_lon_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'route_lon_var'"
+        return
+      end if
+      if (.not. allocated(this%route_lon_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: route_lon_var"
+        return
+      end if
+      filled(1) = size(this%route_lon_var, 1)
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_input_filled_shape
 
   !> \brief Validate required values and constraints
   integer function nml_config_input_is_valid(this, errmsg) result(status)

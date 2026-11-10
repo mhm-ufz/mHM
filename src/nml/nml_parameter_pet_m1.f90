@@ -255,26 +255,26 @@ contains
     case ("pet_a_forest%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pet_a_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'pet_a_forest%value'"
         return
       end if
       if (ieee_is_nan(this%pet_a_forest%value)) status = NML_ERR_NOT_SET
     case ("pet_a_forest%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pet_a_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'pet_a_forest%optimize'"
         return
       end if
     case ("pet_a_forest%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pet_a_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'pet_a_forest%min'"
         return
       end if
     case ("pet_a_forest%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pet_a_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'pet_a_forest%max'"
         return
       end if
     case ("pet_a_forest")
@@ -283,32 +283,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'pet_a_forest'"
         return
       end if
-      if (ieee_is_nan(this%pet_a_forest%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%pet_a_forest%value))) status = NML_ERR_NOT_SET
     case ("pet_a_impervious%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pet_a_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'pet_a_impervious%value'"
         return
       end if
       if (ieee_is_nan(this%pet_a_impervious%value)) status = NML_ERR_NOT_SET
     case ("pet_a_impervious%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pet_a_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'pet_a_impervious%optimize'"
         return
       end if
     case ("pet_a_impervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pet_a_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'pet_a_impervious%min'"
         return
       end if
     case ("pet_a_impervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pet_a_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'pet_a_impervious%max'"
         return
       end if
     case ("pet_a_impervious")
@@ -317,32 +315,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'pet_a_impervious'"
         return
       end if
-      if (ieee_is_nan(this%pet_a_impervious%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%pet_a_impervious%value))) status = NML_ERR_NOT_SET
     case ("pet_a_pervious%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pet_a_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'pet_a_pervious%value'"
         return
       end if
       if (ieee_is_nan(this%pet_a_pervious%value)) status = NML_ERR_NOT_SET
     case ("pet_a_pervious%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pet_a_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'pet_a_pervious%optimize'"
         return
       end if
     case ("pet_a_pervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pet_a_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'pet_a_pervious%min'"
         return
       end if
     case ("pet_a_pervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pet_a_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'pet_a_pervious%max'"
         return
       end if
     case ("pet_a_pervious")
@@ -351,32 +347,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'pet_a_pervious'"
         return
       end if
-      if (ieee_is_nan(this%pet_a_pervious%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%pet_a_pervious%value))) status = NML_ERR_NOT_SET
     case ("pet_b%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pet_b'"
+        if (present(errmsg)) errmsg = "index not supported for 'pet_b%value'"
         return
       end if
       if (ieee_is_nan(this%pet_b%value)) status = NML_ERR_NOT_SET
     case ("pet_b%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pet_b'"
+        if (present(errmsg)) errmsg = "index not supported for 'pet_b%optimize'"
         return
       end if
     case ("pet_b%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pet_b'"
+        if (present(errmsg)) errmsg = "index not supported for 'pet_b%min'"
         return
       end if
     case ("pet_b%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pet_b'"
+        if (present(errmsg)) errmsg = "index not supported for 'pet_b%max'"
         return
       end if
     case ("pet_b")
@@ -385,32 +379,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'pet_b'"
         return
       end if
-      if (ieee_is_nan(this%pet_b%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%pet_b%value))) status = NML_ERR_NOT_SET
     case ("pet_c%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pet_c'"
+        if (present(errmsg)) errmsg = "index not supported for 'pet_c%value'"
         return
       end if
       if (ieee_is_nan(this%pet_c%value)) status = NML_ERR_NOT_SET
     case ("pet_c%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pet_c'"
+        if (present(errmsg)) errmsg = "index not supported for 'pet_c%optimize'"
         return
       end if
     case ("pet_c%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pet_c'"
+        if (present(errmsg)) errmsg = "index not supported for 'pet_c%min'"
         return
       end if
     case ("pet_c%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pet_c'"
+        if (present(errmsg)) errmsg = "index not supported for 'pet_c%max'"
         return
       end if
     case ("pet_c")
@@ -419,9 +411,7 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'pet_c'"
         return
       end if
-      if (ieee_is_nan(this%pet_c%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%pet_c%value))) status = NML_ERR_NOT_SET
     case default
       status = NML_ERR_INVALID_NAME
       if (present(errmsg)) errmsg = "unknown field: " // trim(name)

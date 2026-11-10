@@ -331,26 +331,26 @@ contains
     case ("cosmic_n0%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n0'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n0%value'"
         return
       end if
       if (ieee_is_nan(this%cosmic_n0%value)) status = NML_ERR_NOT_SET
     case ("cosmic_n0%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n0'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n0%optimize'"
         return
       end if
     case ("cosmic_n0%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n0'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n0%min'"
         return
       end if
     case ("cosmic_n0%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n0'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n0%max'"
         return
       end if
     case ("cosmic_n0")
@@ -359,32 +359,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_n0'"
         return
       end if
-      if (ieee_is_nan(this%cosmic_n0%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%cosmic_n0%value))) status = NML_ERR_NOT_SET
     case ("cosmic_n1%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n1'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n1%value'"
         return
       end if
       if (ieee_is_nan(this%cosmic_n1%value)) status = NML_ERR_NOT_SET
     case ("cosmic_n1%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n1'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n1%optimize'"
         return
       end if
     case ("cosmic_n1%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n1'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n1%min'"
         return
       end if
     case ("cosmic_n1%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n1'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n1%max'"
         return
       end if
     case ("cosmic_n1")
@@ -393,32 +391,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_n1'"
         return
       end if
-      if (ieee_is_nan(this%cosmic_n1%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%cosmic_n1%value))) status = NML_ERR_NOT_SET
     case ("cosmic_n2%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n2'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n2%value'"
         return
       end if
       if (ieee_is_nan(this%cosmic_n2%value)) status = NML_ERR_NOT_SET
     case ("cosmic_n2%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n2'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n2%optimize'"
         return
       end if
     case ("cosmic_n2%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n2'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n2%min'"
         return
       end if
     case ("cosmic_n2%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n2'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_n2%max'"
         return
       end if
     case ("cosmic_n2")
@@ -427,32 +423,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_n2'"
         return
       end if
-      if (ieee_is_nan(this%cosmic_n2%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%cosmic_n2%value))) status = NML_ERR_NOT_SET
     case ("cosmic_alpha0%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha0'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha0%value'"
         return
       end if
       if (ieee_is_nan(this%cosmic_alpha0%value)) status = NML_ERR_NOT_SET
     case ("cosmic_alpha0%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha0'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha0%optimize'"
         return
       end if
     case ("cosmic_alpha0%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha0'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha0%min'"
         return
       end if
     case ("cosmic_alpha0%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha0'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha0%max'"
         return
       end if
     case ("cosmic_alpha0")
@@ -461,32 +455,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha0'"
         return
       end if
-      if (ieee_is_nan(this%cosmic_alpha0%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%cosmic_alpha0%value))) status = NML_ERR_NOT_SET
     case ("cosmic_alpha1%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha1'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha1%value'"
         return
       end if
       if (ieee_is_nan(this%cosmic_alpha1%value)) status = NML_ERR_NOT_SET
     case ("cosmic_alpha1%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha1'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha1%optimize'"
         return
       end if
     case ("cosmic_alpha1%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha1'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha1%min'"
         return
       end if
     case ("cosmic_alpha1%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha1'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha1%max'"
         return
       end if
     case ("cosmic_alpha1")
@@ -495,32 +487,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_alpha1'"
         return
       end if
-      if (ieee_is_nan(this%cosmic_alpha1%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%cosmic_alpha1%value))) status = NML_ERR_NOT_SET
     case ("cosmic_l30%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_l30'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_l30%value'"
         return
       end if
       if (ieee_is_nan(this%cosmic_l30%value)) status = NML_ERR_NOT_SET
     case ("cosmic_l30%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_l30'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_l30%optimize'"
         return
       end if
     case ("cosmic_l30%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_l30'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_l30%min'"
         return
       end if
     case ("cosmic_l30%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_l30'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_l30%max'"
         return
       end if
     case ("cosmic_l30")
@@ -529,32 +519,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_l30'"
         return
       end if
-      if (ieee_is_nan(this%cosmic_l30%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%cosmic_l30%value))) status = NML_ERR_NOT_SET
     case ("cosmic_l31%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_l31'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_l31%value'"
         return
       end if
       if (ieee_is_nan(this%cosmic_l31%value)) status = NML_ERR_NOT_SET
     case ("cosmic_l31%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_l31'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_l31%optimize'"
         return
       end if
     case ("cosmic_l31%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_l31'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_l31%min'"
         return
       end if
     case ("cosmic_l31%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_l31'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_l31%max'"
         return
       end if
     case ("cosmic_l31")
@@ -563,32 +551,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_l31'"
         return
       end if
-      if (ieee_is_nan(this%cosmic_l31%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%cosmic_l31%value))) status = NML_ERR_NOT_SET
     case ("cosmic_lw0%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw0'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw0%value'"
         return
       end if
       if (ieee_is_nan(this%cosmic_lw0%value)) status = NML_ERR_NOT_SET
     case ("cosmic_lw0%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw0'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw0%optimize'"
         return
       end if
     case ("cosmic_lw0%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw0'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw0%min'"
         return
       end if
     case ("cosmic_lw0%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw0'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw0%max'"
         return
       end if
     case ("cosmic_lw0")
@@ -597,32 +583,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw0'"
         return
       end if
-      if (ieee_is_nan(this%cosmic_lw0%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%cosmic_lw0%value))) status = NML_ERR_NOT_SET
     case ("cosmic_lw1%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw1'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw1%value'"
         return
       end if
       if (ieee_is_nan(this%cosmic_lw1%value)) status = NML_ERR_NOT_SET
     case ("cosmic_lw1%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw1'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw1%optimize'"
         return
       end if
     case ("cosmic_lw1%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw1'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw1%min'"
         return
       end if
     case ("cosmic_lw1%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw1'"
+        if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw1%max'"
         return
       end if
     case ("cosmic_lw1")
@@ -631,9 +615,7 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'cosmic_lw1'"
         return
       end if
-      if (ieee_is_nan(this%cosmic_lw1%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%cosmic_lw1%value))) status = NML_ERR_NOT_SET
     case default
       status = NML_ERR_INVALID_NAME
       if (present(errmsg)) errmsg = "unknown field: " // trim(name)

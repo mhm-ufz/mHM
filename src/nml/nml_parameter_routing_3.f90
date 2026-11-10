@@ -179,26 +179,26 @@ contains
     case ("slope_factor%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'slope_factor'"
+        if (present(errmsg)) errmsg = "index not supported for 'slope_factor%value'"
         return
       end if
       if (ieee_is_nan(this%slope_factor%value)) status = NML_ERR_NOT_SET
     case ("slope_factor%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'slope_factor'"
+        if (present(errmsg)) errmsg = "index not supported for 'slope_factor%optimize'"
         return
       end if
     case ("slope_factor%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'slope_factor'"
+        if (present(errmsg)) errmsg = "index not supported for 'slope_factor%min'"
         return
       end if
     case ("slope_factor%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'slope_factor'"
+        if (present(errmsg)) errmsg = "index not supported for 'slope_factor%max'"
         return
       end if
     case ("slope_factor")
@@ -207,9 +207,7 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'slope_factor'"
         return
       end if
-      if (ieee_is_nan(this%slope_factor%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%slope_factor%value))) status = NML_ERR_NOT_SET
     case default
       status = NML_ERR_INVALID_NAME
       if (present(errmsg)) errmsg = "unknown field: " // trim(name)

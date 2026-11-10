@@ -52,6 +52,10 @@ module nml_baseflow_1
     procedure :: from_file => nml_baseflow_1_from_file
     procedure :: set => nml_baseflow_1_set
     procedure :: is_set => nml_baseflow_1_is_set
+    procedure, private :: set_mask__rank__1 => nml_baseflow_1_set_mask__rank__1
+    generic :: set_mask => &
+      set_mask__rank__1
+    procedure :: filled_shape => nml_baseflow_1_filled_shape
     procedure :: is_valid => nml_baseflow_1_is_valid
   end type nml_baseflow_1_t
 
@@ -186,9 +190,6 @@ contains
     class(nml_baseflow_1_t), intent(inout) :: this !< namelist instance
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
     type(parameter_t), dimension(:), intent(in) :: baseflow_recession !< Baseflow recession time for each geological unit [d]
-    integer :: &
-      lb__1, &
-      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -199,9 +200,7 @@ contains
       if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'baseflow_recession'"
       return
     end if
-    lb__1 = lbound(this%baseflow_recession, 1)
-    ub__1 = lb__1 + size(baseflow_recession, 1) - 1
-    this%baseflow_recession(lb__1:ub__1) = baseflow_recession
+    this%baseflow_recession(1:size(baseflow_recession, 1)) = baseflow_recession
 
     ! mark as configured
     this%is_configured = .true.
@@ -214,6 +213,7 @@ contains
     character(len=*), intent(in) :: name !< field name
     integer, intent(in), optional :: idx(:) !< optional field index values
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    intrinsic :: shape
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -226,11 +226,11 @@ contains
     case ("baseflow_recession%value")
       if (.not. allocated(this%baseflow_recession)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%value"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%baseflow_recession), ubound(this%baseflow_recession), &
-          "baseflow_recession", errmsg)
+        status = idx_check(idx, shape(this%baseflow_recession), "baseflow_recession%value", errmsg)
         if (status /= NML_OK) return
         if (ieee_is_nan(this%baseflow_recession(idx(1))%value)) status = NML_ERR_NOT_SET
       else
@@ -239,49 +239,47 @@ contains
     case ("baseflow_recession%optimize")
       if (.not. allocated(this%baseflow_recession)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%optimize"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%baseflow_recession), ubound(this%baseflow_recession), &
-          "baseflow_recession", errmsg)
+        status = idx_check(idx, shape(this%baseflow_recession), "baseflow_recession%optimize", errmsg)
         if (status /= NML_OK) return
       end if
     case ("baseflow_recession%min")
       if (.not. allocated(this%baseflow_recession)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%min"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%baseflow_recession), ubound(this%baseflow_recession), &
-          "baseflow_recession", errmsg)
+        status = idx_check(idx, shape(this%baseflow_recession), "baseflow_recession%min", errmsg)
         if (status /= NML_OK) return
       end if
     case ("baseflow_recession%max")
       if (.not. allocated(this%baseflow_recession)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%max"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%baseflow_recession), ubound(this%baseflow_recession), &
-          "baseflow_recession", errmsg)
+        status = idx_check(idx, shape(this%baseflow_recession), "baseflow_recession%max", errmsg)
         if (status /= NML_OK) return
       end if
     case ("baseflow_recession")
       if (.not. allocated(this%baseflow_recession)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%baseflow_recession), ubound(this%baseflow_recession), &
-          "baseflow_recession", errmsg)
+        status = idx_check(idx, shape(this%baseflow_recession), "baseflow_recession", errmsg)
         if (status /= NML_OK) return
-        if (ieee_is_nan(this%baseflow_recession(idx(1))%value)) then
-          status = NML_ERR_NOT_SET
-        end if
+        if ((ieee_is_nan(this%baseflow_recession(idx(1))%value))) status = NML_ERR_NOT_SET
       else
-        if (all(ieee_is_nan(this%baseflow_recession%value))) then
+        if (all((ieee_is_nan(this%baseflow_recession%value)))) then
           status = NML_ERR_NOT_SET
-        else if (any(ieee_is_nan(this%baseflow_recession%value))) then
+        else if (any((ieee_is_nan(this%baseflow_recession%value)))) then
           status = NML_ERR_PARTLY_SET
         end if
       end if
@@ -293,6 +291,188 @@ contains
       if (len_trim(errmsg) == 0) errmsg = "field not set: " // trim(name)
     end if
   end function nml_baseflow_1_is_set
+
+  !> \brief Obtain the item presence mask with one field-name dispatch
+  integer function nml_baseflow_1_set_mask__rank__1(this, name, mask, errmsg) result(status)
+    class(nml_baseflow_1_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    logical, allocatable, intent(out) :: mask(:) !< item presence
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("baseflow_recession%value")
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%value"
+        return
+      end if
+      allocate(mask( &
+        size(this%baseflow_recession, 1)))
+      do idx__1 = 1, size(this%baseflow_recession, 1)
+        if (ieee_is_nan(this%baseflow_recession(idx__1)%value)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("baseflow_recession%optimize")
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%optimize"
+        return
+      end if
+      allocate(mask( &
+        size(this%baseflow_recession, 1)))
+      mask = .true.
+    case ("baseflow_recession%min")
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%min"
+        return
+      end if
+      allocate(mask( &
+        size(this%baseflow_recession, 1)))
+      mask = .true.
+    case ("baseflow_recession%max")
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%max"
+        return
+      end if
+      allocate(mask( &
+        size(this%baseflow_recession, 1)))
+      mask = .true.
+    case ("baseflow_recession")
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession"
+        return
+      end if
+      allocate(mask( &
+        size(this%baseflow_recession, 1)))
+      do idx__1 = 1, size(this%baseflow_recession, 1)
+        if ((ieee_is_nan(this%baseflow_recession(idx__1)%value))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_baseflow_1_set_mask__rank__1
+
+  !> \brief Determine the smallest complete populated prefix starting at index 1
+  integer function nml_baseflow_1_filled_shape(this, name, filled, errmsg) result(status)
+    class(nml_baseflow_1_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    integer, intent(out) :: filled(:) !< prefix extents, retained when the prefix has holes
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    filled = 0
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("baseflow_recession%value")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'baseflow_recession%value'"
+        return
+      end if
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%value"
+        return
+      end if
+      do idx__1 = 1, size(this%baseflow_recession, 1)
+        if (ieee_is_nan(this%baseflow_recession(idx__1)%value)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (ieee_is_nan(this%baseflow_recession(idx__1)%value)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: baseflow_recession%value"
+          return
+        end if
+      end do
+    case ("baseflow_recession%optimize")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'baseflow_recession%optimize'"
+        return
+      end if
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%optimize"
+        return
+      end if
+      filled(1) = size(this%baseflow_recession, 1)
+    case ("baseflow_recession%min")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'baseflow_recession%min'"
+        return
+      end if
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%min"
+        return
+      end if
+      filled(1) = size(this%baseflow_recession, 1)
+    case ("baseflow_recession%max")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'baseflow_recession%max'"
+        return
+      end if
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession%max"
+        return
+      end if
+      filled(1) = size(this%baseflow_recession, 1)
+    case ("baseflow_recession")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'baseflow_recession'"
+        return
+      end if
+      if (.not. allocated(this%baseflow_recession)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: baseflow_recession"
+        return
+      end if
+      do idx__1 = 1, size(this%baseflow_recession, 1)
+        if ((ieee_is_nan(this%baseflow_recession(idx__1)%value))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if ((ieee_is_nan(this%baseflow_recession(idx__1)%value))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: baseflow_recession"
+          return
+        end if
+      end do
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_baseflow_1_filled_shape
 
   !> \brief Validate required values and constraints
   integer function nml_baseflow_1_is_valid(this, errmsg) result(status)

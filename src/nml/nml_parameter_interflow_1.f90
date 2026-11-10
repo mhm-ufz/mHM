@@ -255,26 +255,26 @@ contains
     case ("storage_capacity_factor%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'storage_capacity_factor'"
+        if (present(errmsg)) errmsg = "index not supported for 'storage_capacity_factor%value'"
         return
       end if
       if (ieee_is_nan(this%storage_capacity_factor%value)) status = NML_ERR_NOT_SET
     case ("storage_capacity_factor%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'storage_capacity_factor'"
+        if (present(errmsg)) errmsg = "index not supported for 'storage_capacity_factor%optimize'"
         return
       end if
     case ("storage_capacity_factor%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'storage_capacity_factor'"
+        if (present(errmsg)) errmsg = "index not supported for 'storage_capacity_factor%min'"
         return
       end if
     case ("storage_capacity_factor%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'storage_capacity_factor'"
+        if (present(errmsg)) errmsg = "index not supported for 'storage_capacity_factor%max'"
         return
       end if
     case ("storage_capacity_factor")
@@ -283,32 +283,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'storage_capacity_factor'"
         return
       end if
-      if (ieee_is_nan(this%storage_capacity_factor%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%storage_capacity_factor%value))) status = NML_ERR_NOT_SET
     case ("recession_slope%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'recession_slope'"
+        if (present(errmsg)) errmsg = "index not supported for 'recession_slope%value'"
         return
       end if
       if (ieee_is_nan(this%recession_slope%value)) status = NML_ERR_NOT_SET
     case ("recession_slope%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'recession_slope'"
+        if (present(errmsg)) errmsg = "index not supported for 'recession_slope%optimize'"
         return
       end if
     case ("recession_slope%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'recession_slope'"
+        if (present(errmsg)) errmsg = "index not supported for 'recession_slope%min'"
         return
       end if
     case ("recession_slope%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'recession_slope'"
+        if (present(errmsg)) errmsg = "index not supported for 'recession_slope%max'"
         return
       end if
     case ("recession_slope")
@@ -317,32 +315,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'recession_slope'"
         return
       end if
-      if (ieee_is_nan(this%recession_slope%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%recession_slope%value))) status = NML_ERR_NOT_SET
     case ("fast_recession_forest%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'fast_recession_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'fast_recession_forest%value'"
         return
       end if
       if (ieee_is_nan(this%fast_recession_forest%value)) status = NML_ERR_NOT_SET
     case ("fast_recession_forest%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'fast_recession_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'fast_recession_forest%optimize'"
         return
       end if
     case ("fast_recession_forest%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'fast_recession_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'fast_recession_forest%min'"
         return
       end if
     case ("fast_recession_forest%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'fast_recession_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'fast_recession_forest%max'"
         return
       end if
     case ("fast_recession_forest")
@@ -351,32 +347,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'fast_recession_forest'"
         return
       end if
-      if (ieee_is_nan(this%fast_recession_forest%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%fast_recession_forest%value))) status = NML_ERR_NOT_SET
     case ("slow_recession_ks%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'slow_recession_ks'"
+        if (present(errmsg)) errmsg = "index not supported for 'slow_recession_ks%value'"
         return
       end if
       if (ieee_is_nan(this%slow_recession_ks%value)) status = NML_ERR_NOT_SET
     case ("slow_recession_ks%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'slow_recession_ks'"
+        if (present(errmsg)) errmsg = "index not supported for 'slow_recession_ks%optimize'"
         return
       end if
     case ("slow_recession_ks%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'slow_recession_ks'"
+        if (present(errmsg)) errmsg = "index not supported for 'slow_recession_ks%min'"
         return
       end if
     case ("slow_recession_ks%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'slow_recession_ks'"
+        if (present(errmsg)) errmsg = "index not supported for 'slow_recession_ks%max'"
         return
       end if
     case ("slow_recession_ks")
@@ -385,32 +379,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'slow_recession_ks'"
         return
       end if
-      if (ieee_is_nan(this%slow_recession_ks%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%slow_recession_ks%value))) status = NML_ERR_NOT_SET
     case ("slow_recession_exponent%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'slow_recession_exponent'"
+        if (present(errmsg)) errmsg = "index not supported for 'slow_recession_exponent%value'"
         return
       end if
       if (ieee_is_nan(this%slow_recession_exponent%value)) status = NML_ERR_NOT_SET
     case ("slow_recession_exponent%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'slow_recession_exponent'"
+        if (present(errmsg)) errmsg = "index not supported for 'slow_recession_exponent%optimize'"
         return
       end if
     case ("slow_recession_exponent%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'slow_recession_exponent'"
+        if (present(errmsg)) errmsg = "index not supported for 'slow_recession_exponent%min'"
         return
       end if
     case ("slow_recession_exponent%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'slow_recession_exponent'"
+        if (present(errmsg)) errmsg = "index not supported for 'slow_recession_exponent%max'"
         return
       end if
     case ("slow_recession_exponent")
@@ -419,9 +411,7 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'slow_recession_exponent'"
         return
       end if
-      if (ieee_is_nan(this%slow_recession_exponent%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%slow_recession_exponent%value))) status = NML_ERR_NOT_SET
     case default
       status = NML_ERR_INVALID_NAME
       if (present(errmsg)) errmsg = "unknown field: " // trim(name)

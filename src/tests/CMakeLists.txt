@@ -96,6 +96,10 @@ add_executable(test_parameter_reinitialize test_parameter_reinitialize.f90)
 target_link_libraries(test_parameter_reinitialize PRIVATE ${LIB_NAME})
 add_test(NAME test_parameter_reinitialize COMMAND test_parameter_reinitialize)
 
+add_executable(test_optional_output test_optional_output.f90)
+target_link_libraries(test_optional_output PRIVATE ${LIB_NAME})
+add_test(NAME test_optional_output COMMAND test_optional_output)
+
 add_executable(test_forward_run test_forward_run.f90)
 target_link_libraries(test_forward_run PRIVATE ${LIB_NAME})
 add_test(NAME test_forward_run COMMAND test_forward_run)

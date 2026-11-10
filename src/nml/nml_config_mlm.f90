@@ -30,7 +30,8 @@ module nml_config_mlm
     to_lower, &
     n_domains__default, &
     buf, &
-    max_lakes__default
+    max_lakes__default, &
+    NML_ERR_PARTLY_SET
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
@@ -96,6 +97,12 @@ module nml_config_mlm
     procedure :: from_file => nml_config_mlm_from_file
     procedure :: set => nml_config_mlm_set
     procedure :: is_set => nml_config_mlm_is_set
+    procedure, private :: set_mask__rank__1 => nml_config_mlm_set_mask__rank__1
+    procedure, private :: set_mask__rank__2 => nml_config_mlm_set_mask__rank__2
+    generic :: set_mask => &
+      set_mask__rank__1, &
+      set_mask__rank__2
+    procedure :: filled_shape => nml_config_mlm_filled_shape
     procedure :: is_valid => nml_config_mlm_is_valid
   end type nml_config_mlm_t
 
@@ -400,6 +407,16 @@ contains
 
     status = nml%find("config_mlm", errmsg=errmsg)
     if (status /= NML_OK) then
+      if (status == NML_ERR_NML_NOT_FOUND) then
+        close_status = nml%close(errmsg=errmsg)
+        if (close_status /= NML_OK) then
+          status = close_status
+          return
+        end if
+        this%is_configured = .true.
+        status = NML_OK
+        return
+      end if
       close_status = nml%close()
       return
     end if
@@ -485,11 +502,6 @@ contains
     integer(i4), intent(in), optional :: albedo_method !< Water albedo calculation method
     integer(i4), dimension(:, :), intent(in), optional :: bathymetry_type !< Lake hAV curve type
     logical, dimension(:, :), intent(in), optional :: natural !< Natural lake flag
-    integer :: &
-      lb__1, &
-      lb__2, &
-      ub__1, &
-      ub__2
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -502,9 +514,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'n_lakes'"
         return
       end if
-      lb__1 = lbound(this%n_lakes, 1)
-      ub__1 = lb__1 + size(n_lakes, 1) - 1
-      this%n_lakes(lb__1:ub__1) = n_lakes
+      this%n_lakes(1:size(n_lakes, 1)) = n_lakes
     end if
     if (present(output_path)) then
       if (size(output_path, 1) > size(this%output_path, 1)) then
@@ -512,9 +522,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'output_path'"
         return
       end if
-      lb__1 = lbound(this%output_path, 1)
-      ub__1 = lb__1 + size(output_path, 1) - 1
-      this%output_path(lb__1:ub__1) = output_path
+      this%output_path(1:size(output_path, 1)) = output_path
     end if
     if (present(read_restart)) then
       if (size(read_restart, 1) > size(this%read_restart, 1)) then
@@ -522,9 +530,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'read_restart'"
         return
       end if
-      lb__1 = lbound(this%read_restart, 1)
-      ub__1 = lb__1 + size(read_restart, 1) - 1
-      this%read_restart(lb__1:ub__1) = read_restart
+      this%read_restart(1:size(read_restart, 1)) = read_restart
     end if
     if (present(restart_input_path)) then
       if (size(restart_input_path, 1) > size(this%restart_input_path, 1)) then
@@ -532,9 +538,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'restart_input_path'"
         return
       end if
-      lb__1 = lbound(this%restart_input_path, 1)
-      ub__1 = lb__1 + size(restart_input_path, 1) - 1
-      this%restart_input_path(lb__1:ub__1) = restart_input_path
+      this%restart_input_path(1:size(restart_input_path, 1)) = restart_input_path
     end if
     if (present(write_restart)) then
       if (size(write_restart, 1) > size(this%write_restart, 1)) then
@@ -542,9 +546,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'write_restart'"
         return
       end if
-      lb__1 = lbound(this%write_restart, 1)
-      ub__1 = lb__1 + size(write_restart, 1) - 1
-      this%write_restart(lb__1:ub__1) = write_restart
+      this%write_restart(1:size(write_restart, 1)) = write_restart
     end if
     if (present(restart_save_topology)) then
       if (size(restart_save_topology, 1) > size(this%restart_save_topology, 1)) then
@@ -552,9 +554,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'restart_save_topology'"
         return
       end if
-      lb__1 = lbound(this%restart_save_topology, 1)
-      ub__1 = lb__1 + size(restart_save_topology, 1) - 1
-      this%restart_save_topology(lb__1:ub__1) = restart_save_topology
+      this%restart_save_topology(1:size(restart_save_topology, 1)) = restart_save_topology
     end if
     if (present(restart_output_path)) then
       if (size(restart_output_path, 1) > size(this%restart_output_path, 1)) then
@@ -562,9 +562,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'restart_output_path'"
         return
       end if
-      lb__1 = lbound(this%restart_output_path, 1)
-      ub__1 = lb__1 + size(restart_output_path, 1) - 1
-      this%restart_output_path(lb__1:ub__1) = restart_output_path
+      this%restart_output_path(1:size(restart_output_path, 1)) = restart_output_path
     end if
     if (present(force_initialize_lake_at_restart)) this%force_initialize_lake_at_restart = force_initialize_lake_at_restart
     if (present(force_initialize_lake_at_a_date)) this%force_initialize_lake_at_a_date = force_initialize_lake_at_a_date
@@ -581,16 +579,12 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'bathymetry_type'"
         return
       end if
-      lb__1 = lbound(this%bathymetry_type, 1)
-      ub__1 = lb__1 + size(bathymetry_type, 1) - 1
       if (size(bathymetry_type, 2) > size(this%bathymetry_type, 2)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "dimension 2 exceeds bounds for 'bathymetry_type'"
         return
       end if
-      lb__2 = lbound(this%bathymetry_type, 2)
-      ub__2 = lb__2 + size(bathymetry_type, 2) - 1
-      this%bathymetry_type(lb__1:ub__1, lb__2:ub__2) = bathymetry_type
+      this%bathymetry_type(1:size(bathymetry_type, 1), 1:size(bathymetry_type, 2)) = bathymetry_type
     end if
     if (present(natural)) then
       if (size(natural, 1) > size(this%natural, 1)) then
@@ -598,16 +592,12 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'natural'"
         return
       end if
-      lb__1 = lbound(this%natural, 1)
-      ub__1 = lb__1 + size(natural, 1) - 1
       if (size(natural, 2) > size(this%natural, 2)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "dimension 2 exceeds bounds for 'natural'"
         return
       end if
-      lb__2 = lbound(this%natural, 2)
-      ub__2 = lb__2 + size(natural, 2) - 1
-      this%natural(lb__1:ub__1, lb__2:ub__2) = natural
+      this%natural(1:size(natural, 1), 1:size(natural, 2)) = natural
     end if
 
     ! mark as configured
@@ -621,6 +611,7 @@ contains
     character(len=*), intent(in) :: name !< field name
     integer, intent(in), optional :: idx(:) !< optional field index values
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    intrinsic :: shape
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -633,11 +624,11 @@ contains
     case ("n_lakes")
       if (.not. allocated(this%n_lakes)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: n_lakes"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%n_lakes), ubound(this%n_lakes), &
-          "n_lakes", errmsg)
+        status = idx_check(idx, shape(this%n_lakes), "n_lakes", errmsg)
         if (status /= NML_OK) return
         if (this%n_lakes(idx(1)) == -huge(this%n_lakes(idx(1)))) status = NML_ERR_NOT_SET
       else
@@ -646,11 +637,11 @@ contains
     case ("output_path")
       if (.not. allocated(this%output_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: output_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%output_path), ubound(this%output_path), &
-          "output_path", errmsg)
+        status = idx_check(idx, shape(this%output_path), "output_path", errmsg)
         if (status /= NML_OK) return
         if (this%output_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -659,22 +650,21 @@ contains
     case ("read_restart")
       if (.not. allocated(this%read_restart)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: read_restart"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%read_restart), ubound(this%read_restart), &
-          "read_restart", errmsg)
+        status = idx_check(idx, shape(this%read_restart), "read_restart", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("restart_input_path")
       if (.not. allocated(this%restart_input_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_input_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%restart_input_path), ubound(this%restart_input_path), &
-          "restart_input_path", errmsg)
+        status = idx_check(idx, shape(this%restart_input_path), "restart_input_path", errmsg)
         if (status /= NML_OK) return
         if (this%restart_input_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -683,33 +673,31 @@ contains
     case ("write_restart")
       if (.not. allocated(this%write_restart)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: write_restart"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%write_restart), ubound(this%write_restart), &
-          "write_restart", errmsg)
+        status = idx_check(idx, shape(this%write_restart), "write_restart", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("restart_save_topology")
       if (.not. allocated(this%restart_save_topology)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_save_topology"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%restart_save_topology), ubound(this%restart_save_topology), &
-          "restart_save_topology", errmsg)
+        status = idx_check(idx, shape(this%restart_save_topology), "restart_save_topology", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("restart_output_path")
       if (.not. allocated(this%restart_output_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_output_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%restart_output_path), ubound(this%restart_output_path), &
-          "restart_output_path", errmsg)
+        status = idx_check(idx, shape(this%restart_output_path), "restart_output_path", errmsg)
         if (status /= NML_OK) return
         if (this%restart_output_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -772,24 +760,22 @@ contains
     case ("bathymetry_type")
       if (.not. allocated(this%bathymetry_type)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: bathymetry_type"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%bathymetry_type), ubound(this%bathymetry_type), &
-          "bathymetry_type", errmsg)
+        status = idx_check(idx, shape(this%bathymetry_type), "bathymetry_type", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("natural")
       if (.not. allocated(this%natural)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: natural"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%natural), ubound(this%natural), &
-          "natural", errmsg)
+        status = idx_check(idx, shape(this%natural), "natural", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case default
       status = NML_ERR_INVALID_NAME
@@ -799,6 +785,440 @@ contains
       if (len_trim(errmsg) == 0) errmsg = "field not set: " // trim(name)
     end if
   end function nml_config_mlm_is_set
+
+  !> \brief Obtain the item presence mask with one field-name dispatch
+  integer function nml_config_mlm_set_mask__rank__1(this, name, mask, errmsg) result(status)
+    class(nml_config_mlm_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    logical, allocatable, intent(out) :: mask(:) !< item presence
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("n_lakes")
+      if (.not. allocated(this%n_lakes)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: n_lakes"
+        return
+      end if
+      allocate(mask( &
+        size(this%n_lakes, 1)))
+      do idx__1 = 1, size(this%n_lakes, 1)
+        if (this%n_lakes(idx__1) == -huge(this%n_lakes(idx__1))) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("output_path")
+      if (.not. allocated(this%output_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: output_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%output_path, 1)))
+      do idx__1 = 1, size(this%output_path, 1)
+        if (this%output_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("read_restart")
+      if (.not. allocated(this%read_restart)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: read_restart"
+        return
+      end if
+      allocate(mask( &
+        size(this%read_restart, 1)))
+      mask = .true.
+    case ("restart_input_path")
+      if (.not. allocated(this%restart_input_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_input_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%restart_input_path, 1)))
+      do idx__1 = 1, size(this%restart_input_path, 1)
+        if (this%restart_input_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("write_restart")
+      if (.not. allocated(this%write_restart)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: write_restart"
+        return
+      end if
+      allocate(mask( &
+        size(this%write_restart, 1)))
+      mask = .true.
+    case ("restart_save_topology")
+      if (.not. allocated(this%restart_save_topology)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_save_topology"
+        return
+      end if
+      allocate(mask( &
+        size(this%restart_save_topology, 1)))
+      mask = .true.
+    case ("restart_output_path")
+      if (.not. allocated(this%restart_output_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_output_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%restart_output_path, 1)))
+      do idx__1 = 1, size(this%restart_output_path, 1)
+        if (this%restart_output_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("force_initialize_lake_at_restart")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: force_initialize_lake_at_restart"
+    case ("force_initialize_lake_at_a_date")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: force_initialize_lake_at_a_date"
+    case ("evaporation_method")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: evaporation_method"
+    case ("input_windspeed_height")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: input_windspeed_height"
+    case ("climatological_windspeed")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: climatological_windspeed"
+    case ("varying_albedo")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: varying_albedo"
+    case ("varying_lambda")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: varying_lambda"
+    case ("varying_psychro")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: varying_psychro"
+    case ("albedo_method")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: albedo_method"
+    case ("bathymetry_type")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'bathymetry_type'"
+    case ("natural")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'natural'"
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_mlm_set_mask__rank__1
+
+  !> \brief Obtain the item presence mask with one field-name dispatch
+  integer function nml_config_mlm_set_mask__rank__2(this, name, mask, errmsg) result(status)
+    class(nml_config_mlm_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    logical, allocatable, intent(out) :: mask(:, :) !< item presence
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+    integer :: idx__2
+
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("n_lakes")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'n_lakes'"
+    case ("output_path")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'output_path'"
+    case ("read_restart")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'read_restart'"
+    case ("restart_input_path")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'restart_input_path'"
+    case ("write_restart")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'write_restart'"
+    case ("restart_save_topology")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'restart_save_topology'"
+    case ("restart_output_path")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'restart_output_path'"
+    case ("force_initialize_lake_at_restart")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: force_initialize_lake_at_restart"
+    case ("force_initialize_lake_at_a_date")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: force_initialize_lake_at_a_date"
+    case ("evaporation_method")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: evaporation_method"
+    case ("input_windspeed_height")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: input_windspeed_height"
+    case ("climatological_windspeed")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: climatological_windspeed"
+    case ("varying_albedo")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: varying_albedo"
+    case ("varying_lambda")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: varying_lambda"
+    case ("varying_psychro")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: varying_psychro"
+    case ("albedo_method")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: albedo_method"
+    case ("bathymetry_type")
+      if (.not. allocated(this%bathymetry_type)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: bathymetry_type"
+        return
+      end if
+      allocate(mask( &
+        size(this%bathymetry_type, 1), &
+        size(this%bathymetry_type, 2)))
+      mask = .true.
+    case ("natural")
+      if (.not. allocated(this%natural)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: natural"
+        return
+      end if
+      allocate(mask( &
+        size(this%natural, 1), &
+        size(this%natural, 2)))
+      mask = .true.
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_mlm_set_mask__rank__2
+
+  !> \brief Determine the smallest complete populated prefix starting at index 1
+  integer function nml_config_mlm_filled_shape(this, name, filled, errmsg) result(status)
+    class(nml_config_mlm_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    integer, intent(out) :: filled(:) !< prefix extents, retained when the prefix has holes
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+    integer :: idx__2
+
+    filled = 0
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("n_lakes")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'n_lakes'"
+        return
+      end if
+      if (.not. allocated(this%n_lakes)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: n_lakes"
+        return
+      end if
+      do idx__1 = 1, size(this%n_lakes, 1)
+        if (this%n_lakes(idx__1) == -huge(this%n_lakes(idx__1))) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%n_lakes(idx__1) == -huge(this%n_lakes(idx__1))) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: n_lakes"
+          return
+        end if
+      end do
+    case ("output_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'output_path'"
+        return
+      end if
+      if (.not. allocated(this%output_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: output_path"
+        return
+      end if
+      do idx__1 = 1, size(this%output_path, 1)
+        if (this%output_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%output_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: output_path"
+          return
+        end if
+      end do
+    case ("read_restart")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'read_restart'"
+        return
+      end if
+      if (.not. allocated(this%read_restart)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: read_restart"
+        return
+      end if
+      filled(1) = size(this%read_restart, 1)
+    case ("restart_input_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'restart_input_path'"
+        return
+      end if
+      if (.not. allocated(this%restart_input_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_input_path"
+        return
+      end if
+      do idx__1 = 1, size(this%restart_input_path, 1)
+        if (this%restart_input_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%restart_input_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: restart_input_path"
+          return
+        end if
+      end do
+    case ("write_restart")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'write_restart'"
+        return
+      end if
+      if (.not. allocated(this%write_restart)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: write_restart"
+        return
+      end if
+      filled(1) = size(this%write_restart, 1)
+    case ("restart_save_topology")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'restart_save_topology'"
+        return
+      end if
+      if (.not. allocated(this%restart_save_topology)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_save_topology"
+        return
+      end if
+      filled(1) = size(this%restart_save_topology, 1)
+    case ("restart_output_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'restart_output_path'"
+        return
+      end if
+      if (.not. allocated(this%restart_output_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_output_path"
+        return
+      end if
+      do idx__1 = 1, size(this%restart_output_path, 1)
+        if (this%restart_output_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%restart_output_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: restart_output_path"
+          return
+        end if
+      end do
+    case ("force_initialize_lake_at_restart")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: force_initialize_lake_at_restart"
+    case ("force_initialize_lake_at_a_date")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: force_initialize_lake_at_a_date"
+    case ("evaporation_method")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: evaporation_method"
+    case ("input_windspeed_height")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: input_windspeed_height"
+    case ("climatological_windspeed")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: climatological_windspeed"
+    case ("varying_albedo")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: varying_albedo"
+    case ("varying_lambda")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: varying_lambda"
+    case ("varying_psychro")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: varying_psychro"
+    case ("albedo_method")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: albedo_method"
+    case ("bathymetry_type")
+      if (size(filled) /= 2) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'bathymetry_type'"
+        return
+      end if
+      if (.not. allocated(this%bathymetry_type)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: bathymetry_type"
+        return
+      end if
+      filled(1) = size(this%bathymetry_type, 1)
+      filled(2) = size(this%bathymetry_type, 2)
+    case ("natural")
+      if (size(filled) /= 2) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'natural'"
+        return
+      end if
+      if (.not. allocated(this%natural)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: natural"
+        return
+      end if
+      filled(1) = size(this%natural, 1)
+      filled(2) = size(this%natural, 2)
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_mlm_filled_shape
 
   !> \brief Validate required values and constraints
   integer function nml_config_mlm_is_valid(this, errmsg) result(status)

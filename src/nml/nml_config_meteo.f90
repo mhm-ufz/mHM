@@ -38,7 +38,8 @@ module nml_config_meteo
     idx_check, &
     to_lower, &
     n_domains__default, &
-    buf
+    buf, &
+    NML_ERR_PARTLY_SET
   use ieee_arithmetic, only: ieee_value, ieee_quiet_nan, ieee_is_nan
   ! kind specifiers listed in the nml-tools configuration file
   use mo_kind, only: &
@@ -99,6 +100,12 @@ module nml_config_meteo
     procedure :: from_file => nml_config_meteo_from_file
     procedure :: set => nml_config_meteo_set
     procedure :: is_set => nml_config_meteo_is_set
+    procedure, private :: set_mask__rank__1 => nml_config_meteo_set_mask__rank__1
+    procedure, private :: set_mask__rank__2 => nml_config_meteo_set_mask__rank__2
+    generic :: set_mask => &
+      set_mask__rank__1, &
+      set_mask__rank__2
+    procedure :: filled_shape => nml_config_meteo_filled_shape
     procedure :: is_valid => nml_config_meteo_is_valid
   end type nml_config_meteo_t
 
@@ -354,6 +361,16 @@ contains
 
     status = nml%find("config_meteo", errmsg=errmsg)
     if (status /= NML_OK) then
+      if (status == NML_ERR_NML_NOT_FOUND) then
+        close_status = nml%close(errmsg=errmsg)
+        if (close_status /= NML_OK) then
+          status = close_status
+          return
+        end if
+        this%is_configured = .true.
+        status = NML_OK
+        return
+      end if
       close_status = nml%close()
       return
     end if
@@ -448,11 +465,6 @@ contains
     real(dp), dimension(:, :), intent(in), optional :: frac_night_ssrd !< Fraction of nightly surface downward shortwave radiation
     real(dp), dimension(:, :), intent(in), optional :: frac_night_strd !< Fraction of nightly surface downward longwave radiation
     logical, intent(in), optional :: share_frac !< Share fractions between domains
-    integer :: &
-      lb__1, &
-      lb__2, &
-      ub__1, &
-      ub__2
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -465,9 +477,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'read_restart'"
         return
       end if
-      lb__1 = lbound(this%read_restart, 1)
-      ub__1 = lb__1 + size(read_restart, 1) - 1
-      this%read_restart(lb__1:ub__1) = read_restart
+      this%read_restart(1:size(read_restart, 1)) = read_restart
     end if
     if (present(write_restart)) then
       if (size(write_restart, 1) > size(this%write_restart, 1)) then
@@ -475,9 +485,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'write_restart'"
         return
       end if
-      lb__1 = lbound(this%write_restart, 1)
-      ub__1 = lb__1 + size(write_restart, 1) - 1
-      this%write_restart(lb__1:ub__1) = write_restart
+      this%write_restart(1:size(write_restart, 1)) = write_restart
     end if
     if (present(restart_input_path)) then
       if (size(restart_input_path, 1) > size(this%restart_input_path, 1)) then
@@ -485,9 +493,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'restart_input_path'"
         return
       end if
-      lb__1 = lbound(this%restart_input_path, 1)
-      ub__1 = lb__1 + size(restart_input_path, 1) - 1
-      this%restart_input_path(lb__1:ub__1) = restart_input_path
+      this%restart_input_path(1:size(restart_input_path, 1)) = restart_input_path
     end if
     if (present(restart_output_path)) then
       if (size(restart_output_path, 1) > size(this%restart_output_path, 1)) then
@@ -495,9 +501,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'restart_output_path'"
         return
       end if
-      lb__1 = lbound(this%restart_output_path, 1)
-      ub__1 = lb__1 + size(restart_output_path, 1) - 1
-      this%restart_output_path(lb__1:ub__1) = restart_output_path
+      this%restart_output_path(1:size(restart_output_path, 1)) = restart_output_path
     end if
     if (present(read_meteo_weights)) then
       if (size(read_meteo_weights, 1) > size(this%read_meteo_weights, 1)) then
@@ -505,9 +509,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'read_meteo_weights'"
         return
       end if
-      lb__1 = lbound(this%read_meteo_weights, 1)
-      ub__1 = lb__1 + size(read_meteo_weights, 1) - 1
-      this%read_meteo_weights(lb__1:ub__1) = read_meteo_weights
+      this%read_meteo_weights(1:size(read_meteo_weights, 1)) = read_meteo_weights
     end if
     if (present(pre_weights_path)) then
       if (size(pre_weights_path, 1) > size(this%pre_weights_path, 1)) then
@@ -515,9 +517,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'pre_weights_path'"
         return
       end if
-      lb__1 = lbound(this%pre_weights_path, 1)
-      ub__1 = lb__1 + size(pre_weights_path, 1) - 1
-      this%pre_weights_path(lb__1:ub__1) = pre_weights_path
+      this%pre_weights_path(1:size(pre_weights_path, 1)) = pre_weights_path
     end if
     if (present(pet_weights_path)) then
       if (size(pet_weights_path, 1) > size(this%pet_weights_path, 1)) then
@@ -525,9 +525,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'pet_weights_path'"
         return
       end if
-      lb__1 = lbound(this%pet_weights_path, 1)
-      ub__1 = lb__1 + size(pet_weights_path, 1) - 1
-      this%pet_weights_path(lb__1:ub__1) = pet_weights_path
+      this%pet_weights_path(1:size(pet_weights_path, 1)) = pet_weights_path
     end if
     if (present(temp_weights_path)) then
       if (size(temp_weights_path, 1) > size(this%temp_weights_path, 1)) then
@@ -535,9 +533,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'temp_weights_path'"
         return
       end if
-      lb__1 = lbound(this%temp_weights_path, 1)
-      ub__1 = lb__1 + size(temp_weights_path, 1) - 1
-      this%temp_weights_path(lb__1:ub__1) = temp_weights_path
+      this%temp_weights_path(1:size(temp_weights_path, 1)) = temp_weights_path
     end if
     if (present(ssrd_weights_path)) then
       if (size(ssrd_weights_path, 1) > size(this%ssrd_weights_path, 1)) then
@@ -545,9 +541,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'ssrd_weights_path'"
         return
       end if
-      lb__1 = lbound(this%ssrd_weights_path, 1)
-      ub__1 = lb__1 + size(ssrd_weights_path, 1) - 1
-      this%ssrd_weights_path(lb__1:ub__1) = ssrd_weights_path
+      this%ssrd_weights_path(1:size(ssrd_weights_path, 1)) = ssrd_weights_path
     end if
     if (present(strd_weights_path)) then
       if (size(strd_weights_path, 1) > size(this%strd_weights_path, 1)) then
@@ -555,9 +549,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'strd_weights_path'"
         return
       end if
-      lb__1 = lbound(this%strd_weights_path, 1)
-      ub__1 = lb__1 + size(strd_weights_path, 1) - 1
-      this%strd_weights_path(lb__1:ub__1) = strd_weights_path
+      this%strd_weights_path(1:size(strd_weights_path, 1)) = strd_weights_path
     end if
     if (present(pre_weights_var)) then
       if (size(pre_weights_var, 1) > size(this%pre_weights_var, 1)) then
@@ -565,9 +557,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'pre_weights_var'"
         return
       end if
-      lb__1 = lbound(this%pre_weights_var, 1)
-      ub__1 = lb__1 + size(pre_weights_var, 1) - 1
-      this%pre_weights_var(lb__1:ub__1) = pre_weights_var
+      this%pre_weights_var(1:size(pre_weights_var, 1)) = pre_weights_var
     end if
     if (present(pet_weights_var)) then
       if (size(pet_weights_var, 1) > size(this%pet_weights_var, 1)) then
@@ -575,9 +565,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'pet_weights_var'"
         return
       end if
-      lb__1 = lbound(this%pet_weights_var, 1)
-      ub__1 = lb__1 + size(pet_weights_var, 1) - 1
-      this%pet_weights_var(lb__1:ub__1) = pet_weights_var
+      this%pet_weights_var(1:size(pet_weights_var, 1)) = pet_weights_var
     end if
     if (present(temp_weights_var)) then
       if (size(temp_weights_var, 1) > size(this%temp_weights_var, 1)) then
@@ -585,9 +573,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'temp_weights_var'"
         return
       end if
-      lb__1 = lbound(this%temp_weights_var, 1)
-      ub__1 = lb__1 + size(temp_weights_var, 1) - 1
-      this%temp_weights_var(lb__1:ub__1) = temp_weights_var
+      this%temp_weights_var(1:size(temp_weights_var, 1)) = temp_weights_var
     end if
     if (present(ssrd_weights_var)) then
       if (size(ssrd_weights_var, 1) > size(this%ssrd_weights_var, 1)) then
@@ -595,9 +581,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'ssrd_weights_var'"
         return
       end if
-      lb__1 = lbound(this%ssrd_weights_var, 1)
-      ub__1 = lb__1 + size(ssrd_weights_var, 1) - 1
-      this%ssrd_weights_var(lb__1:ub__1) = ssrd_weights_var
+      this%ssrd_weights_var(1:size(ssrd_weights_var, 1)) = ssrd_weights_var
     end if
     if (present(strd_weights_var)) then
       if (size(strd_weights_var, 1) > size(this%strd_weights_var, 1)) then
@@ -605,9 +589,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'strd_weights_var'"
         return
       end if
-      lb__1 = lbound(this%strd_weights_var, 1)
-      ub__1 = lb__1 + size(strd_weights_var, 1) - 1
-      this%strd_weights_var(lb__1:ub__1) = strd_weights_var
+      this%strd_weights_var(1:size(strd_weights_var, 1)) = strd_weights_var
     end if
     if (present(frac_night_pre)) then
       if (size(frac_night_pre, 1) > size(this%frac_night_pre, 1)) then
@@ -615,16 +597,12 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'frac_night_pre'"
         return
       end if
-      lb__1 = lbound(this%frac_night_pre, 1)
-      ub__1 = lb__1 + size(frac_night_pre, 1) - 1
       if (size(frac_night_pre, 2) > size(this%frac_night_pre, 2)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "dimension 2 exceeds bounds for 'frac_night_pre'"
         return
       end if
-      lb__2 = lbound(this%frac_night_pre, 2)
-      ub__2 = lb__2 + size(frac_night_pre, 2) - 1
-      this%frac_night_pre(lb__1:ub__1, lb__2:ub__2) = frac_night_pre
+      this%frac_night_pre(1:size(frac_night_pre, 1), 1:size(frac_night_pre, 2)) = frac_night_pre
     end if
     if (present(frac_night_pet)) then
       if (size(frac_night_pet, 1) > size(this%frac_night_pet, 1)) then
@@ -632,16 +610,12 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'frac_night_pet'"
         return
       end if
-      lb__1 = lbound(this%frac_night_pet, 1)
-      ub__1 = lb__1 + size(frac_night_pet, 1) - 1
       if (size(frac_night_pet, 2) > size(this%frac_night_pet, 2)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "dimension 2 exceeds bounds for 'frac_night_pet'"
         return
       end if
-      lb__2 = lbound(this%frac_night_pet, 2)
-      ub__2 = lb__2 + size(frac_night_pet, 2) - 1
-      this%frac_night_pet(lb__1:ub__1, lb__2:ub__2) = frac_night_pet
+      this%frac_night_pet(1:size(frac_night_pet, 1), 1:size(frac_night_pet, 2)) = frac_night_pet
     end if
     if (present(frac_night_temp)) then
       if (size(frac_night_temp, 1) > size(this%frac_night_temp, 1)) then
@@ -649,16 +623,12 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'frac_night_temp'"
         return
       end if
-      lb__1 = lbound(this%frac_night_temp, 1)
-      ub__1 = lb__1 + size(frac_night_temp, 1) - 1
       if (size(frac_night_temp, 2) > size(this%frac_night_temp, 2)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "dimension 2 exceeds bounds for 'frac_night_temp'"
         return
       end if
-      lb__2 = lbound(this%frac_night_temp, 2)
-      ub__2 = lb__2 + size(frac_night_temp, 2) - 1
-      this%frac_night_temp(lb__1:ub__1, lb__2:ub__2) = frac_night_temp
+      this%frac_night_temp(1:size(frac_night_temp, 1), 1:size(frac_night_temp, 2)) = frac_night_temp
     end if
     if (present(frac_night_ssrd)) then
       if (size(frac_night_ssrd, 1) > size(this%frac_night_ssrd, 1)) then
@@ -666,16 +636,12 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'frac_night_ssrd'"
         return
       end if
-      lb__1 = lbound(this%frac_night_ssrd, 1)
-      ub__1 = lb__1 + size(frac_night_ssrd, 1) - 1
       if (size(frac_night_ssrd, 2) > size(this%frac_night_ssrd, 2)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "dimension 2 exceeds bounds for 'frac_night_ssrd'"
         return
       end if
-      lb__2 = lbound(this%frac_night_ssrd, 2)
-      ub__2 = lb__2 + size(frac_night_ssrd, 2) - 1
-      this%frac_night_ssrd(lb__1:ub__1, lb__2:ub__2) = frac_night_ssrd
+      this%frac_night_ssrd(1:size(frac_night_ssrd, 1), 1:size(frac_night_ssrd, 2)) = frac_night_ssrd
     end if
     if (present(frac_night_strd)) then
       if (size(frac_night_strd, 1) > size(this%frac_night_strd, 1)) then
@@ -683,16 +649,12 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'frac_night_strd'"
         return
       end if
-      lb__1 = lbound(this%frac_night_strd, 1)
-      ub__1 = lb__1 + size(frac_night_strd, 1) - 1
       if (size(frac_night_strd, 2) > size(this%frac_night_strd, 2)) then
         status = NML_ERR_INVALID_INDEX
         if (present(errmsg)) errmsg = "dimension 2 exceeds bounds for 'frac_night_strd'"
         return
       end if
-      lb__2 = lbound(this%frac_night_strd, 2)
-      ub__2 = lb__2 + size(frac_night_strd, 2) - 1
-      this%frac_night_strd(lb__1:ub__1, lb__2:ub__2) = frac_night_strd
+      this%frac_night_strd(1:size(frac_night_strd, 1), 1:size(frac_night_strd, 2)) = frac_night_strd
     end if
     if (present(share_frac)) this%share_frac = share_frac
 
@@ -707,6 +669,7 @@ contains
     character(len=*), intent(in) :: name !< field name
     integer, intent(in), optional :: idx(:) !< optional field index values
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    intrinsic :: shape
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -719,33 +682,31 @@ contains
     case ("read_restart")
       if (.not. allocated(this%read_restart)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: read_restart"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%read_restart), ubound(this%read_restart), &
-          "read_restart", errmsg)
+        status = idx_check(idx, shape(this%read_restart), "read_restart", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("write_restart")
       if (.not. allocated(this%write_restart)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: write_restart"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%write_restart), ubound(this%write_restart), &
-          "write_restart", errmsg)
+        status = idx_check(idx, shape(this%write_restart), "write_restart", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("restart_input_path")
       if (.not. allocated(this%restart_input_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_input_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%restart_input_path), ubound(this%restart_input_path), &
-          "restart_input_path", errmsg)
+        status = idx_check(idx, shape(this%restart_input_path), "restart_input_path", errmsg)
         if (status /= NML_OK) return
         if (this%restart_input_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -754,11 +715,11 @@ contains
     case ("restart_output_path")
       if (.not. allocated(this%restart_output_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_output_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%restart_output_path), ubound(this%restart_output_path), &
-          "restart_output_path", errmsg)
+        status = idx_check(idx, shape(this%restart_output_path), "restart_output_path", errmsg)
         if (status /= NML_OK) return
         if (this%restart_output_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -767,22 +728,21 @@ contains
     case ("read_meteo_weights")
       if (.not. allocated(this%read_meteo_weights)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: read_meteo_weights"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%read_meteo_weights), ubound(this%read_meteo_weights), &
-          "read_meteo_weights", errmsg)
+        status = idx_check(idx, shape(this%read_meteo_weights), "read_meteo_weights", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("pre_weights_path")
       if (.not. allocated(this%pre_weights_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pre_weights_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%pre_weights_path), ubound(this%pre_weights_path), &
-          "pre_weights_path", errmsg)
+        status = idx_check(idx, shape(this%pre_weights_path), "pre_weights_path", errmsg)
         if (status /= NML_OK) return
         if (this%pre_weights_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -791,11 +751,11 @@ contains
     case ("pet_weights_path")
       if (.not. allocated(this%pet_weights_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pet_weights_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%pet_weights_path), ubound(this%pet_weights_path), &
-          "pet_weights_path", errmsg)
+        status = idx_check(idx, shape(this%pet_weights_path), "pet_weights_path", errmsg)
         if (status /= NML_OK) return
         if (this%pet_weights_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -804,11 +764,11 @@ contains
     case ("temp_weights_path")
       if (.not. allocated(this%temp_weights_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: temp_weights_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%temp_weights_path), ubound(this%temp_weights_path), &
-          "temp_weights_path", errmsg)
+        status = idx_check(idx, shape(this%temp_weights_path), "temp_weights_path", errmsg)
         if (status /= NML_OK) return
         if (this%temp_weights_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -817,11 +777,11 @@ contains
     case ("ssrd_weights_path")
       if (.not. allocated(this%ssrd_weights_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: ssrd_weights_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%ssrd_weights_path), ubound(this%ssrd_weights_path), &
-          "ssrd_weights_path", errmsg)
+        status = idx_check(idx, shape(this%ssrd_weights_path), "ssrd_weights_path", errmsg)
         if (status /= NML_OK) return
         if (this%ssrd_weights_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -830,11 +790,11 @@ contains
     case ("strd_weights_path")
       if (.not. allocated(this%strd_weights_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: strd_weights_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%strd_weights_path), ubound(this%strd_weights_path), &
-          "strd_weights_path", errmsg)
+        status = idx_check(idx, shape(this%strd_weights_path), "strd_weights_path", errmsg)
         if (status /= NML_OK) return
         if (this%strd_weights_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -843,66 +803,61 @@ contains
     case ("pre_weights_var")
       if (.not. allocated(this%pre_weights_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pre_weights_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%pre_weights_var), ubound(this%pre_weights_var), &
-          "pre_weights_var", errmsg)
+        status = idx_check(idx, shape(this%pre_weights_var), "pre_weights_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("pet_weights_var")
       if (.not. allocated(this%pet_weights_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pet_weights_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%pet_weights_var), ubound(this%pet_weights_var), &
-          "pet_weights_var", errmsg)
+        status = idx_check(idx, shape(this%pet_weights_var), "pet_weights_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("temp_weights_var")
       if (.not. allocated(this%temp_weights_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: temp_weights_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%temp_weights_var), ubound(this%temp_weights_var), &
-          "temp_weights_var", errmsg)
+        status = idx_check(idx, shape(this%temp_weights_var), "temp_weights_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("ssrd_weights_var")
       if (.not. allocated(this%ssrd_weights_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: ssrd_weights_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%ssrd_weights_var), ubound(this%ssrd_weights_var), &
-          "ssrd_weights_var", errmsg)
+        status = idx_check(idx, shape(this%ssrd_weights_var), "ssrd_weights_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("strd_weights_var")
       if (.not. allocated(this%strd_weights_var)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: strd_weights_var"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%strd_weights_var), ubound(this%strd_weights_var), &
-          "strd_weights_var", errmsg)
+        status = idx_check(idx, shape(this%strd_weights_var), "strd_weights_var", errmsg)
         if (status /= NML_OK) return
-      else
       end if
     case ("frac_night_pre")
       if (.not. allocated(this%frac_night_pre)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: frac_night_pre"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%frac_night_pre), ubound(this%frac_night_pre), &
-          "frac_night_pre", errmsg)
+        status = idx_check(idx, shape(this%frac_night_pre), "frac_night_pre", errmsg)
         if (status /= NML_OK) return
         if (ieee_is_nan(this%frac_night_pre(idx(1), idx(2)))) status = NML_ERR_NOT_SET
       else
@@ -911,11 +866,11 @@ contains
     case ("frac_night_pet")
       if (.not. allocated(this%frac_night_pet)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: frac_night_pet"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%frac_night_pet), ubound(this%frac_night_pet), &
-          "frac_night_pet", errmsg)
+        status = idx_check(idx, shape(this%frac_night_pet), "frac_night_pet", errmsg)
         if (status /= NML_OK) return
         if (ieee_is_nan(this%frac_night_pet(idx(1), idx(2)))) status = NML_ERR_NOT_SET
       else
@@ -924,11 +879,11 @@ contains
     case ("frac_night_temp")
       if (.not. allocated(this%frac_night_temp)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: frac_night_temp"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%frac_night_temp), ubound(this%frac_night_temp), &
-          "frac_night_temp", errmsg)
+        status = idx_check(idx, shape(this%frac_night_temp), "frac_night_temp", errmsg)
         if (status /= NML_OK) return
         if (ieee_is_nan(this%frac_night_temp(idx(1), idx(2)))) status = NML_ERR_NOT_SET
       else
@@ -937,11 +892,11 @@ contains
     case ("frac_night_ssrd")
       if (.not. allocated(this%frac_night_ssrd)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: frac_night_ssrd"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%frac_night_ssrd), ubound(this%frac_night_ssrd), &
-          "frac_night_ssrd", errmsg)
+        status = idx_check(idx, shape(this%frac_night_ssrd), "frac_night_ssrd", errmsg)
         if (status /= NML_OK) return
         if (ieee_is_nan(this%frac_night_ssrd(idx(1), idx(2)))) status = NML_ERR_NOT_SET
       else
@@ -950,11 +905,11 @@ contains
     case ("frac_night_strd")
       if (.not. allocated(this%frac_night_strd)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: frac_night_strd"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%frac_night_strd), ubound(this%frac_night_strd), &
-          "frac_night_strd", errmsg)
+        status = idx_check(idx, shape(this%frac_night_strd), "frac_night_strd", errmsg)
         if (status /= NML_OK) return
         if (ieee_is_nan(this%frac_night_strd(idx(1), idx(2)))) status = NML_ERR_NOT_SET
       else
@@ -974,6 +929,796 @@ contains
       if (len_trim(errmsg) == 0) errmsg = "field not set: " // trim(name)
     end if
   end function nml_config_meteo_is_set
+
+  !> \brief Obtain the item presence mask with one field-name dispatch
+  integer function nml_config_meteo_set_mask__rank__1(this, name, mask, errmsg) result(status)
+    class(nml_config_meteo_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    logical, allocatable, intent(out) :: mask(:) !< item presence
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("read_restart")
+      if (.not. allocated(this%read_restart)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: read_restart"
+        return
+      end if
+      allocate(mask( &
+        size(this%read_restart, 1)))
+      mask = .true.
+    case ("write_restart")
+      if (.not. allocated(this%write_restart)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: write_restart"
+        return
+      end if
+      allocate(mask( &
+        size(this%write_restart, 1)))
+      mask = .true.
+    case ("restart_input_path")
+      if (.not. allocated(this%restart_input_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_input_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%restart_input_path, 1)))
+      do idx__1 = 1, size(this%restart_input_path, 1)
+        if (this%restart_input_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("restart_output_path")
+      if (.not. allocated(this%restart_output_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_output_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%restart_output_path, 1)))
+      do idx__1 = 1, size(this%restart_output_path, 1)
+        if (this%restart_output_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("read_meteo_weights")
+      if (.not. allocated(this%read_meteo_weights)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: read_meteo_weights"
+        return
+      end if
+      allocate(mask( &
+        size(this%read_meteo_weights, 1)))
+      mask = .true.
+    case ("pre_weights_path")
+      if (.not. allocated(this%pre_weights_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pre_weights_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%pre_weights_path, 1)))
+      do idx__1 = 1, size(this%pre_weights_path, 1)
+        if (this%pre_weights_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("pet_weights_path")
+      if (.not. allocated(this%pet_weights_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pet_weights_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%pet_weights_path, 1)))
+      do idx__1 = 1, size(this%pet_weights_path, 1)
+        if (this%pet_weights_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("temp_weights_path")
+      if (.not. allocated(this%temp_weights_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: temp_weights_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%temp_weights_path, 1)))
+      do idx__1 = 1, size(this%temp_weights_path, 1)
+        if (this%temp_weights_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("ssrd_weights_path")
+      if (.not. allocated(this%ssrd_weights_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: ssrd_weights_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%ssrd_weights_path, 1)))
+      do idx__1 = 1, size(this%ssrd_weights_path, 1)
+        if (this%ssrd_weights_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("strd_weights_path")
+      if (.not. allocated(this%strd_weights_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: strd_weights_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%strd_weights_path, 1)))
+      do idx__1 = 1, size(this%strd_weights_path, 1)
+        if (this%strd_weights_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("pre_weights_var")
+      if (.not. allocated(this%pre_weights_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pre_weights_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%pre_weights_var, 1)))
+      mask = .true.
+    case ("pet_weights_var")
+      if (.not. allocated(this%pet_weights_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pet_weights_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%pet_weights_var, 1)))
+      mask = .true.
+    case ("temp_weights_var")
+      if (.not. allocated(this%temp_weights_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: temp_weights_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%temp_weights_var, 1)))
+      mask = .true.
+    case ("ssrd_weights_var")
+      if (.not. allocated(this%ssrd_weights_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: ssrd_weights_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%ssrd_weights_var, 1)))
+      mask = .true.
+    case ("strd_weights_var")
+      if (.not. allocated(this%strd_weights_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: strd_weights_var"
+        return
+      end if
+      allocate(mask( &
+        size(this%strd_weights_var, 1)))
+      mask = .true.
+    case ("frac_night_pre")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'frac_night_pre'"
+    case ("frac_night_pet")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'frac_night_pet'"
+    case ("frac_night_temp")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'frac_night_temp'"
+    case ("frac_night_ssrd")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'frac_night_ssrd'"
+    case ("frac_night_strd")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'frac_night_strd'"
+    case ("share_frac")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: share_frac"
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_meteo_set_mask__rank__1
+
+  !> \brief Obtain the item presence mask with one field-name dispatch
+  integer function nml_config_meteo_set_mask__rank__2(this, name, mask, errmsg) result(status)
+    class(nml_config_meteo_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    logical, allocatable, intent(out) :: mask(:, :) !< item presence
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+    integer :: idx__2
+
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("read_restart")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'read_restart'"
+    case ("write_restart")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'write_restart'"
+    case ("restart_input_path")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'restart_input_path'"
+    case ("restart_output_path")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'restart_output_path'"
+    case ("read_meteo_weights")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'read_meteo_weights'"
+    case ("pre_weights_path")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'pre_weights_path'"
+    case ("pet_weights_path")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'pet_weights_path'"
+    case ("temp_weights_path")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'temp_weights_path'"
+    case ("ssrd_weights_path")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'ssrd_weights_path'"
+    case ("strd_weights_path")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'strd_weights_path'"
+    case ("pre_weights_var")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'pre_weights_var'"
+    case ("pet_weights_var")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'pet_weights_var'"
+    case ("temp_weights_var")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'temp_weights_var'"
+    case ("ssrd_weights_var")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'ssrd_weights_var'"
+    case ("strd_weights_var")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "mask rank mismatch for 'strd_weights_var'"
+    case ("frac_night_pre")
+      if (.not. allocated(this%frac_night_pre)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: frac_night_pre"
+        return
+      end if
+      allocate(mask( &
+        size(this%frac_night_pre, 1), &
+        size(this%frac_night_pre, 2)))
+      do idx__2 = 1, size(this%frac_night_pre, 2)
+        do idx__1 = 1, size(this%frac_night_pre, 1)
+          if (ieee_is_nan(this%frac_night_pre(idx__1, idx__2))) then
+            mask(idx__1, idx__2) = .false.
+          else
+            mask(idx__1, idx__2) = .true.
+          end if
+        end do
+      end do
+    case ("frac_night_pet")
+      if (.not. allocated(this%frac_night_pet)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: frac_night_pet"
+        return
+      end if
+      allocate(mask( &
+        size(this%frac_night_pet, 1), &
+        size(this%frac_night_pet, 2)))
+      do idx__2 = 1, size(this%frac_night_pet, 2)
+        do idx__1 = 1, size(this%frac_night_pet, 1)
+          if (ieee_is_nan(this%frac_night_pet(idx__1, idx__2))) then
+            mask(idx__1, idx__2) = .false.
+          else
+            mask(idx__1, idx__2) = .true.
+          end if
+        end do
+      end do
+    case ("frac_night_temp")
+      if (.not. allocated(this%frac_night_temp)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: frac_night_temp"
+        return
+      end if
+      allocate(mask( &
+        size(this%frac_night_temp, 1), &
+        size(this%frac_night_temp, 2)))
+      do idx__2 = 1, size(this%frac_night_temp, 2)
+        do idx__1 = 1, size(this%frac_night_temp, 1)
+          if (ieee_is_nan(this%frac_night_temp(idx__1, idx__2))) then
+            mask(idx__1, idx__2) = .false.
+          else
+            mask(idx__1, idx__2) = .true.
+          end if
+        end do
+      end do
+    case ("frac_night_ssrd")
+      if (.not. allocated(this%frac_night_ssrd)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: frac_night_ssrd"
+        return
+      end if
+      allocate(mask( &
+        size(this%frac_night_ssrd, 1), &
+        size(this%frac_night_ssrd, 2)))
+      do idx__2 = 1, size(this%frac_night_ssrd, 2)
+        do idx__1 = 1, size(this%frac_night_ssrd, 1)
+          if (ieee_is_nan(this%frac_night_ssrd(idx__1, idx__2))) then
+            mask(idx__1, idx__2) = .false.
+          else
+            mask(idx__1, idx__2) = .true.
+          end if
+        end do
+      end do
+    case ("frac_night_strd")
+      if (.not. allocated(this%frac_night_strd)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: frac_night_strd"
+        return
+      end if
+      allocate(mask( &
+        size(this%frac_night_strd, 1), &
+        size(this%frac_night_strd, 2)))
+      do idx__2 = 1, size(this%frac_night_strd, 2)
+        do idx__1 = 1, size(this%frac_night_strd, 1)
+          if (ieee_is_nan(this%frac_night_strd(idx__1, idx__2))) then
+            mask(idx__1, idx__2) = .false.
+          else
+            mask(idx__1, idx__2) = .true.
+          end if
+        end do
+      end do
+    case ("share_frac")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: share_frac"
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_meteo_set_mask__rank__2
+
+  !> \brief Determine the smallest complete populated prefix starting at index 1
+  integer function nml_config_meteo_filled_shape(this, name, filled, errmsg) result(status)
+    class(nml_config_meteo_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    integer, intent(out) :: filled(:) !< prefix extents, retained when the prefix has holes
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+    integer :: idx__2
+
+    filled = 0
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("read_restart")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'read_restart'"
+        return
+      end if
+      if (.not. allocated(this%read_restart)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: read_restart"
+        return
+      end if
+      filled(1) = size(this%read_restart, 1)
+    case ("write_restart")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'write_restart'"
+        return
+      end if
+      if (.not. allocated(this%write_restart)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: write_restart"
+        return
+      end if
+      filled(1) = size(this%write_restart, 1)
+    case ("restart_input_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'restart_input_path'"
+        return
+      end if
+      if (.not. allocated(this%restart_input_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_input_path"
+        return
+      end if
+      do idx__1 = 1, size(this%restart_input_path, 1)
+        if (this%restart_input_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%restart_input_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: restart_input_path"
+          return
+        end if
+      end do
+    case ("restart_output_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'restart_output_path'"
+        return
+      end if
+      if (.not. allocated(this%restart_output_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: restart_output_path"
+        return
+      end if
+      do idx__1 = 1, size(this%restart_output_path, 1)
+        if (this%restart_output_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%restart_output_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: restart_output_path"
+          return
+        end if
+      end do
+    case ("read_meteo_weights")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'read_meteo_weights'"
+        return
+      end if
+      if (.not. allocated(this%read_meteo_weights)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: read_meteo_weights"
+        return
+      end if
+      filled(1) = size(this%read_meteo_weights, 1)
+    case ("pre_weights_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'pre_weights_path'"
+        return
+      end if
+      if (.not. allocated(this%pre_weights_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pre_weights_path"
+        return
+      end if
+      do idx__1 = 1, size(this%pre_weights_path, 1)
+        if (this%pre_weights_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%pre_weights_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: pre_weights_path"
+          return
+        end if
+      end do
+    case ("pet_weights_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'pet_weights_path'"
+        return
+      end if
+      if (.not. allocated(this%pet_weights_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pet_weights_path"
+        return
+      end if
+      do idx__1 = 1, size(this%pet_weights_path, 1)
+        if (this%pet_weights_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%pet_weights_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: pet_weights_path"
+          return
+        end if
+      end do
+    case ("temp_weights_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'temp_weights_path'"
+        return
+      end if
+      if (.not. allocated(this%temp_weights_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: temp_weights_path"
+        return
+      end if
+      do idx__1 = 1, size(this%temp_weights_path, 1)
+        if (this%temp_weights_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%temp_weights_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: temp_weights_path"
+          return
+        end if
+      end do
+    case ("ssrd_weights_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'ssrd_weights_path'"
+        return
+      end if
+      if (.not. allocated(this%ssrd_weights_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: ssrd_weights_path"
+        return
+      end if
+      do idx__1 = 1, size(this%ssrd_weights_path, 1)
+        if (this%ssrd_weights_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%ssrd_weights_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: ssrd_weights_path"
+          return
+        end if
+      end do
+    case ("strd_weights_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'strd_weights_path'"
+        return
+      end if
+      if (.not. allocated(this%strd_weights_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: strd_weights_path"
+        return
+      end if
+      do idx__1 = 1, size(this%strd_weights_path, 1)
+        if (this%strd_weights_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%strd_weights_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: strd_weights_path"
+          return
+        end if
+      end do
+    case ("pre_weights_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'pre_weights_var'"
+        return
+      end if
+      if (.not. allocated(this%pre_weights_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pre_weights_var"
+        return
+      end if
+      filled(1) = size(this%pre_weights_var, 1)
+    case ("pet_weights_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'pet_weights_var'"
+        return
+      end if
+      if (.not. allocated(this%pet_weights_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: pet_weights_var"
+        return
+      end if
+      filled(1) = size(this%pet_weights_var, 1)
+    case ("temp_weights_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'temp_weights_var'"
+        return
+      end if
+      if (.not. allocated(this%temp_weights_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: temp_weights_var"
+        return
+      end if
+      filled(1) = size(this%temp_weights_var, 1)
+    case ("ssrd_weights_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'ssrd_weights_var'"
+        return
+      end if
+      if (.not. allocated(this%ssrd_weights_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: ssrd_weights_var"
+        return
+      end if
+      filled(1) = size(this%ssrd_weights_var, 1)
+    case ("strd_weights_var")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'strd_weights_var'"
+        return
+      end if
+      if (.not. allocated(this%strd_weights_var)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: strd_weights_var"
+        return
+      end if
+      filled(1) = size(this%strd_weights_var, 1)
+    case ("frac_night_pre")
+      if (size(filled) /= 2) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'frac_night_pre'"
+        return
+      end if
+      if (.not. allocated(this%frac_night_pre)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: frac_night_pre"
+        return
+      end if
+      do idx__2 = 1, size(this%frac_night_pre, 2)
+        do idx__1 = 1, size(this%frac_night_pre, 1)
+          if (ieee_is_nan(this%frac_night_pre(idx__1, idx__2))) cycle
+          if (idx__1 > filled(1)) filled(1) = idx__1
+          if (idx__2 > filled(2)) filled(2) = idx__2
+        end do
+      end do
+      do idx__2 = 1, filled(2)
+        do idx__1 = 1, filled(1)
+          if (ieee_is_nan(this%frac_night_pre(idx__1, idx__2))) then
+            status = NML_ERR_PARTLY_SET
+            if (present(errmsg)) errmsg = "array partly set: frac_night_pre"
+            return
+          end if
+        end do
+      end do
+    case ("frac_night_pet")
+      if (size(filled) /= 2) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'frac_night_pet'"
+        return
+      end if
+      if (.not. allocated(this%frac_night_pet)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: frac_night_pet"
+        return
+      end if
+      do idx__2 = 1, size(this%frac_night_pet, 2)
+        do idx__1 = 1, size(this%frac_night_pet, 1)
+          if (ieee_is_nan(this%frac_night_pet(idx__1, idx__2))) cycle
+          if (idx__1 > filled(1)) filled(1) = idx__1
+          if (idx__2 > filled(2)) filled(2) = idx__2
+        end do
+      end do
+      do idx__2 = 1, filled(2)
+        do idx__1 = 1, filled(1)
+          if (ieee_is_nan(this%frac_night_pet(idx__1, idx__2))) then
+            status = NML_ERR_PARTLY_SET
+            if (present(errmsg)) errmsg = "array partly set: frac_night_pet"
+            return
+          end if
+        end do
+      end do
+    case ("frac_night_temp")
+      if (size(filled) /= 2) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'frac_night_temp'"
+        return
+      end if
+      if (.not. allocated(this%frac_night_temp)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: frac_night_temp"
+        return
+      end if
+      do idx__2 = 1, size(this%frac_night_temp, 2)
+        do idx__1 = 1, size(this%frac_night_temp, 1)
+          if (ieee_is_nan(this%frac_night_temp(idx__1, idx__2))) cycle
+          if (idx__1 > filled(1)) filled(1) = idx__1
+          if (idx__2 > filled(2)) filled(2) = idx__2
+        end do
+      end do
+      do idx__2 = 1, filled(2)
+        do idx__1 = 1, filled(1)
+          if (ieee_is_nan(this%frac_night_temp(idx__1, idx__2))) then
+            status = NML_ERR_PARTLY_SET
+            if (present(errmsg)) errmsg = "array partly set: frac_night_temp"
+            return
+          end if
+        end do
+      end do
+    case ("frac_night_ssrd")
+      if (size(filled) /= 2) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'frac_night_ssrd'"
+        return
+      end if
+      if (.not. allocated(this%frac_night_ssrd)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: frac_night_ssrd"
+        return
+      end if
+      do idx__2 = 1, size(this%frac_night_ssrd, 2)
+        do idx__1 = 1, size(this%frac_night_ssrd, 1)
+          if (ieee_is_nan(this%frac_night_ssrd(idx__1, idx__2))) cycle
+          if (idx__1 > filled(1)) filled(1) = idx__1
+          if (idx__2 > filled(2)) filled(2) = idx__2
+        end do
+      end do
+      do idx__2 = 1, filled(2)
+        do idx__1 = 1, filled(1)
+          if (ieee_is_nan(this%frac_night_ssrd(idx__1, idx__2))) then
+            status = NML_ERR_PARTLY_SET
+            if (present(errmsg)) errmsg = "array partly set: frac_night_ssrd"
+            return
+          end if
+        end do
+      end do
+    case ("frac_night_strd")
+      if (size(filled) /= 2) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'frac_night_strd'"
+        return
+      end if
+      if (.not. allocated(this%frac_night_strd)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: frac_night_strd"
+        return
+      end if
+      do idx__2 = 1, size(this%frac_night_strd, 2)
+        do idx__1 = 1, size(this%frac_night_strd, 1)
+          if (ieee_is_nan(this%frac_night_strd(idx__1, idx__2))) cycle
+          if (idx__1 > filled(1)) filled(1) = idx__1
+          if (idx__2 > filled(2)) filled(2) = idx__2
+        end do
+      end do
+      do idx__2 = 1, filled(2)
+        do idx__1 = 1, filled(1)
+          if (ieee_is_nan(this%frac_night_strd(idx__1, idx__2))) then
+            status = NML_ERR_PARTLY_SET
+            if (present(errmsg)) errmsg = "array partly set: frac_night_strd"
+            return
+          end if
+        end do
+      end do
+    case ("share_frac")
+      status = NML_ERR_INVALID_INDEX
+      if (present(errmsg)) errmsg = "array query not supported for scalar: share_frac"
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_meteo_filled_shape
 
   !> \brief Validate required values and constraints
   integer function nml_config_meteo_is_valid(this, errmsg) result(status)

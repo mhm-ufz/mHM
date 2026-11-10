@@ -198,26 +198,26 @@ contains
     case ("recharge_coefficient%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'recharge_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'recharge_coefficient%value'"
         return
       end if
       if (ieee_is_nan(this%recharge_coefficient%value)) status = NML_ERR_NOT_SET
     case ("recharge_coefficient%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'recharge_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'recharge_coefficient%optimize'"
         return
       end if
     case ("recharge_coefficient%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'recharge_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'recharge_coefficient%min'"
         return
       end if
     case ("recharge_coefficient%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'recharge_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'recharge_coefficient%max'"
         return
       end if
     case ("recharge_coefficient")
@@ -226,32 +226,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'recharge_coefficient'"
         return
       end if
-      if (ieee_is_nan(this%recharge_coefficient%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%recharge_coefficient%value))) status = NML_ERR_NOT_SET
     case ("karstic_recharge_factor%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'karstic_recharge_factor'"
+        if (present(errmsg)) errmsg = "index not supported for 'karstic_recharge_factor%value'"
         return
       end if
       if (ieee_is_nan(this%karstic_recharge_factor%value)) status = NML_ERR_NOT_SET
     case ("karstic_recharge_factor%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'karstic_recharge_factor'"
+        if (present(errmsg)) errmsg = "index not supported for 'karstic_recharge_factor%optimize'"
         return
       end if
     case ("karstic_recharge_factor%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'karstic_recharge_factor'"
+        if (present(errmsg)) errmsg = "index not supported for 'karstic_recharge_factor%min'"
         return
       end if
     case ("karstic_recharge_factor%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'karstic_recharge_factor'"
+        if (present(errmsg)) errmsg = "index not supported for 'karstic_recharge_factor%max'"
         return
       end if
     case ("karstic_recharge_factor")
@@ -260,9 +258,7 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'karstic_recharge_factor'"
         return
       end if
-      if (ieee_is_nan(this%karstic_recharge_factor%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%karstic_recharge_factor%value))) status = NML_ERR_NOT_SET
     case default
       status = NML_ERR_INVALID_NAME
       if (present(errmsg)) errmsg = "unknown field: " // trim(name)

@@ -33,7 +33,8 @@ module nml_config_lut
     idx_check, &
     to_lower, &
     n_domains__default, &
-    buf
+    buf, &
+    NML_ERR_PARTLY_SET
 
   implicit none
 
@@ -56,6 +57,10 @@ module nml_config_lut
     procedure :: from_file => nml_config_lut_from_file
     procedure :: set => nml_config_lut_set
     procedure :: is_set => nml_config_lut_is_set
+    procedure, private :: set_mask__rank__1 => nml_config_lut_set_mask__rank__1
+    generic :: set_mask => &
+      set_mask__rank__1
+    procedure :: filled_shape => nml_config_lut_filled_shape
     procedure :: is_valid => nml_config_lut_is_valid
   end type nml_config_lut_t
 
@@ -153,6 +158,16 @@ contains
 
     status = nml%find("config_lut", errmsg=errmsg)
     if (status /= NML_OK) then
+      if (status == NML_ERR_NML_NOT_FOUND) then
+        close_status = nml%close(errmsg=errmsg)
+        if (close_status /= NML_OK) then
+          status = close_status
+          return
+        end if
+        this%is_configured = .true.
+        status = NML_OK
+        return
+      end if
       close_status = nml%close()
       return
     end if
@@ -193,9 +208,6 @@ contains
     character(len=*), dimension(:), intent(in), optional :: soil_lut_path !< Soil look-up table path
     character(len=*), dimension(:), intent(in), optional :: geo_lut_path !< Geology look-up table path
     character(len=*), dimension(:), intent(in), optional :: lai_lut_path !< LAI LUT path
-    integer :: &
-      lb__1, &
-      ub__1
 
     status = this%init(errmsg=errmsg)
     if (status /= NML_OK) return
@@ -208,9 +220,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'soil_lut_path'"
         return
       end if
-      lb__1 = lbound(this%soil_lut_path, 1)
-      ub__1 = lb__1 + size(soil_lut_path, 1) - 1
-      this%soil_lut_path(lb__1:ub__1) = soil_lut_path
+      this%soil_lut_path(1:size(soil_lut_path, 1)) = soil_lut_path
     end if
     if (present(geo_lut_path)) then
       if (size(geo_lut_path, 1) > size(this%geo_lut_path, 1)) then
@@ -218,9 +228,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'geo_lut_path'"
         return
       end if
-      lb__1 = lbound(this%geo_lut_path, 1)
-      ub__1 = lb__1 + size(geo_lut_path, 1) - 1
-      this%geo_lut_path(lb__1:ub__1) = geo_lut_path
+      this%geo_lut_path(1:size(geo_lut_path, 1)) = geo_lut_path
     end if
     if (present(lai_lut_path)) then
       if (size(lai_lut_path, 1) > size(this%lai_lut_path, 1)) then
@@ -228,9 +236,7 @@ contains
         if (present(errmsg)) errmsg = "dimension 1 exceeds bounds for 'lai_lut_path'"
         return
       end if
-      lb__1 = lbound(this%lai_lut_path, 1)
-      ub__1 = lb__1 + size(lai_lut_path, 1) - 1
-      this%lai_lut_path(lb__1:ub__1) = lai_lut_path
+      this%lai_lut_path(1:size(lai_lut_path, 1)) = lai_lut_path
     end if
 
     ! mark as configured
@@ -244,6 +250,7 @@ contains
     character(len=*), intent(in) :: name !< field name
     integer, intent(in), optional :: idx(:) !< optional field index values
     character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    intrinsic :: shape
 
     status = NML_OK
     if (present(errmsg)) errmsg = ""
@@ -256,11 +263,11 @@ contains
     case ("soil_lut_path")
       if (.not. allocated(this%soil_lut_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_lut_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%soil_lut_path), ubound(this%soil_lut_path), &
-          "soil_lut_path", errmsg)
+        status = idx_check(idx, shape(this%soil_lut_path), "soil_lut_path", errmsg)
         if (status /= NML_OK) return
         if (this%soil_lut_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -269,11 +276,11 @@ contains
     case ("geo_lut_path")
       if (.not. allocated(this%geo_lut_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: geo_lut_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%geo_lut_path), ubound(this%geo_lut_path), &
-          "geo_lut_path", errmsg)
+        status = idx_check(idx, shape(this%geo_lut_path), "geo_lut_path", errmsg)
         if (status /= NML_OK) return
         if (this%geo_lut_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -282,11 +289,11 @@ contains
     case ("lai_lut_path")
       if (.not. allocated(this%lai_lut_path)) then
         status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_lut_path"
         return
       end if
       if (present(idx)) then
-        status = idx_check(idx, lbound(this%lai_lut_path), ubound(this%lai_lut_path), &
-          "lai_lut_path", errmsg)
+        status = idx_check(idx, shape(this%lai_lut_path), "lai_lut_path", errmsg)
         if (status /= NML_OK) return
         if (this%lai_lut_path(idx(1)) == achar(0)) status = NML_ERR_NOT_SET
       else
@@ -300,6 +307,162 @@ contains
       if (len_trim(errmsg) == 0) errmsg = "field not set: " // trim(name)
     end if
   end function nml_config_lut_is_set
+
+  !> \brief Obtain the item presence mask with one field-name dispatch
+  integer function nml_config_lut_set_mask__rank__1(this, name, mask, errmsg) result(status)
+    class(nml_config_lut_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    logical, allocatable, intent(out) :: mask(:) !< item presence
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("soil_lut_path")
+      if (.not. allocated(this%soil_lut_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_lut_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%soil_lut_path, 1)))
+      do idx__1 = 1, size(this%soil_lut_path, 1)
+        if (this%soil_lut_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("geo_lut_path")
+      if (.not. allocated(this%geo_lut_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: geo_lut_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%geo_lut_path, 1)))
+      do idx__1 = 1, size(this%geo_lut_path, 1)
+        if (this%geo_lut_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case ("lai_lut_path")
+      if (.not. allocated(this%lai_lut_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_lut_path"
+        return
+      end if
+      allocate(mask( &
+        size(this%lai_lut_path, 1)))
+      do idx__1 = 1, size(this%lai_lut_path, 1)
+        if (this%lai_lut_path(idx__1) == achar(0)) then
+          mask(idx__1) = .false.
+        else
+          mask(idx__1) = .true.
+        end if
+      end do
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_lut_set_mask__rank__1
+
+  !> \brief Determine the smallest complete populated prefix starting at index 1
+  integer function nml_config_lut_filled_shape(this, name, filled, errmsg) result(status)
+    class(nml_config_lut_t), intent(in) :: this !< namelist instance
+    character(len=*), intent(in) :: name !< field or derived component path
+    integer, intent(out) :: filled(:) !< prefix extents, retained when the prefix has holes
+    character(len=*), intent(out), optional :: errmsg !< error message for non-OK status values
+    integer :: idx__1
+
+    filled = 0
+    status = NML_OK
+    if (present(errmsg)) errmsg = ""
+    if (.not. this%is_configured) then
+      status = NML_ERR_NOT_SET
+      if (present(errmsg)) errmsg = "namelist not configured; call set or from_file"
+      return
+    end if
+    select case (to_lower(trim(name)))
+    case ("soil_lut_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'soil_lut_path'"
+        return
+      end if
+      if (.not. allocated(this%soil_lut_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: soil_lut_path"
+        return
+      end if
+      do idx__1 = 1, size(this%soil_lut_path, 1)
+        if (this%soil_lut_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%soil_lut_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: soil_lut_path"
+          return
+        end if
+      end do
+    case ("geo_lut_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'geo_lut_path'"
+        return
+      end if
+      if (.not. allocated(this%geo_lut_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: geo_lut_path"
+        return
+      end if
+      do idx__1 = 1, size(this%geo_lut_path, 1)
+        if (this%geo_lut_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%geo_lut_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: geo_lut_path"
+          return
+        end if
+      end do
+    case ("lai_lut_path")
+      if (size(filled) /= 1) then
+        status = NML_ERR_INVALID_INDEX
+        if (present(errmsg)) errmsg = "shape rank mismatch for 'lai_lut_path'"
+        return
+      end if
+      if (.not. allocated(this%lai_lut_path)) then
+        status = NML_ERR_NOT_SET
+        if (present(errmsg)) errmsg = "array storage unavailable: lai_lut_path"
+        return
+      end if
+      do idx__1 = 1, size(this%lai_lut_path, 1)
+        if (this%lai_lut_path(idx__1) == achar(0)) cycle
+        if (idx__1 > filled(1)) filled(1) = idx__1
+      end do
+      do idx__1 = 1, filled(1)
+        if (this%lai_lut_path(idx__1) == achar(0)) then
+          status = NML_ERR_PARTLY_SET
+          if (present(errmsg)) errmsg = "array partly set: lai_lut_path"
+          return
+        end if
+      end do
+    case default
+      status = NML_ERR_INVALID_NAME
+      if (present(errmsg)) errmsg = "unknown field: " // trim(name)
+    end select
+  end function nml_config_lut_filled_shape
 
   !> \brief Validate required values and constraints
   integer function nml_config_lut_is_valid(this, errmsg) result(status)

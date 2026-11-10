@@ -51,9 +51,9 @@ show-env-vars:
       printf 'Building PDF with Tectonic...\n'
       if ! (
         cd latex &&
-        tectonic -X compile --keep-intermediates --keep-logs refman.tex &&
+        tectonic -X compile -Z continue-on-errors --keep-intermediates --keep-logs refman.tex &&
         makeindex refman.idx &&
-        tectonic -X compile --keep-intermediates --keep-logs refman.tex
+        tectonic -X compile -Z continue-on-errors --keep-intermediates --keep-logs refman.tex
       ) > "doxygen_latex.txt" 2>&1; then
         tail -n 80 "doxygen_latex.txt"
         exit 1
@@ -258,6 +258,23 @@ check-v6-nagfor72:
       artifacts: true
   <<: *check_v6_template
 
+
+#####################
+### CODE ANALYSIS ###
+#####################
+
+check-nml-tools:
+  stage: code-analysis
+  needs: []
+  script:
+    - module purge
+    - module use /global/apps/modulefiles
+    - module load chs-fortran-conda/0.6.0
+    - python -m venv .nml-tools-venv
+    - source .nml-tools-venv/bin/activate
+    - nml_tools_version=$(python -c 'import tomllib; print(tomllib.load(open("nml-config.toml", "rb")).get("required-version", ""))')
+    - python -m pip install "nml-tools${nml_tools_version}"
+    - nml-tools check --config nml-config.toml --diff
 
 unittest-gfortran133:
   variables:

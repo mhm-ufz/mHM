@@ -312,26 +312,26 @@ contains
     case ("snow_threshold_temperature%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'snow_threshold_temperature'"
+        if (present(errmsg)) errmsg = "index not supported for 'snow_threshold_temperature%value'"
         return
       end if
       if (ieee_is_nan(this%snow_threshold_temperature%value)) status = NML_ERR_NOT_SET
     case ("snow_threshold_temperature%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'snow_threshold_temperature'"
+        if (present(errmsg)) errmsg = "index not supported for 'snow_threshold_temperature%optimize'"
         return
       end if
     case ("snow_threshold_temperature%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'snow_threshold_temperature'"
+        if (present(errmsg)) errmsg = "index not supported for 'snow_threshold_temperature%min'"
         return
       end if
     case ("snow_threshold_temperature%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'snow_threshold_temperature'"
+        if (present(errmsg)) errmsg = "index not supported for 'snow_threshold_temperature%max'"
         return
       end if
     case ("snow_threshold_temperature")
@@ -340,32 +340,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'snow_threshold_temperature'"
         return
       end if
-      if (ieee_is_nan(this%snow_threshold_temperature%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%snow_threshold_temperature%value))) status = NML_ERR_NOT_SET
     case ("degree_day_factor_forest%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_forest%value'"
         return
       end if
       if (ieee_is_nan(this%degree_day_factor_forest%value)) status = NML_ERR_NOT_SET
     case ("degree_day_factor_forest%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_forest%optimize'"
         return
       end if
     case ("degree_day_factor_forest%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_forest%min'"
         return
       end if
     case ("degree_day_factor_forest%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_forest%max'"
         return
       end if
     case ("degree_day_factor_forest")
@@ -374,32 +372,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_forest'"
         return
       end if
-      if (ieee_is_nan(this%degree_day_factor_forest%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%degree_day_factor_forest%value))) status = NML_ERR_NOT_SET
     case ("degree_day_factor_impervious%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_impervious%value'"
         return
       end if
       if (ieee_is_nan(this%degree_day_factor_impervious%value)) status = NML_ERR_NOT_SET
     case ("degree_day_factor_impervious%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_impervious%optimize'"
         return
       end if
     case ("degree_day_factor_impervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_impervious%min'"
         return
       end if
     case ("degree_day_factor_impervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_impervious%max'"
         return
       end if
     case ("degree_day_factor_impervious")
@@ -408,32 +404,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_impervious'"
         return
       end if
-      if (ieee_is_nan(this%degree_day_factor_impervious%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%degree_day_factor_impervious%value))) status = NML_ERR_NOT_SET
     case ("degree_day_factor_pervious%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_pervious%value'"
         return
       end if
       if (ieee_is_nan(this%degree_day_factor_pervious%value)) status = NML_ERR_NOT_SET
     case ("degree_day_factor_pervious%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_pervious%optimize'"
         return
       end if
     case ("degree_day_factor_pervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_pervious%min'"
         return
       end if
     case ("degree_day_factor_pervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_pervious%max'"
         return
       end if
     case ("degree_day_factor_pervious")
@@ -442,32 +436,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_pervious'"
         return
       end if
-      if (ieee_is_nan(this%degree_day_factor_pervious%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%degree_day_factor_pervious%value))) status = NML_ERR_NOT_SET
     case ("degree_day_factor_precipitation%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_precipitation'"
+        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_precipitation%value'"
         return
       end if
       if (ieee_is_nan(this%degree_day_factor_precipitation%value)) status = NML_ERR_NOT_SET
     case ("degree_day_factor_precipitation%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_precipitation'"
+        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_precipitation%optimize'"
         return
       end if
     case ("degree_day_factor_precipitation%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_precipitation'"
+        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_precipitation%min'"
         return
       end if
     case ("degree_day_factor_precipitation%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_precipitation'"
+        if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_precipitation%max'"
         return
       end if
     case ("degree_day_factor_precipitation")
@@ -476,32 +468,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'degree_day_factor_precipitation'"
         return
       end if
-      if (ieee_is_nan(this%degree_day_factor_precipitation%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%degree_day_factor_precipitation%value))) status = NML_ERR_NOT_SET
     case ("max_degree_day_factor_forest%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_forest%value'"
         return
       end if
       if (ieee_is_nan(this%max_degree_day_factor_forest%value)) status = NML_ERR_NOT_SET
     case ("max_degree_day_factor_forest%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_forest%optimize'"
         return
       end if
     case ("max_degree_day_factor_forest%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_forest%min'"
         return
       end if
     case ("max_degree_day_factor_forest%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_forest'"
+        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_forest%max'"
         return
       end if
     case ("max_degree_day_factor_forest")
@@ -510,32 +500,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_forest'"
         return
       end if
-      if (ieee_is_nan(this%max_degree_day_factor_forest%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%max_degree_day_factor_forest%value))) status = NML_ERR_NOT_SET
     case ("max_degree_day_factor_impervious%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_impervious%value'"
         return
       end if
       if (ieee_is_nan(this%max_degree_day_factor_impervious%value)) status = NML_ERR_NOT_SET
     case ("max_degree_day_factor_impervious%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_impervious%optimize'"
         return
       end if
     case ("max_degree_day_factor_impervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_impervious%min'"
         return
       end if
     case ("max_degree_day_factor_impervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_impervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_impervious%max'"
         return
       end if
     case ("max_degree_day_factor_impervious")
@@ -544,32 +532,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_impervious'"
         return
       end if
-      if (ieee_is_nan(this%max_degree_day_factor_impervious%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%max_degree_day_factor_impervious%value))) status = NML_ERR_NOT_SET
     case ("max_degree_day_factor_pervious%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_pervious%value'"
         return
       end if
       if (ieee_is_nan(this%max_degree_day_factor_pervious%value)) status = NML_ERR_NOT_SET
     case ("max_degree_day_factor_pervious%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_pervious%optimize'"
         return
       end if
     case ("max_degree_day_factor_pervious%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_pervious%min'"
         return
       end if
     case ("max_degree_day_factor_pervious%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_pervious'"
+        if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_pervious%max'"
         return
       end if
     case ("max_degree_day_factor_pervious")
@@ -578,9 +564,7 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'max_degree_day_factor_pervious'"
         return
       end if
-      if (ieee_is_nan(this%max_degree_day_factor_pervious%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%max_degree_day_factor_pervious%value))) status = NML_ERR_NOT_SET
     case default
       status = NML_ERR_INVALID_NAME
       if (present(errmsg)) errmsg = "unknown field: " // trim(name)

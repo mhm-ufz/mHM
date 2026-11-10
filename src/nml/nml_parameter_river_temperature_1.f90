@@ -255,26 +255,26 @@ contains
     case ("width_ref%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'width_ref'"
+        if (present(errmsg)) errmsg = "index not supported for 'width_ref%value'"
         return
       end if
       if (ieee_is_nan(this%width_ref%value)) status = NML_ERR_NOT_SET
     case ("width_ref%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'width_ref'"
+        if (present(errmsg)) errmsg = "index not supported for 'width_ref%optimize'"
         return
       end if
     case ("width_ref%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'width_ref'"
+        if (present(errmsg)) errmsg = "index not supported for 'width_ref%min'"
         return
       end if
     case ("width_ref%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'width_ref'"
+        if (present(errmsg)) errmsg = "index not supported for 'width_ref%max'"
         return
       end if
     case ("width_ref")
@@ -283,32 +283,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'width_ref'"
         return
       end if
-      if (ieee_is_nan(this%width_ref%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%width_ref%value))) status = NML_ERR_NOT_SET
     case ("albedo_water%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'albedo_water'"
+        if (present(errmsg)) errmsg = "index not supported for 'albedo_water%value'"
         return
       end if
       if (ieee_is_nan(this%albedo_water%value)) status = NML_ERR_NOT_SET
     case ("albedo_water%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'albedo_water'"
+        if (present(errmsg)) errmsg = "index not supported for 'albedo_water%optimize'"
         return
       end if
     case ("albedo_water%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'albedo_water'"
+        if (present(errmsg)) errmsg = "index not supported for 'albedo_water%min'"
         return
       end if
     case ("albedo_water%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'albedo_water'"
+        if (present(errmsg)) errmsg = "index not supported for 'albedo_water%max'"
         return
       end if
     case ("albedo_water")
@@ -317,32 +315,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'albedo_water'"
         return
       end if
-      if (ieee_is_nan(this%albedo_water%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%albedo_water%value))) status = NML_ERR_NOT_SET
     case ("pt_a_water%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pt_a_water'"
+        if (present(errmsg)) errmsg = "index not supported for 'pt_a_water%value'"
         return
       end if
       if (ieee_is_nan(this%pt_a_water%value)) status = NML_ERR_NOT_SET
     case ("pt_a_water%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pt_a_water'"
+        if (present(errmsg)) errmsg = "index not supported for 'pt_a_water%optimize'"
         return
       end if
     case ("pt_a_water%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pt_a_water'"
+        if (present(errmsg)) errmsg = "index not supported for 'pt_a_water%min'"
         return
       end if
     case ("pt_a_water%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'pt_a_water'"
+        if (present(errmsg)) errmsg = "index not supported for 'pt_a_water%max'"
         return
       end if
     case ("pt_a_water")
@@ -351,32 +347,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'pt_a_water'"
         return
       end if
-      if (ieee_is_nan(this%pt_a_water%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%pt_a_water%value))) status = NML_ERR_NOT_SET
     case ("emissivity_water%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'emissivity_water'"
+        if (present(errmsg)) errmsg = "index not supported for 'emissivity_water%value'"
         return
       end if
       if (ieee_is_nan(this%emissivity_water%value)) status = NML_ERR_NOT_SET
     case ("emissivity_water%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'emissivity_water'"
+        if (present(errmsg)) errmsg = "index not supported for 'emissivity_water%optimize'"
         return
       end if
     case ("emissivity_water%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'emissivity_water'"
+        if (present(errmsg)) errmsg = "index not supported for 'emissivity_water%min'"
         return
       end if
     case ("emissivity_water%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'emissivity_water'"
+        if (present(errmsg)) errmsg = "index not supported for 'emissivity_water%max'"
         return
       end if
     case ("emissivity_water")
@@ -385,32 +379,30 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'emissivity_water'"
         return
       end if
-      if (ieee_is_nan(this%emissivity_water%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%emissivity_water%value))) status = NML_ERR_NOT_SET
     case ("turbulent_heat_exchange_coefficient%value")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'turbulent_heat_exchange_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'turbulent_heat_exchange_coefficient%value'"
         return
       end if
       if (ieee_is_nan(this%turbulent_heat_exchange_coefficient%value)) status = NML_ERR_NOT_SET
     case ("turbulent_heat_exchange_coefficient%optimize")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'turbulent_heat_exchange_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'turbulent_heat_exchange_coefficient%optimize'"
         return
       end if
     case ("turbulent_heat_exchange_coefficient%min")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'turbulent_heat_exchange_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'turbulent_heat_exchange_coefficient%min'"
         return
       end if
     case ("turbulent_heat_exchange_coefficient%max")
       if (present(idx)) then
         status = NML_ERR_INVALID_INDEX
-        if (present(errmsg)) errmsg = "index not supported for 'turbulent_heat_exchange_coefficient'"
+        if (present(errmsg)) errmsg = "index not supported for 'turbulent_heat_exchange_coefficient%max'"
         return
       end if
     case ("turbulent_heat_exchange_coefficient")
@@ -419,9 +411,7 @@ contains
         if (present(errmsg)) errmsg = "index not supported for 'turbulent_heat_exchange_coefficient'"
         return
       end if
-      if (ieee_is_nan(this%turbulent_heat_exchange_coefficient%value)) then
-        status = NML_ERR_NOT_SET
-      end if
+      if ((ieee_is_nan(this%turbulent_heat_exchange_coefficient%value))) status = NML_ERR_NOT_SET
     case default
       status = NML_ERR_INVALID_NAME
       if (present(errmsg)) errmsg = "unknown field: " // trim(name)
