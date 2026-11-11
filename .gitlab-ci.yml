@@ -46,7 +46,8 @@ show-env-vars:
     - module use /global/apps/modulefiles
     - module load chs-fortran-conda/0.6.0
     - export PROJECT_NUMBER="$(cat version.txt)"
-    - doxygen doc/doxygen.config > doxygen_log.txt 2>&1
+    # Avoid Cairo PDF object streams, which can fail in Tectonic's reader.
+    - CAIRO_DEBUG_PDF=1 doxygen doc/doxygen.config > doxygen_log.txt 2>&1
     - |
       printf 'Building PDF with Tectonic...\n'
       if ! (
@@ -67,6 +68,8 @@ show-env-vars:
       - html/
       - mhm_doc.pdf
       - doxygen_log.txt
+      - doxygen_warn.txt
+      - latex/refman.log
       - doxygen_latex.txt
 
 # Compiler and v6 validation templates
