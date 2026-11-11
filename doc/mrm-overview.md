@@ -1,17 +1,19 @@
-/**
-\page mRM mRM - the Multiscale Routing Model
+# mRM - the Multiscale Routing Model <!--! {#mRM} -->
 
-\tableofcontents
+<!--! [TOC] -->
 
 This section provides a short description of the method used in
 mRM. For further details and an analysis over the European domain,
 please refer to Thober et al. 2019.
 
-\section findif Finite Difference Approximation of Kinematic Wave Equation
+<a name="findif"></a>
+
+## Finite Difference Approximation of Kinematic Wave Equation
 
 The multiscale Routing Model mRM uses the kinematic wave equation to
 describe the water flow within a stream as
 
+<a name="mrm_kinematic_wave"></a>
 \f{equation}{
 \frac{\partial Q}{\partial t} + c \frac{\partial Q}{\partial x} = 0
 \f}
@@ -53,14 +55,16 @@ with 0 implying full numerical diffusion and 0.5 no numerical diffusion,
 respectively.
 
 Setting \f$\varphi\f$ to 0.5, which represents a time-centered scheme, and
-substituting the above equation into
-equation (9.1) results in the classical linear equation:
+substituting the above equation into the
+[kinematic wave equation](#mrm_kinematic_wave) results in the classical linear equation:
 
+<a name="mrm_recurrence"></a>
 \f{equation}{
  Q(x_{j+1}, t_{i+1}) = C_1 Q(x_j, t_{i+1}) + C_2 Q(x_j, t_i) + C_3
  Q(x_{j+1}, t_i) ,
 \f}
 with the coefficients \f$C_1\f$, \f$C_2\f$ and \f$C_3\f$ being:
+<a name="mrm_coefficients"></a>
 \f{eqnarray}{
    C_1 & = \frac{-2 \Delta x \epsilon + c \Delta t}{2 \Delta x (1 -
      \epsilon) + c \Delta t} , \nonumber \\
@@ -73,14 +77,16 @@ The coefficients \f$C_1\f$, \f$C_2\f$ and \f$C_3\f$ add up to one. The spatial
 resolution at which mRM is applied is called
 "routing" resolution in the following.
 
-\section slope_to_c Stream Celerity Parametrization based on Terrain Slope
+<a name="slope_to_c"></a>
 
-Two parametrizations of equation (9.3) are available in
+## Stream Celerity Parametrization based on Terrain Slope
+
+Two parametrizations of the [coefficient expressions](#mrm_coefficients) are available in
 mRM: firstly the regionalized Muskingum-Cunge (rMC) parametrization with
 a fixed time step, and
 secondly a parametrization using spatially varying
 celerities in combination with an adaptive time step (aTS). A short
-summary of the former is presented in Subsection \ref rMC and is referred to
+summary of the former is presented in Subsection [Regionalized Muskingum-Cunge parametrization](#rMC) and is referred to
 as rMC in the following. The latter is described in detail in this and
 the next section and is referred to as aTS scheme.
 
@@ -111,10 +117,12 @@ considers the flow in the main river reach, assuming that travel times
 in the main reach dominate the routing process in
 tributaries.
 
-\section ada_time Adaptive Time Step (aTS) Implementation
+<a name="ada_time"></a>
+
+## Adaptive Time Step (aTS) Implementation
 
 The aTS scheme uses an adaptive time step to calculate the linear
-coefficients in equation (9.2). The basic idea is that the
+coefficients in the [routing recurrence](#mrm_recurrence). The basic idea is that the
 time step should be such that water has not been transported further
 than \f$\Delta x\f$ during a single step. This condition is generally known
 as Courant-Friedrich-Lewy criterium, which is a necessary condition for
@@ -159,11 +167,13 @@ iterations of 2-hour time steps to route the water through the river
 network. In this case, aTS will also return the average of the
 calculated 12 streamflow values at each reach.
 
-\section rMC Regionalized Muskingum-Cunge parametrization
+<a name="rMC"></a>
+
+## Regionalized Muskingum-Cunge parametrization
 
 The regionalized Muskingum-Cunge (rMC) parametrization implemented in
 the mesoscale Hydrologic Model mHM calculates the Muskingum coefficients
-\f$C_1\f$, \f$C_2\f$, and \f$C_3\f$ in equation (9.2) as a function of
+\f$C_1\f$, \f$C_2\f$, and \f$C_3\f$ in the [routing recurrence](#mrm_recurrence) as a function of
 high-resolution river network properties. The coefficients \f$C_1\f$, \f$C_2\f$,
 and \f$C_3\f$ are parametrized as follows
 
@@ -180,7 +190,7 @@ and \f$C_3\f$ are parametrized as follows
 
  following the nomenclature of appendix A2 in
  \cite SKA2010. This formulation is identical to
- equatio (9.3) of the present study, using
+ the [coefficient expressions](#mrm_coefficients) given above, using
  \f$\beta = \Delta x / c\f$ in the equation above and substituting this
  equation into two equations above. The parameters
  \f$\beta\f$ and \f$\epsilon\f$ are then conceptualized as
@@ -204,5 +214,3 @@ and \f$C_3\f$ are parametrized as follows
  \f}
 
  where \f$\Delta t\f$ is set to one hour.
-
-*/

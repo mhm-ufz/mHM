@@ -1,4 +1,6 @@
-# mHM Python package
+# mHM Python package <!--! {#mhm_python} -->
+
+<!--! [TOC] -->
 
 The package runs mHM v6 forward simulations through the same domain runner as
 the native executable. It also exposes version metadata and example downloads:

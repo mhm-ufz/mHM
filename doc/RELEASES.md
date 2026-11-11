@@ -1,6 +1,6 @@
-# mHM Release Notes {#releases}
+# mHM Release Notes <!--! {#releases} -->
 
-[TOC]
+<!--! [TOC] -->
 
 ## mHM v5.13.2 (Oct 2025)
 

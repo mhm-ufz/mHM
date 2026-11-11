@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doxygenlayout version="2.0">
+  <!-- Standalone pages use stable IDs. Component and API indices remain
+       automatic; version 2.0 supplies omitted page layouts. -->
+  <navindex>
+    <tab type="mainpage" visible="yes" title="mHM"/>
+    <tab type="usergroup" visible="yes" title="Guides" url="[none]">
+      <tab type="user" title="Project information and quick start" url="@ref mhm_readme"/>
+      <tab type="user" title="Build and run mHM v6" url="@ref v6_getting_started"/>
+      <tab type="user" title="Developing mHM v6" url="@ref v6_development"/>
+      <tab type="user" title="Building the documentation" url="@ref mhm_documentation"/>
+      <tab type="user" title="Python package" url="@ref mhm_python"/>
+      <tab type="user" title="Compilation" url="@ref compilation"/>
+      <tab type="user" title="Cygwin details" url="@ref cygwin"/>
+    </tab>
+    <tab type="usergroup" visible="yes" title="Configuration" url="[none]">
+      <tab type="usergroup" title="Namelist reference" url="@ref nml">
+        <tab type="usergroup" title="Configuration namelists" url="[none]">
+          <tab type="user" title="Project configuration" url="config_project.html"/>
+          <tab type="user" title="Domain configuration" url="config_domain.html"/>
+          <tab type="user" title="Processes configuration" url="config_processes.html"/>
+          <tab type="user" title="Grid resolution configuration" url="config_resolution.html"/>
+          <tab type="user" title="Optimization configuration" url="config_optimize.html"/>
+          <tab type="user" title="Time configuration" url="config_time.html"/>
+          <tab type="user" title="Look-up table configuration" url="config_lut.html"/>
+          <tab type="user" title="Input configuration" url="config_input.html"/>
+          <tab type="user" title="Coupling configuration" url="config_coupling.html"/>
+          <tab type="user" title="Meteorological configuration" url="config_meteo.html"/>
+          <tab type="user" title="MPR configuration" url="config_mpr.html"/>
+          <tab type="user" title="mHM model configuration" url="config_mhm.html"/>
+          <tab type="user" title="mLM configuration" url="config_mlm.html"/>
+          <tab type="user" title="mRM configuration" url="config_mrm.html"/>
+          <tab type="user" title="Observations configuration" url="config_observations.html"/>
+        </tab>
+        <tab type="usergroup" title="Parameter namelists" url="[none]">
+          <tab type="user" title="Interception - Case 1" url="interception_1.html"/>
+          <tab type="user" title="Snow - Case 1" url="snow_1.html"/>
+          <tab type="user" title="Soil moisture - Case 1" url="soil_moisture_1.html"/>
+          <tab type="user" title="Soil moisture - Case 2" url="soil_moisture_2.html"/>
+          <tab type="user" title="Soil moisture - Case 3" url="soil_moisture_3.html"/>
+          <tab type="user" title="Soil moisture - Case 4" url="soil_moisture_4.html"/>
+          <tab type="user" title="Direct runoff - Case 1" url="direct_runoff_1.html"/>
+          <tab type="user" title="PET - Case -2" url="pet_m2.html"/>
+          <tab type="user" title="PET - Case -1" url="pet_m1.html"/>
+          <tab type="user" title="PET - Case 1" url="pet_1.html"/>
+          <tab type="user" title="PET - Case 2" url="pet_2.html"/>
+          <tab type="user" title="PET - Case 3" url="pet_3.html"/>
+          <tab type="user" title="Interflow - Case 1" url="interflow_1.html"/>
+          <tab type="user" title="Percolation - Case 1" url="percolation_1.html"/>
+          <tab type="user" title="Routing - Case 1" url="routing_1.html"/>
+          <tab type="user" title="Routing - Case 2" url="routing_2.html"/>
+          <tab type="user" title="Routing - Case 3" url="routing_3.html"/>
+          <tab type="user" title="Neutrons - Case 1" url="neutrons_1.html"/>
+          <tab type="user" title="Neutrons - Case 2" url="neutrons_2.html"/>
+          <tab type="user" title="Baseflow - Case 1" url="baseflow_1.html"/>
+          <tab type="user" title="Lakes - Case 1" url="lakes_1.html"/>
+          <tab type="user" title="River temperature - Case 1" url="river_temperature_1.html"/>
+        </tab>
+        <tab type="usergroup" title="Output namelists" url="[none]">
+          <tab type="user" title="mHM output configuration" url="output_mhm.html"/>
+          <tab type="user" title="mLM output configuration" url="output_mlm.html"/>
+          <tab type="user" title="mRM output configuration" url="output_mrm.html"/>
+        </tab>
+      </tab>
+      <tab type="user" title="Parameter migration" url="parameter_migration_v6.html"/>
+    </tab>
+    <tab type="usergroup" visible="yes" title="About" url="[none]">
+      <tab type="user" title="mRM overview" url="@ref mRM"/>
+      <tab type="user" title="Publications" url="@ref publications"/>
+      <tab type="user" title="Release history" url="@ref releases"/>
+      <tab type="user" title="License" url="@ref license"/>
+      <tab type="user" title="Repository instructions" url="@ref repository_instructions"/>
+    </tab>
+    <tab type="topics" visible="yes" title="Model components"
+         intro="Browse domain orchestration, model components, shared utilities, namelists, and the Python package."/>
+    <tab type="usergroup" visible="yes" title="API reference" url="[none]">
+      <tab type="namespaces" visible="yes" title="Modules and packages">
+        <tab type="namespacelist" visible="yes" title="Module and package list" intro=""/>
+        <tab type="namespacemembers" visible="yes" title="Procedures and variables" intro=""/>
+      </tab>
+      <tab type="classes" visible="yes" title="Derived types">
+        <tab type="classlist" visible="yes" title="Type list" intro=""/>
+        <tab type="classindex" visible="$ALPHABETICAL_INDEX" title="Type index"/>
+        <tab type="hierarchy" visible="yes" title="Type hierarchy" intro=""/>
+        <tab type="classmembers" visible="yes" title="Type members" intro=""/>
+      </tab>
+      <tab type="files" visible="yes" title="Source files">
+        <tab type="filelist" visible="yes" title="File list" intro=""/>
+        <tab type="globals" visible="yes" title="File members" intro=""/>
+      </tab>
+    </tab>
+  </navindex>
+</doxygenlayout>

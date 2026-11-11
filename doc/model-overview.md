@@ -1,15 +1,19 @@
-/**
-\mainpage Introduction to mHM
+# Introduction to mHM <!--! {#model_overview} -->
 
-\tableofcontents
+<!--! [TOC] -->
 
-Welcome to the documentation of mHM version
-\htmlinclude version.txt
-\latexinclude version.txt
-
+<!--!
+\cond
+-->
+<img src="figures/logo/mHM_textlogo.png" alt="mHM logo" width="500">
+<!--!
+\endcond
 \image html mHM_textlogo.png
+-->
 
-\section description Short Description
+<a name="description"></a>
+
+## Short Description
 
 This document describes the source code for the mesoscale Hydrologic
 Model mHM.  mHM is based on accepted hydrological conceptualizations
@@ -27,7 +31,9 @@ observation networks. In the latter case, the driving meteorological
 data has to be prepared in advance. A module for external drift
 Kriging is available upon request.
 
-\section mHM The Grid-based mHM Model
+<a name="mHM"></a>
+
+## The Grid-based mHM Model
 
 The mHM hydrologic model is based on numerical approximations of
 dominant hydrological processes that have been tested in various
@@ -38,41 +44,77 @@ simulates the following processes: canopy interception, snow
 accumulation and melting, soil moisture dynamics, infiltration and
 surface runoff, evapotranspiration, subsurface storage and discharge
 generation, deep percolation and baseflow, and discharge attenuation
-and flood routing (\ref fig_mhm "mHM"). More information about the model
+and flood routing ([mHM](#fig_mhm)). More information about the model
 can be found in
 \cite SKA2010 .
 
-\image html mhm5-logo.png "Typical mHM cell"
-\anchor fig_mhm \image latex mhm5-logo.pdf "Typical mHM cell" width=10cm
+<a name="fig_mhm"></a>
+
+<!--!
+\cond
+-->
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="figures/logo/mhm5-logo-dark.svg">
+  <img src="figures/logo/mhm5-logo.svg" alt="Typical mHM cell" width="500">
+</picture>
+<!--!
+\endcond
+\htmlonly
+<div class="image">
+<img src="mhm5-logo.svg" alt="Typical mHM cell">
+<div class="caption">Typical mHM cell</div>
+</div>
+\endhtmlonly
+\image latex mhm5-logo.pdf "Typical mHM cell" width=10cm
+-->
 
 
 Dominant processes of the hydrological cycle at mesoscale span over
 several orders of magnitude \cite BS1995 . In this model, three
-levels (\ref fig_levels "mHM levels") will be differentiated to better
+levels ([mHM levels](#fig_levels)) will be differentiated to better
 represent the spatial variability of state and inputs variables:
 
-  \li  \e Level-0: Spatial discretization suitable to
+- *Level-0*: Spatial discretization suitable to
       describe the main features of the terrain, the main soil
       characteristics (pedotop), and the land cover. The cell
       size at this level is denoted by \f$ \ell_0 \f$.
 
-  \li \e Level-1: Spatial discretization used to
+- *Level-1*: Spatial discretization used to
       describe dominant hydrological processes
       \cite Bloeschl2001 at the mesoscale as well as the main
       geological formations of the basin. The cell size at this
       level is denoted by \f$ \ell_1 \f$.
 
-  \li \e Level-2: Spatial discretization suitable to
+- *Level-2*: Spatial discretization suitable to
       describe the variability of the meteorological forcings at
       the mesoscale, for example the formation of convective
       precipitation. The cell size at this level is denoted by
       \f$ \ell_2 \f$.
 
-\image html levels.png "Hierarchy of data and modeling levels in mHM"
-\anchor fig_levels \image latex levels.pdf "Hierarchy of data and modeling levels in mHM" width=10cm
+<a name="fig_levels"></a>
+
+<!--!
+\cond
+-->
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="figures/levels-dark.svg">
+  <img src="figures/levels.svg" alt="Hierarchy of data and modeling levels in mHM" width="500">
+</picture>
+<!--!
+\endcond
+\htmlonly
+<div class="image">
+<img src="levels.svg" alt="Hierarchy of data and modeling levels in mHM">
+<div class="caption">Hierarchy of data and modeling levels in mHM</div>
+</div>
+\endhtmlonly
+\image latex levels.pdf "Hierarchy of data and modeling levels in mHM" width=10cm
+-->
 
 
-\section model Model Formulation
+<a name="model"></a>
+
+## Model Formulation
 
 A mesoscale basin is an open natural system, composed of very
 heterogeneous materials and having fuzzy boundary conditions. The
@@ -97,66 +139,85 @@ describe the evolution of the state variables at a given location
 
 where
 
-|<b>Variable</b>         |<b>Description</b>                        |
+|**Variable**         |**Description**                        |
 | ---------------------- | --------------------------------------------------------- |
-|<b>Inputs</b>||
-|\f$P\f$                 | Daily precipitation depth,                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-|\f$E_p\f$               | Daily potential evapotranspiration (PET), \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-|\f$T\f$                 | Daily mean air temperature,               \f$^{\circ}C\f$
-|<b>Fluxes</b>||
-|\f$S\f$                 | Snow precipitation depth,                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-|\f$R\f$                 | Rain precipitation depth,                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-|\f$M\f$                 | Melting snow depth,                                          \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-|\f$E_p\f$               | Potential evapotranspiration,                                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-|\f$F\f$                 | Throughfall,                                                 \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-|\f$E_1\f$               | Actual evaporation intensity from the canopy,                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-|\f$E_2\f$               | Actual evapotranspiration intensity,                         \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-|\f$E_3\f$               | Actual evaporation from free-water bodies,                   \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-|\f$I\f$                 | Recharge, infiltration intensity or effective precipitation, \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-|\f$C\f$                 | Percolation,                                                 \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-|\f$q_{1}\f$             | Surface runoff from impervious areas,                        \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-|\f$q_{2}\f$             | Fast interflow,                                              \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-|\f$q_{3}\f$             | Slow interflow,                                              \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-|\f$q_{4}\f$             | Baseflow,                                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$
-|<b>Outputs</b>||
-|\f$Q_{i}^{0}\f$         |  Simulated discharge entering the river stretch at cell \f$i\f$, \f$\mathrm{m}^3\;\mathrm{s}^{-1}\f$
-|\f$Q_{i}^{1}\f$         |  Simulated discharge leaving the river stretch at cell  \f$i\f$, \f$\mathrm{m}^3\;\mathrm{s}^{-1}\f$
-|<b>States</b>||
-|\f$x_1\f$               | Depth of the canopy storage,                                           \f$\mathrm{mm}\f$
-|\f$x_2\f$               | Depth of the snowpack,                                                 \f$\mathrm{mm}\f$
-|\f$x_3\f$               | Depth of soil moisture content in the root zone,                       \f$\mathrm{mm}\f$
-|\f$x_4\f$               | Depth of impounded water in reservoirs, water bodies, or sealed areas, \f$\mathrm{mm}\f$
-|\f$x_5\f$               | Depth of the water storage in the subsurface reservoir,                \f$\mathrm{mm}\f$
-|\f$x_6\f$               | Depth of the water storage in the groundwater reservoir,               \f$\mathrm{mm}\f$
-|\f$x_7\f$               | Depth of the water storage in the channel reservoir,                   \f$\mathrm{mm}\f$
-|<b>Indices</b>||
-|\f$l\f$                 | Index denoting a root zone horizon, \f$l=1,\ldots,L\f$ (say \f$L=3\f$), in the first layer, \f$0 \leq z \leq z_1\f$
-|\f$t\f$                 | Time index for each \f$\Delta t\f$ interval
-|\f$\rho^l\f$            | Overall influx fraction accounting for the impervious cover within a cell
+| **Inputs** | |
+|\f$P\f$                 | Daily precipitation depth,                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
+|\f$E_p\f$               | Daily potential evapotranspiration (PET), \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
+|\f$T\f$                 | Daily mean air temperature,               \f$^{\circ}C\f$ |
+| **Fluxes** | |
+|\f$S\f$                 | Snow precipitation depth,                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
+|\f$R\f$                 | Rain precipitation depth,                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
+|\f$M\f$                 | Melting snow depth,                                          \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
+|\f$E_p\f$               | Potential evapotranspiration,                                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
+|\f$F\f$                 | Throughfall,                                                 \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
+|\f$E_1\f$               | Actual evaporation intensity from the canopy,                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
+|\f$E_2\f$               | Actual evapotranspiration intensity,                         \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
+|\f$E_3\f$               | Actual evaporation from free-water bodies,                   \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
+|\f$I\f$                 | Recharge, infiltration intensity or effective precipitation, \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
+|\f$C\f$                 | Percolation,                                                 \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
+|\f$q_{1}\f$             | Surface runoff from impervious areas,                        \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
+|\f$q_{2}\f$             | Fast interflow,                                              \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
+|\f$q_{3}\f$             | Slow interflow,                                              \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
+|\f$q_{4}\f$             | Baseflow,                                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
+| **Outputs** | |
+|\f$Q_{i}^{0}\f$         |  Simulated discharge entering the river stretch at cell \f$i\f$, \f$\mathrm{m}^3\;\mathrm{s}^{-1}\f$ |
+|\f$Q_{i}^{1}\f$         |  Simulated discharge leaving the river stretch at cell  \f$i\f$, \f$\mathrm{m}^3\;\mathrm{s}^{-1}\f$ |
+| **States** | |
+|\f$x_1\f$               | Depth of the canopy storage,                                           \f$\mathrm{mm}\f$ |
+|\f$x_2\f$               | Depth of the snowpack,                                                 \f$\mathrm{mm}\f$ |
+|\f$x_3\f$               | Depth of soil moisture content in the root zone,                       \f$\mathrm{mm}\f$ |
+|\f$x_4\f$               | Depth of impounded water in reservoirs, water bodies, or sealed areas, \f$\mathrm{mm}\f$ |
+|\f$x_5\f$               | Depth of the water storage in the subsurface reservoir,                \f$\mathrm{mm}\f$ |
+|\f$x_6\f$               | Depth of the water storage in the groundwater reservoir,               \f$\mathrm{mm}\f$ |
+|\f$x_7\f$               | Depth of the water storage in the channel reservoir,                   \f$\mathrm{mm}\f$ |
+| **Indices** | |
+|\f$l\f$                 | Index denoting a root zone horizon, \f$l=1,\ldots,L\f$ (say \f$L=3\f$), in the first layer, \f$0 \leq z \leq z_1\f$ |
+|\f$t\f$                 | Time index for each \f$\Delta t\f$ interval |
+|\f$\rho^l\f$            | Overall influx fraction accounting for the impervious cover within a cell |
 
 
-\section mpr The Multiscale Parameter Regionalization Technique
+<a name="mpr"></a>
+
+## The Multiscale Parameter Regionalization Technique
 
 mHM requires at most 28  parameters (depending of the configuration)
 per cell to account for the spatial variability of the dominant
-hydrological processes at a mesoscale river basin. These \e effective
-\e parameters have to be estimated through calibration. Calibrating
+hydrological processes at a mesoscale river basin. These *effective*
+*parameters* have to be estimated through calibration. Calibrating
 this model with a significant number of free parameters for every grid
 cell would lead to over-parameterization in a mesoscale
 catchment. This, in turn, would tend to increase the predictive
-uncertainty of the model due to the \e equifinality \cite Beven1993
+uncertainty of the model due to the *equifinality* \cite Beven1993
 of feasible solutions. Moreover, the high dimensionality of this
 optimization problem is also a daunting task for the state-of-the-art
 optimization algorithms \cite PG2009 . To overcome this problem a
 multiscale parameter regionalization (MPR) was employed in the mHM
 model \cite SKA2010 .
 
-\image html upscaling.png "MPR"
-\anchor fig_mpr \image latex upscaling.pdf "MPR" width=10cm
+<a name="fig_mpr"></a>
+
+<!--!
+\cond
+-->
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="figures/upscaling-dark.svg">
+  <img src="figures/upscaling.svg" alt="MPR" width="500">
+</picture>
+<!--!
+\endcond
+\htmlonly
+<div class="image">
+<img src="upscaling.svg" alt="MPR">
+<div class="caption">MPR</div>
+</div>
+\endhtmlonly
+\image latex upscaling.pdf "MPR" width=10cm
+-->
 
 Based on this regionalization method, model parameters at a coarser
 grid (Level-1) are linked with their corresponding ones at a finer
-resolution (Level-0) (\ref fig_mpr "MPR"). The linkage is done with upscaling
+resolution (Level-0) ([MPR](#fig_mpr)). The linkage is done with upscaling
 operators. Model parameters at the finer scale are, in turn,
 regionalized with nonlinear transfer functions that couple catchment
 descriptors with the global parameters. Process understanding and
@@ -196,11 +257,13 @@ in turn, implies a great reduction of complexity since \f$ K \times n
 \gg s\f$, where \f$n\f$ denotes the total number of cells of a given basin
 at level-1.
 
-\section param_est The Parameter Estimation Problem
+<a name="param_est"></a>
+
+## The Parameter Estimation Problem
 
 Let \f$\mathbf{M}\{\mathbf{f},\mathbf{g}\}\f$  be a dynamic, spatially
 distributed, parameter efficient, integrated model that relates a
-number of state variables \f$\mathbf{x}\f$ with some \e observables
+number of state variables \f$\mathbf{x}\f$ with some *observables*
 called: inputs \f$\mathbf{u}\f$ and outputs \f$\mathbf{y}\f$. In general,
 the system is described by the following system of equations
 
@@ -211,24 +274,24 @@ the system is described by the following system of equations
 
 where
 
-  \li \f$\mathbf{f}\f$ is a system of functional relationships in mHM
+- \f$\mathbf{f}\f$ is a system of functional relationships in mHM
       (continuous or discrete) that denote the evolution of the
       system over time.
-  \li \f$\mathbf{g}\f$ is a vector of functional relationships
+- \f$\mathbf{g}\f$ is a vector of functional relationships
       used to quantify the expected output (e.g. runoff) of the model denoted
       by \f$\mathbf{\hat{y}}\f$.
-  \li \f${\epsilon}\f$ denotes the uncertainty of the system originated by
+- \f${\epsilon}\f$ denotes the uncertainty of the system originated by
       defects on measurements of both the inputs and outputs.
-  \li \f${\eta}\f$ denotes the uncertainty originated by the simplification
+- \f${\eta}\f$ denotes the uncertainty originated by the simplification
       included during the formulation of \f$\mathbf{M}\f$ or due to
       the lack of knowledge of the relevant processes (i.e. any kind
       of model structure deficiency). This term is ignored
       in the present case.
-  \li \f${\beta}\f$ denotes the fields of effective mHM parameters at
-  level-1 estimated as described in section (\ref mpr "MPR").
-  \li \f$ \gamma\f$ is a vector of global parameters characterized by a
+- \f${\beta}\f$ denotes the fields of effective mHM parameters at
+  level-1 estimated as described in section ([MPR](#mpr)).
+- \f$ \gamma\f$ is a vector of global parameters characterized by a
       probability density function \f$\Phi_{\gamma_s}\f$.
-  \li \f$i\f$, \f$t\f$ represent a point in space and time
+- \f$i\f$, \f$t\f$ represent a point in space and time
      respectively.
 
 In general, \f$\gamma\f$ can be estimated, for example, by
@@ -242,7 +305,9 @@ dynamically dimensioned search \cite TS2007. Optimization routines are
 provided by FORCES; the v6 optimization container is not implemented yet.
 
 
-\section cal Model Calibration
+<a name="cal"></a>
+
+## Model Calibration
 
 Good parameter sets for \f$ \gamma \f$ were identified with a
 split-sampling technique using an adaptive constrained optimization
@@ -282,20 +347,22 @@ where \f$\overline{y}_k(t')\f$ is the mean value of the observations time series
 This describes the scientific calibration approach; the legacy calibration
 driver is not part of the v6 implementation.
 
-\section running Build and run v6
+<a name="running"></a>
+
+## Build and run v6
 
 The v6 driver executes independent domains through Input, MPR, meteo, mHM,
-mLM, and mRM containers. See \ref v6_getting_started "v6 build and run guidance"
+mLM, and mRM containers. See [v6 build and run guidance](v6-getting-started.md)
 and [Compilation](INSTALL.md) for build instructions.
 
 From the repository root, a minimal routing run is:
 
-\code{.sh}
+```bash
 cmake -S . -B debug -DCMAKE_BUILD_TYPE=Debug
 cmake --build debug --parallel 4
 ./debug/app/mhm -n test_nml/mrm_minimal.nml \
   -p test_nml/mhm_parameter_v6_routing.nml -o mhm-output-template.nml
-\endcode
+```
 
 Runnable examples are in `examples/domain_01` and `examples/domain_02`.
 Use `./debug/app/mhm --help` for configuration and run-root options.
@@ -304,10 +371,10 @@ The schema-generated [domain configuration](nml/config_domain.md) and
 Also see [parameter migration](parameter-migration-v6.md),
 [release history](RELEASES.md), and [mHM publications](mhm_papers.md).
 
-\section developing Developing v6
+<a name="developing"></a>
 
-See \subpage v6_development for component logic, lifecycle responsibilities,
+## Developing v6
+
+See [Developing mHM v6](v6-development-guide.md) for component logic, lifecycle responsibilities,
 packed data and exchange contracts, restart scope, namelist dimensions,
 explicit paths, and a workflow for adding features.
-
-*/

@@ -1,5 +1,7 @@
 # Test Fixtures
 
+<!--! [TOC] -->
+
 This directory contains non-runnable fixture inputs used by `test_nml` smoke and scenario cases.
 It is separate from `examples/domain_01` and `examples/domain_02`, which are runnable v6 example setups.
 

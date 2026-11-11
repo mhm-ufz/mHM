@@ -1,4 +1,6 @@
-# mHM v6 development guide
+# mHM v6 development guide <!--! {#repository_instructions} -->
+
+<!--! [TOC] -->
 
 This is the repository-wide guide for developers and AI agents. Apply it to new or
 touched code; keep unrelated cleanup separate. Commands below run from the repository root.
@@ -9,7 +11,7 @@ workflows before changing components or configuration; this file defines the det
 
 - Before substantial changes, map affected ownership, lifecycle, dependencies, and compatibility
   requirements; state which behavior changes intentionally.
-- Use [app/driver.F90](app/driver.F90) as the execution entrypoint. Domain orchestration
+- Use [app/driver.F90](https://git.ufz.de/mhm/mhm/-/blob/main/app/driver.F90) as the execution entrypoint. Domain orchestration
   belongs in `src/domain/`; process implementations belong in their component folders.
 - Each `domain_t` owns its `exchange_t` and component state; each component references that exchange.
   Pass container-owned state explicitly to scientific kernels; introduce no mutable module-global state.
@@ -195,7 +197,8 @@ workflows before changing components or configuration; this file defines the det
 - Document types with `!> \class type_name` and procedures with `\brief`. Explain non-obvious flow
   with short block comments; avoid line-by-line commentary on trivial logic.
 - Build Doxygen from the repository root with `PROJECT_NUMBER="$(cat version.txt)" doxygen doc/doxygen.config`.
-  See [v6 getting started](doc/v6-getting-started.md) for HTML/PDF commands and dependencies.
+  See the [documentation workflow](doc/documentation-guide.md) for HTML/PDF commands,
+  dependencies, and Markdown page/navigation conventions.
 
 ## Validation
 

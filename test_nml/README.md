@@ -1,3 +1,5 @@
+<!--! [TOC] -->
+
 This folder collects smoke and demo namelists used for fast validation runs.
 
 Run the commands from the repository root so relative input and output paths

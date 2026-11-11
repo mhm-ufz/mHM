@@ -1,6 +1,6 @@
-# Compilation {#compilation}
+# Compilation <!--! {#compilation} -->
 
-[TOC]
+<!--! [TOC] -->
 
 The section 'Dependencies' lists the general requirements
 for the compilation. The section 'System-dependent dependency installation'

@@ -1,7 +1,7 @@
 
-# LICENSE
+# LICENSE <!--! {#license} -->
 
-[TOC]
+<!--! [TOC] -->
 
 ## COPYRIGHT
 
