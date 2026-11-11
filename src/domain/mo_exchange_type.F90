@@ -61,7 +61,7 @@ module mo_exchange_type
   integer(i4), public, parameter :: l1_land = 101_i4 !< land level1 hydrological grid
   integer(i4), public, parameter :: l3_land = 103_i4 !< land level3 lake-routing support grid
   integer(i4), public, parameter :: l0_lake = 200_i4 !< lake level0 footprint grid
-  !!@}
+  !> @}
 
   !> \name Point-set Selectors
   !> \brief Constants selecting referenced point sets for exchanged point variables.
@@ -69,16 +69,17 @@ module mo_exchange_type
   !!@{
   integer(i4), public, parameter :: nopoints = -1_i4 !< no point set
   integer(i4), public, parameter :: points_lake = 1_i4 !< lake outlet point set
-  !!@}
+  !> @}
 
   !> \name Layer Support Selectors
+  !> \brief Constants selecting optional second-axis support for exchange variables.
   !!@{
-  integer(i4), public, parameter :: nolayers = -1_i4
-  integer(i4), public, parameter :: layers_tba = 0_i4
-  integer(i4), public, parameter :: single_layer = 1_i4
-  integer(i4), public, parameter :: input_horizons = 2_i4
-  integer(i4), public, parameter :: model_horizons = 3_i4
-  !!@}
+  integer(i4), public, parameter :: nolayers = -1_i4     !< no second axis; data uses only its primary support
+  integer(i4), public, parameter :: layers_tba = 0_i4    !< layer support to be assigned by the provider
+  integer(i4), public, parameter :: single_layer = 1_i4  !< a second axis containing exactly one layer
+  integer(i4), public, parameter :: input_horizons = 2_i4 !< soil horizons defined by input_horizon_bounds
+  integer(i4), public, parameter :: model_horizons = 3_i4 !< soil horizons defined by model_horizon_bounds
+  !> @}
 
   !> \class   variable_abc
   !> \brief   Abstract base class for a variable in the exchange type.

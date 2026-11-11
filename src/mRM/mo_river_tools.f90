@@ -61,17 +61,27 @@ module mo_river_tools
   integer(i2), public, parameter :: d8_NW = 32_i2 !< north-west
   integer(i2), public, parameter :: d8_N = 64_i2 !< north
   integer(i2), public, parameter :: d8_NE = 128_i2 !< north-east
+  !> D8 directions in clockwise order, starting at east.
   integer(i2), public, dimension(8), parameter :: d8_all = [d8_E, d8_SE, d8_S, d8_SW, d8_W, d8_NW, d8_N, d8_NE]
+  !> Opposite D8 directions corresponding to d8_all.
   integer(i2), public, dimension(8), parameter :: d8_back = [d8_W, d8_NW, d8_N, d8_NE, d8_E, d8_SE, d8_S, d8_SW]
+  !> D8 directions leaving through the eastern edge.
   integer(i2), public, dimension(3), parameter :: d8_leave_E = [d8_NE, d8_E, d8_SE]
+  !> D8 directions leaving through the southern edge.
   integer(i2), public, dimension(3), parameter :: d8_leave_S = [d8_SE, d8_S, d8_SW]
+  !> D8 directions leaving through the western edge.
   integer(i2), public, dimension(3), parameter :: d8_leave_W = [d8_SW, d8_W, d8_NW]
+  !> D8 directions leaving through the northern edge.
   integer(i2), public, dimension(3), parameter :: d8_leave_N = [d8_NW, d8_N, d8_NE]
+  !> D8 directions leaving through the south-eastern corner.
   integer(i2), public, dimension(5), parameter :: d8_leave_SE = [d8_NE, d8_E, d8_SE, d8_S, d8_SW]
+  !> D8 directions leaving through the south-western corner.
   integer(i2), public, dimension(5), parameter :: d8_leave_SW = [d8_SE, d8_S, d8_SW, d8_W, d8_NW]
+  !> D8 directions leaving through the north-eastern corner.
   integer(i2), public, dimension(5), parameter :: d8_leave_NE = [d8_NW, d8_N, d8_NE, d8_E, d8_SE]
+  !> D8 directions leaving through the north-western corner.
   integer(i2), public, dimension(5), parameter :: d8_leave_NW = [d8_SW, d8_W, d8_NW, d8_N, d8_NE]
-  !!@}
+  !> @}
 
   !> \name LDD direction values
   !> \brief Constants describing the local drain direction routing direction of a cell.
@@ -86,11 +96,17 @@ module mo_river_tools
   integer(i1), public, parameter :: ldd_NW = 7_i1 !< north-west
   integer(i1), public, parameter :: ldd_N = 8_i1 !< north
   integer(i1), public, parameter :: ldd_NE = 9_i1 !< north-east
+  !> LDD directions in clockwise order, starting at east.
   integer(i1), public, dimension(8), parameter :: ldd_all = [ldd_E, ldd_SE, ldd_S, ldd_SW, ldd_W, ldd_NW, ldd_N, ldd_NE]
+  !> Opposite LDD directions corresponding to ldd_all.
   integer(i1), public, dimension(8), parameter :: ldd_back = [ldd_W, ldd_NW, ldd_N, ldd_NE, ldd_E, ldd_SE, ldd_S, ldd_SW]
+  !> Horizontal cell offsets indexed by LDD direction code.
   integer(i4), public, dimension(9), parameter :: ldd_dx = [-1_i4, 0_i4, 1_i4, -1_i4, 0_i4, 1_i4, -1_i4, 0_i4, 1_i4]
+  !> Vertical cell offsets indexed by LDD direction code.
   integer(i4), public, dimension(9), parameter :: ldd_dy = [-1_i4, -1_i4, -1_i4, 0_i4, 0_i4, 0_i4, 1_i4, 1_i4, 1_i4]
+  !> D8 direction codes indexed by LDD direction code.
   integer(i2), public, dimension(9), parameter :: map_ldd_to_d8 = [d8_SW, d8_S, d8_SE, d8_W, sink, d8_E, d8_NW, d8_N, d8_NE]
+  !> LDD direction codes indexed by nonzero D8 codes; unused entries are o.
   integer(i1), public, dimension(128), parameter :: map_d8_to_ldd = [ &
     ldd_E, &
     ldd_SE, o, &
@@ -101,7 +117,7 @@ module mo_river_tools
     ldd_N,  o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o, &
             o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o,o, &
     ldd_NE]
-  !!@}
+  !> @}
 
   interface unique_ids
     module procedure unique_ids_i4
