@@ -67,7 +67,7 @@ To cite a certain version, have a look at the [Zenodo site][10].
 
 ## License overview
 
-LGPLv3 (c) 2005-2025 mHM-Developers. See [LICENSE.md](LICENSE.md).
+LGPLv3 (c) 2005-2026 mHM-Developers. See [LICENSE.md](LICENSE.md).
 
 [0]: https://git.ufz.de/mhm/mhm/-/releases
 [3]: doc/RELEASES.md
