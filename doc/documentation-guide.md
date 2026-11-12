@@ -64,7 +64,9 @@ The cell illustration and MPR diagram use SVGs converted from their original
 PDFs, preserving vector geometry and labels. The hierarchy PDF contains a raster;
 its SVG keeps that terrain image and replaces the blurry annotations with larger
 vector labels using the original notation. Mathematical labels are outlined TeX
-glyphs, so they require no browser fonts. Each figure also has a `*-dark.svg`
+glyphs, so they require no browser fonts. Light variants include an opaque white
+canvas so labels remain readable on dark repository pages when the renderer
+ignores the `<picture>` theme selection. Each figure also has a `*-dark.svg`
 variant with adapted neutral surfaces, a transparent canvas, and light annotations
 outlined in dark grey for contrast over coloured surfaces. MPR variables on the
 coloured levels retain their original black lettering. Keep labels as vectors
