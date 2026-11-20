@@ -1,4 +1,4 @@
-# Developing mHM v6 {#v6_development}
+# Developing mHM v6 <!--! {#v6_development} -->
 
 The v6 structure makes components usable across independent domains, repeated
 parameter runs, and restart workflows. Clear ownership and explicit inputs let
@@ -6,9 +6,9 @@ you extend one process while keeping those workflows predictable. This guide
 follows data through configuration, connection, stepping, and restart so you can
 add a process or container. `AGENTS.md` contains detailed coding rules and local
 validation commands. For build and run instructions, see
-[Getting started](@ref v6_getting_started).
+[Getting started](v6-getting-started.md).
 
-[TOC]
+<!--! [TOC] -->
 
 ## Follow the domain
 
@@ -28,12 +28,12 @@ scientific calculation belongs to its process component.
 
 | Component | What it owns and does |
 | --- | --- |
-| [Input](@ref f_input) | Opens configured datasets, establishes native grids and point/river support, publishes static fields, and selects or reads forcing chunks each step. |
-| [MPR](@ref f_mpr) | Owns land LUT data, the soil database, scaling and temporal caches. `connect` prepares static inputs; `initialize` regionalizes current parameters; `update` selects active land-cover/LAI slices. |
-| [Meteo](@ref f_meteo) | Remaps raw forcing with count weights, calculates/corrects PET, and disaggregates to the model interval. Land forcing and lake-point forcing use their respective support. Model steps are 1 or 24 hours. |
-| [mHM](@ref f_mhm) | Owns selected land hydrology states and fluxes and runs their kernels in process order. Disabled subprocesses may receive externally provided fields through the exchange. |
-| [mLM](@ref f_mLM) | Owns lake definition, natural-lake state and delayed outflow. Cases implement pass-through, precipitation/PET balance, or bathymetry, spill, seepage, groundwater and open-water evaporation. |
-| [mRM](@ref f_mrm) | Owns routing topology, hydraulic/thermal state, routing accumulators, discharge, and lake inflow. It completes routing intervals within the shared domain clock. Routing-only runs also support intermediate model cadences. |
+| [Input](../src/input/mo_input_container.F90) | Opens configured datasets, establishes native grids and point/river support, publishes static fields, and selects or reads forcing chunks each step. |
+| [MPR](../src/MPR/mo_mpr_container.F90) | Owns land LUT data, the soil database, scaling and temporal caches. `connect` prepares static inputs; `initialize` regionalizes current parameters; `update` selects active land-cover/LAI slices. |
+| [Meteo](../src/meteo/mo_meteo_container.F90) | Remaps raw forcing with count weights, calculates/corrects PET, and disaggregates to the model interval. Land forcing and lake-point forcing use their respective support. Model steps are 1 or 24 hours. |
+| [mHM](../src/mHM/mo_mhm_container.F90) | Owns selected land hydrology states and fluxes and runs their kernels in process order. Disabled subprocesses may receive externally provided fields through the exchange. |
+| [mLM](../src/mLM/mo_mlm_container.F90) | Owns lake definition, natural-lake state and delayed outflow. Cases implement pass-through, precipitation/PET balance, or bathymetry, spill, seepage, groundwater and open-water evaporation. |
+| [mRM](../src/mRM/mo_mrm_container.F90) | Owns routing topology, hydraulic/thermal state, routing accumulators, discharge, and lake inflow. It completes routing intervals within the shared domain clock. Routing-only runs also support intermediate model cadences. |
 
 Input provides general model datasets, with these component-owned input exceptions:
 MPR reads full-period land-cover and LAI sources to build regionalization caches;
@@ -59,7 +59,7 @@ rebuilds parameter-dependent fields on each initialization, and selects active
 slices during updates. For sources without time bounds, MPR uses interval-start
 timestamps; `config_input%time_stamp_location` applies to Input's datasets.
 
-For a compact component example, read [mo_mlm_container](@ref mo_mlm_container).
+For a compact component example, read [mo_mlm_container](../src/mLM/mo_mlm_container.F90).
 Use the relevant component's kernels as the scientific reference when adding a
 process case.
 
@@ -316,7 +316,7 @@ layer tops and bounds. Runtime `(ncells, n_horizons)` becomes Fortran `(x, y, z)
 at the I/O boundary; the NetCDF output CDL order is `(time, z, y, x)` (or
 `lat, lon` for the horizontal axes). Preserve state averaging and flux
 accumulation. Append NetCDF variable definitions with `add_var` from
-`mo_netcdf_utils`. See [horizon/output conventions](@ref v6_getting_started) for
+`mo_netcdf_utils`. See [horizon/output conventions](v6-getting-started.md#soil-horizons-and-layered-output) for
 the variable-bottom marker and output names.
 
 ## Size namelists before reading them
@@ -333,8 +333,8 @@ For example, `config_mpr` declares `soil_depth` with schema shape
 `[max_layers, n_domains]`. The project supplies `max_layers`, and `mpr_set_dims`
 passes `exchange%max_layers` and `exchange%nml_n_domains` to the generated
 `set_dims` method. Each domain's `n_layers` then selects how many entries it uses.
-The [project reference](@ref config_project) and
-[MPR reference](@ref config_mpr) describe these options.
+The [project reference](nml/config_project.md) and
+[MPR reference](nml/config_mpr.md) describe these options.
 
 When adding a configurable namelist dimension, declare it in `nml-config.toml`,
 expose its value in `config_project`, propagate it through the exchange, and wire
@@ -423,3 +423,39 @@ have a documented meaning. The entrypoint's documented defaults for `mhm.nml`,
    for file handling, exercise explicitly configured nonstandard paths. Compare
    uninterrupted and restarted runs, and cover packed masks and layered data where
    used. Use `AGENTS.md` to select the required local and OpenMP checks.
+
+## Coverage reports
+
+Coverage uses a serial GNU Debug build with pFUnit installed:
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DMHM_BUILD_DRIVER=ON \
+  -DMHM_BUILD_TESTING=ON -DBUILD_TESTING=ON -DMHM_WITH_COVERAGE=ON -DMHM_WITH_OpenMP=OFF
+cmake --build build --parallel 4
+cmake --build build --target mhm_coverage_CI
+mkdir -p coverage
+cp -a build/mhm_coverage_CI/. coverage/
+lcov --rc check_data_consistency=0 --add-tracefile build/mhm_coverage_CI.info \
+  --substitute "s#^(\Q$PWD\E|\Q$(pwd -P)\E)/##" --output-file coverage/coverage.info
+lcov_cobertura coverage/coverage.info --base-dir . --output coverage/coverage.xml
+```
+
+Install LCOV 2.0 or newer (`lcov` and `genhtml`) and Python's `lcov_cobertura`
+before running these commands. Use the `gcov` executable from the compiler's GCC version;
+set CMake's `GCOV_PATH` if the default differs. Coverage builds require pFUnit
+so that the unit suites cannot be silently skipped. The coverage target runs
+CTest and the curated v6 smoke scenarios, retaining unexecuted code in its baseline.
+
+LCOV strips both logical and physical checkout prefixes, preserving Fortran filename
+case and line counters. The commands stage HTML, LCOV, and Cobertura XML in `coverage/`.
+The HTML report uses the repository root as its prefix, showing `app/` and `src/` paths.
+Function/line consistency checks are disabled because GNU Fortran can map distinct
+functions to overlapping source lines; the original counters are retained.
+GitLab coverage uses `chs-fortran-conda/0.6.0`, including LCOV 2.5, and takes its
+compiler from the module settings. GitLab reads the Cobertura XML for MR diff
+annotations and exposes the HTML report as a CI artifact; coverage is not copied to Pages.
+The GitHub Coverage workflow builds pFUnit 4.12.0 with GNU Fortran 13 and uploads
+the same report format through the Coveralls GitHub Action. It uses the built-in
+GitHub token, so no additional Coveralls repository secret is needed. GitHub
+retains coverage artifacts for 14 days. GitLab uses the instance's default artifact
+expiry and the project's setting for retaining the latest successful artifacts.

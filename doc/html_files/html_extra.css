@@ -4,6 +4,31 @@ div.image img{
         width:500px;
 }
 
+/* Vector variants keep outlined labels sharp when diagrams are scaled. */
+html.dark-mode .contents img[src="levels.svg"] {
+  content: url("levels-dark.svg");
+}
+
+html.dark-mode .contents img[src="upscaling.svg"] {
+  content: url("upscaling-dark.svg");
+}
+
+html.dark-mode .contents img[src="example-basins-location.svg"] {
+  content: url("example-basins-location-dark.svg");
+}
+
+html.dark-mode .contents img[src="moselle-example-elevation.svg"] {
+  content: url("moselle-example-elevation-dark.svg");
+}
+
+html.dark-mode .contents img[src="sava-example-elevation.svg"] {
+  content: url("sava-example-elevation-dark.svg");
+}
+
+html.dark-mode .contents img[src="mhm5-logo.svg"] {
+  content: url("mhm5-logo-dark.svg");
+}
+
 /* Sets properties of image captions in HTML */
 div.image div.caption{
         font:"Times New Roman",Georgia,Serif;
@@ -19,6 +44,25 @@ div.image div.caption{
 .contents table:not(.memberdecls):not(.mlabels):not(.fieldtable):not(.memname) tbody {
   display: table;
   width: 100%;
+}
+
+/* Named member groups retain Doxygen's fixed light-mode colors in the theme. */
+.contents div.groupHeader {
+  color: var(--page-foreground-color);
+  box-shadow: 13px 0 var(--page-background-color),
+              -13px 0 var(--page-background-color),
+               13px 1px var(--separator-color),
+              -13px 1px var(--separator-color);
+}
+
+/* Hide only Doxygen's outer project row; retain its children and tree logic. */
+#nav-tree-contents > ul > li > .item {
+  display: none;
+}
+
+/* Remove the hidden project's indentation from every remaining tree level. */
+#nav-tree-contents > ul > li > ul .arrow {
+  margin-left: -16px;
 }
 
 .mhm-rtd-controls {

@@ -105,7 +105,7 @@ contains
     log_text(*) "|                      Version: " // trim(version)      // repeat(" ", 39-len_trim(version))      // "|"
     log_text(*) "|                      Date:    " // trim(version_date) // repeat(" ", 39-len_trim(version_date)) // "|"
     log_text(*) "|                                                                      |"
-    log_text(*) "|                 Lead development: Sebastian Müller                   |"
+    log_text(*) "|                   Technical lead: Sebastian Müller                   |"
     log_text(*) "|                Originally by L. Samaniego & R. Kumar                 |"
     log_text(*) "'----------------------------------------------------------------------'"
 

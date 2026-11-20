@@ -1035,10 +1035,10 @@ contains
   !> \brief Regionalize the per-lake effective spillway crest length (detached lake MPR).
   !> \details Derives the spillway crest length Ls [m] per lake from the lake catchment (drainage)
   !!          area CA by the downstream-hydraulic-geometry power law Ls = m * 2.7 * CA^0.35. CA is the
-  !!          routing upstream / contributing area at the lake outlet node (river%upstream_area at
-  !!          river%lake_outlet_nodes, [m2], converted to km2 inside lake_derive_spillway_length), and
+  !!          routing upstream / contributing area at the lake outlet node (river\%upstream_area at
+  !!          river\%lake_outlet_nodes, [m2], converted to km2 inside lake_derive_spillway_length), and
   !!          m is the global (pan-domain) spillway_length_multiplier (lakes_1). The outlet nodes are in
-  !!          lake-point order (set together with lake_ids by river%label_lakes), so no footprint
+  !!          lake-point order (set together with lake_ids by river\%label_lakes), so no footprint
   !!          packing is needed - this is one upstream-area value read per lake. The upstream area is
   !!          computed on demand if the routing output did not already request it.
   subroutine mlm_derive_lake_spillway_length(self)
@@ -1057,7 +1057,7 @@ contains
   !!          no downstream river: it is endorheic. Such a lake can shed water only through the
   !!          atmosphere, so its crest spill, lakebed percolation and groundwater baseflow are all
   !!          suppressed downstream (see mlm_update) and its balance closes by evaporation alone. The
-  !!          outlet nodes are in lake-point order (set together with lake_ids by river%label_lakes),
+  !!          outlet nodes are in lake-point order (set together with lake_ids by river\%label_lakes),
   !!          the same handle used by the spillway-length regionalization, so no footprint packing is
   !!          needed. On a restart-only run (no river) the flag is restored from restart metadata at
   !!          connect and this routine is not reached.

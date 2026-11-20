@@ -1,5 +1,7 @@
 # Example domains
 
+<!--! [TOC] -->
+
 From the repository root, run:
 
 ```bash

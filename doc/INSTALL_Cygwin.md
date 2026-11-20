@@ -1,6 +1,6 @@
-# Cygwin details {#cygwin}
+# Cygwin details <!--! {#cygwin} -->
 
-[TOC]
+<!--! [TOC] -->
 
 [Cygwin](https://cygwin.com/) is an environment with a terminal that allows to compile and
 run programs of Unix-like systems. You can find further instructions to install cygwin on the webpage, as well as
