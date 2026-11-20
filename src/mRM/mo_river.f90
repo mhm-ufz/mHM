@@ -111,7 +111,7 @@ module mo_river
 contains
 
   !> \brief Initialize inherited branching links without destroying river-specific state.
-  !> \details branching%init calls destroy virtually; invoke it on the parent subobject.
+  !> \details branching\%init calls destroy virtually; invoke it on the parent subobject.
   subroutine river_init(this, down, tags)
     class(river_t), intent(inout) :: this !< River whose branching links are rebuilt.
     integer(i8), intent(in) :: down(:) !< Downstream node for each river node; zero at sinks.

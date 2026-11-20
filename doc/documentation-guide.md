@@ -15,8 +15,8 @@ make -C latex
 
 Open `html/index.html` for the manual or `latex/refman.pdf` for its PDF.
 Documentation builds need Doxygen 1.18.0, pinned in `doc/rtd-environment.yml`,
-Graphviz, and a Fortran compiler for `doc/pre-proc.sh`. Export `FC` to select a
-compiler; the preprocessor otherwise uses `gfortran` when available.
+Graphviz, `awk`, and a Fortran compiler for `doc/pre-proc.sh`. Export `FC` to select
+a compiler. The preprocessor otherwise uses `gfortran` when available.
 System TeX Live supplies the PDF tools, including `makeindex`, and the
 `newunicodechar`, `xltabular`, and `tabularray` packages. The Unicode mapping
 supports pdfLaTeX and XeTeX, including Tectonic.
@@ -36,7 +36,7 @@ Email obfuscation is disabled because Doxygen 1.18 otherwise emits malformed
 
 Write standalone prose in Markdown. The [model overview](model-overview.md),
 [mRM overview](mrm-overview.md), and [namelist index](nml/namelists.md) retain
-Doxygen commands where needed for equations, citations, PDF figures,
+Doxygen commands where needed for citations, PDF figures,
 and subpage relationships. Use ordinary Markdown links so repository readers
 can follow the guides. Add `<!--! [TOC] -->` to every handwritten Markdown page
 for an automatic Doxygen table of contents, hidden in repository views.
@@ -58,7 +58,17 @@ in both formats. The navigation layout lists the individual namelist
 pages under their configuration, parameter, or output category; keep it aligned
 with the overview when adding a namelist. Their explicit page URLs let the tree
 select pages opened directly or at a particular field anchor.
-No additional Markdown preprocessor is needed.
+
+In Markdown pages, write inline math as `$...$` on a single line.
+Put display math between `$$` lines, with blank lines around the block. For numbered
+equations or aligned rows, put `\begin{equation}` or `\begin{align}` (or its
+starred form) directly after the opening `$$` and the matching `\end` directly
+before the closing `$$`. GitLab and GitHub render the math from the Markdown.
+Doxygen runs `doc/markdown-filter.awk` on Markdown inputs to translate the
+delimiters and preserve `%` in single-line inline code such as
+`exchange%config%processes`. Put code examples in fenced blocks and escape
+literal dollar signs in prose as `\$`. Use Doxygen's math commands in Fortran API
+comments and escape `%` there as `\%` in prose or `%%` inside backticks.
 
 The cell illustration and MPR diagram use SVGs converted from their original
 PDFs, preserving vector geometry and labels. The hierarchy PDF contains a raster;

@@ -33,7 +33,7 @@ module mo_river_upscaler
   integer(i4), public, parameter :: upscale_flow = 1_i4 !< connect to the next downstream link endpoint
 
   !> \class river_upscaler_scratch_t
-  !> \brief Temporary construction data, released when river_upscaler_t%init returns.
+  !> \brief Temporary construction data, released when river_upscaler_t\%init returns.
   type :: river_upscaler_scratch_t
     type(scaler_t) :: scaler
     integer(i4) :: nsub

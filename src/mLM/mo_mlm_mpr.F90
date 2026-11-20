@@ -397,7 +397,7 @@ CONTAINS
   !>                 drainage (catchment) area CA [km2] by the downstream-hydraulic-geometry power law
   !>                 \f[ L_s = m \cdot 2.7 \cdot CA^{0.35} \f]
   !>                 with CA taken at the lake outlet node (the routing upstream / contributing area,
-  !>                 river%upstream_area at river%lake_outlet_nodes) and converted from m2 to km2. The
+  !>                 river\%upstream_area at river\%lake_outlet_nodes) and converted from m2 to km2. The
   !>                 base coefficient (2.7) and exponent (0.35) are fixed; the single global
   !>                 (pan-domain) multiplier m = spillway_length_multiplier (lakes_1) scales all lakes
   !>                 and is the only calibrated quantity. The spillway crest length is taken proportional

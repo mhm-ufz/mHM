@@ -77,19 +77,19 @@ represent the spatial variability of state and inputs variables:
 - *Level-0*: Spatial discretization suitable to
       describe the main features of the terrain, the main soil
       characteristics (pedotop), and the land cover. The cell
-      size at this level is denoted by \f$ \ell_0 \f$.
+      size at this level is denoted by $\ell_0$.
 
 - *Level-1*: Spatial discretization used to
       describe dominant hydrological processes
       \cite Bloeschl2001 at the mesoscale as well as the main
       geological formations of the basin. The cell size at this
-      level is denoted by \f$ \ell_1 \f$.
+      level is denoted by $\ell_1$.
 
 - *Level-2*: Spatial discretization suitable to
       describe the variability of the meteorological forcings at
       the mesoscale, for example the formation of convective
       precipitation. The cell size at this level is denoted by
-      \f$ \ell_2 \f$.
+      $\ell_2$.
 
 <a name="fig_levels"></a>
 
@@ -124,57 +124,60 @@ mostly described by discrete attributes such soil texture types,
 land cover classes, and geological formations. Due to these reasons,
 a system of ordinary differential equations ODEs was adopted to
 describe the evolution of the state variables at a given location
-\f$ i \f$ within the domain \f$ \Omega \f$. This system of ODE is
+$i$ within the domain $\Omega$. This system of ODE is
 
-\f{eqnarray*}{
-      \dot{x}_{1i}  & = & P_i(t) - F_i(t) - E_{1i}(t)         \\
-      \dot{x}_{2i}  & = & S_i(t) - M_i(t)                     \\
-      \dot{x}_{3i}^l  & = & (1-\rho^l) I_i^{l-1}(t)  - E_{3i}^l(t) - I_i^l(t)\\
-      \dot{x}_{4i}  & = & \rho^1 \big(R_i(t) + M_i(t)\big) - E_{2i}(t) -  q_{1i}(t)\\
-      \dot{x}_{5i}  & = & I_i^L(t) - q_{2i}(t)- q_{3i}(t)- C_i(t)         \\
-      \dot{x}_{6i}  & = & C_i(t) - q_{4i}(t)         \\
-      \dot{x}_{7i}  & = & \hat{Q}_{i}^{0}(t)-\hat{Q}_{i}^{1}(t)
- \f}
-\f$  \quad  \forall i \in \Omega \f$.
+$$
+\begin{align*}
+      \dot{x}_{1i}  &= P_i(t) - F_i(t) - E_{1i}(t)         \\
+      \dot{x}_{2i}  &= S_i(t) - M_i(t)                     \\
+      \dot{x}_{3i}^l  &= (1-\rho^l) I_i^{l-1}(t)  - E_{3i}^l(t) - I_i^l(t)\\
+      \dot{x}_{4i}  &= \rho^1 \big(R_i(t) + M_i(t)\big) - E_{2i}(t) -  q_{1i}(t)\\
+      \dot{x}_{5i}  &= I_i^L(t) - q_{2i}(t)- q_{3i}(t)- C_i(t)         \\
+      \dot{x}_{6i}  &= C_i(t) - q_{4i}(t)         \\
+      \dot{x}_{7i}  &= \hat{Q}_{i}^{0}(t)-\hat{Q}_{i}^{1}(t)
+\end{align*}
+$$
+
+$\quad  \forall i \in \Omega$.
 
 where
 
 |**Variable**         |**Description**                        |
 | ---------------------- | --------------------------------------------------------- |
 | **Inputs** | |
-|\f$P\f$                 | Daily precipitation depth,                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
-|\f$E_p\f$               | Daily potential evapotranspiration (PET), \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
-|\f$T\f$                 | Daily mean air temperature,               \f$^{\circ}C\f$ |
+|$P$                 | Daily precipitation depth,                $\mathrm{mm}\; \mathrm{d}^{-1}$ |
+|$E_p$               | Daily potential evapotranspiration (PET), $\mathrm{mm}\; \mathrm{d}^{-1}$ |
+|$T$                 | Daily mean air temperature,               $^{\circ}C$ |
 | **Fluxes** | |
-|\f$S\f$                 | Snow precipitation depth,                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
-|\f$R\f$                 | Rain precipitation depth,                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
-|\f$M\f$                 | Melting snow depth,                                          \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
-|\f$E_p\f$               | Potential evapotranspiration,                                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
-|\f$F\f$                 | Throughfall,                                                 \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
-|\f$E_1\f$               | Actual evaporation intensity from the canopy,                \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
-|\f$E_2\f$               | Actual evapotranspiration intensity,                         \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
-|\f$E_3\f$               | Actual evaporation from free-water bodies,                   \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
-|\f$I\f$                 | Recharge, infiltration intensity or effective precipitation, \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
-|\f$C\f$                 | Percolation,                                                 \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
-|\f$q_{1}\f$             | Surface runoff from impervious areas,                        \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
-|\f$q_{2}\f$             | Fast interflow,                                              \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
-|\f$q_{3}\f$             | Slow interflow,                                              \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
-|\f$q_{4}\f$             | Baseflow,                                                    \f$\mathrm{mm}\; \mathrm{d}^{-1}\f$ |
+|$S$                 | Snow precipitation depth,                                    $\mathrm{mm}\; \mathrm{d}^{-1}$ |
+|$R$                 | Rain precipitation depth,                                    $\mathrm{mm}\; \mathrm{d}^{-1}$ |
+|$M$                 | Melting snow depth,                                          $\mathrm{mm}\; \mathrm{d}^{-1}$ |
+|$E_p$               | Potential evapotranspiration,                                $\mathrm{mm}\; \mathrm{d}^{-1}$ |
+|$F$                 | Throughfall,                                                 $\mathrm{mm}\; \mathrm{d}^{-1}$ |
+|$E_1$               | Actual evaporation intensity from the canopy,                $\mathrm{mm}\; \mathrm{d}^{-1}$ |
+|$E_2$               | Actual evapotranspiration intensity,                         $\mathrm{mm}\; \mathrm{d}^{-1}$ |
+|$E_3$               | Actual evaporation from free-water bodies,                   $\mathrm{mm}\; \mathrm{d}^{-1}$ |
+|$I$                 | Recharge, infiltration intensity or effective precipitation, $\mathrm{mm}\; \mathrm{d}^{-1}$ |
+|$C$                 | Percolation,                                                 $\mathrm{mm}\; \mathrm{d}^{-1}$ |
+|$q_{1}$             | Surface runoff from impervious areas,                        $\mathrm{mm}\; \mathrm{d}^{-1}$ |
+|$q_{2}$             | Fast interflow,                                              $\mathrm{mm}\; \mathrm{d}^{-1}$ |
+|$q_{3}$             | Slow interflow,                                              $\mathrm{mm}\; \mathrm{d}^{-1}$ |
+|$q_{4}$             | Baseflow,                                                    $\mathrm{mm}\; \mathrm{d}^{-1}$ |
 | **Outputs** | |
-|\f$Q_{i}^{0}\f$         |  Simulated discharge entering the river stretch at cell \f$i\f$, \f$\mathrm{m}^3\;\mathrm{s}^{-1}\f$ |
-|\f$Q_{i}^{1}\f$         |  Simulated discharge leaving the river stretch at cell  \f$i\f$, \f$\mathrm{m}^3\;\mathrm{s}^{-1}\f$ |
+|$Q_{i}^{0}$         |  Simulated discharge entering the river stretch at cell $i$, $\mathrm{m}^3\;\mathrm{s}^{-1}$ |
+|$Q_{i}^{1}$         |  Simulated discharge leaving the river stretch at cell  $i$, $\mathrm{m}^3\;\mathrm{s}^{-1}$ |
 | **States** | |
-|\f$x_1\f$               | Depth of the canopy storage,                                           \f$\mathrm{mm}\f$ |
-|\f$x_2\f$               | Depth of the snowpack,                                                 \f$\mathrm{mm}\f$ |
-|\f$x_3\f$               | Depth of soil moisture content in the root zone,                       \f$\mathrm{mm}\f$ |
-|\f$x_4\f$               | Depth of impounded water in reservoirs, water bodies, or sealed areas, \f$\mathrm{mm}\f$ |
-|\f$x_5\f$               | Depth of the water storage in the subsurface reservoir,                \f$\mathrm{mm}\f$ |
-|\f$x_6\f$               | Depth of the water storage in the groundwater reservoir,               \f$\mathrm{mm}\f$ |
-|\f$x_7\f$               | Depth of the water storage in the channel reservoir,                   \f$\mathrm{mm}\f$ |
+|$x_1$               | Depth of the canopy storage,                                           $\mathrm{mm}$ |
+|$x_2$               | Depth of the snowpack,                                                 $\mathrm{mm}$ |
+|$x_3$               | Depth of soil moisture content in the root zone,                       $\mathrm{mm}$ |
+|$x_4$               | Depth of impounded water in reservoirs, water bodies, or sealed areas, $\mathrm{mm}$ |
+|$x_5$               | Depth of the water storage in the subsurface reservoir,                $\mathrm{mm}$ |
+|$x_6$               | Depth of the water storage in the groundwater reservoir,               $\mathrm{mm}$ |
+|$x_7$               | Depth of the water storage in the channel reservoir,                   $\mathrm{mm}$ |
 | **Indices** | |
-|\f$l\f$                 | Index denoting a root zone horizon, \f$l=1,\ldots,L\f$ (say \f$L=3\f$), in the first layer, \f$0 \leq z \leq z_1\f$ |
-|\f$t\f$                 | Time index for each \f$\Delta t\f$ interval |
-|\f$\rho^l\f$            | Overall influx fraction accounting for the impervious cover within a cell |
+|$l$                 | Index denoting a root zone horizon, $l=1,\ldots,L$ (say $L=3$), in the first layer, $0 \leq z \leq z_1$ |
+|$t$                 | Time index for each $\Delta t$ interval |
+|$\rho^l$            | Overall influx fraction accounting for the impervious cover within a cell |
 
 
 <a name="mpr"></a>
@@ -223,83 +226,84 @@ regionalized with nonlinear transfer functions that couple catchment
 descriptors with the global parameters. Process understanding and
 empirical evidence are used to define these a priori
 relationships. The general form of an upscaling operator
-\f$\mathrm{O}\f$ is:
+$\mathrm{O}$ is:
 
-\f[
+$$
   \beta_{ki}(t)=  \mathrm{O}_k \Big \langle \beta_{kj}(t) \quad \forall j \in i \Big \rangle_{i}
-\f]
+$$
 
 where
 
-\f[
+$$
   \beta_{kj}(t)=  f_k \Big( u_j(t), \gamma  \Big).
-\f]
+$$
 
-Here \f$k=1,\ldots,K\f$ with \f$K\f$ denoting the number of distributed model
-parameters. \f$ u_j\f$ denotes a \f$v\f$-dimensional predictor vector for
-cell \f$j\f$ at level-0 which is contained by cell \f$i\f$ at level-1
+Here $k=1,\ldots,K$ with $K$ denoting the number of distributed model
+parameters. $u_j$ denotes a $v$-dimensional predictor vector for
+cell $j$ at level-0 which is contained by cell $i$ at level-1
 (e.g. land cover, elevation, soil texture).
 
-\f$ \gamma \f$ is a \f$s\f$-dimensional vector of transfer
-parameters(super parameters), with \f$s\f$ denoting the number of free
+$\gamma$ is a $s$-dimensional vector of transfer
+parameters(super parameters), with $s$ denoting the number of free
 parameters to be calibrated or total degrees of freedom.
-\f$\mathrm{O}_k \langle \bullet \rangle_{i}\f$ denotes the kind of
-operator applied for the regionalization of the parameter \f$k\f$.
+$\mathrm{O}_k \langle \bullet \rangle_{i}$ denotes the kind of
+operator applied for the regionalization of the parameter $k$.
 Several types of operators were employed, e.g. majority
-\f$\mathcal{M}\f$, arithmetic mean \f$\mathcal{A}\f$, maximum difference
-\f$\mathcal{D}\f$, geometric mean \f$\mathcal{G}\f$, and harmonic mean
-\f$\mathcal{H}\f$. This table also shows the
+$\mathcal{M}$, arithmetic mean $\mathcal{A}$, maximum difference
+$\mathcal{D}$, geometric mean $\mathcal{G}$, and harmonic mean
+$\mathcal{H}$. This table also shows the
 type of relationship employed for the transfer function and the
 predictors. By establishing such a relationships, the calibration
 algorithm finds good solutions for the transfer functions parameters
-(\f$s=\f$ 45) instead of the model parameters for every grid cell. This,
-in turn, implies a great reduction of complexity since \f$ K \times n
-\gg s\f$, where \f$n\f$ denotes the total number of cells of a given basin
+($s=$ 45) instead of the model parameters for every grid cell. This,
+in turn, implies a great reduction of complexity since $K \times n \gg s$, where $n$ denotes the total number of cells of a given basin
 at level-1.
 
 <a name="param_est"></a>
 
 ## The Parameter Estimation Problem
 
-Let \f$\mathbf{M}\{\mathbf{f},\mathbf{g}\}\f$  be a dynamic, spatially
+Let $\mathbf{M}\{\mathbf{f},\mathbf{g}\}$  be a dynamic, spatially
 distributed, parameter efficient, integrated model that relates a
-number of state variables \f$\mathbf{x}\f$ with some *observables*
-called: inputs \f$\mathbf{u}\f$ and outputs \f$\mathbf{y}\f$. In general,
+number of state variables $\mathbf{x}$ with some *observables*
+called: inputs $\mathbf{u}$ and outputs $\mathbf{y}$. In general,
 the system is described by the following system of equations
 
-\f{eqnarray*}{
- \dot{\mathbf{x}}(i,t) & = &\mathbf{f}(\mathbf{x},\mathbf{u}, \beta, \gamma )(i,t) + \eta(i,t)\\
- \mathbf{y}(i,t)    &=& \mathbf{g}(\mathbf{x}, \mathbf{u}, \beta, \gamma )_{\Omega} +  \epsilon(i,t)\\
-\f}
+$$
+\begin{align*}
+ \dot{\mathbf{x}}(i,t) &=\mathbf{f}(\mathbf{x},\mathbf{u}, \beta, \gamma )(i,t) + \eta(i,t)\\
+ \mathbf{y}(i,t)    &= \mathbf{g}(\mathbf{x}, \mathbf{u}, \beta, \gamma )_{\Omega} +  \epsilon(i,t)\\
+\end{align*}
+$$
 
 where
 
-- \f$\mathbf{f}\f$ is a system of functional relationships in mHM
+- $\mathbf{f}$ is a system of functional relationships in mHM
       (continuous or discrete) that denote the evolution of the
       system over time.
-- \f$\mathbf{g}\f$ is a vector of functional relationships
+- $\mathbf{g}$ is a vector of functional relationships
       used to quantify the expected output (e.g. runoff) of the model denoted
-      by \f$\mathbf{\hat{y}}\f$.
-- \f${\epsilon}\f$ denotes the uncertainty of the system originated by
+      by $\mathbf{\hat{y}}$.
+- ${\epsilon}$ denotes the uncertainty of the system originated by
       defects on measurements of both the inputs and outputs.
-- \f${\eta}\f$ denotes the uncertainty originated by the simplification
-      included during the formulation of \f$\mathbf{M}\f$ or due to
+- ${\eta}$ denotes the uncertainty originated by the simplification
+      included during the formulation of $\mathbf{M}$ or due to
       the lack of knowledge of the relevant processes (i.e. any kind
       of model structure deficiency). This term is ignored
       in the present case.
-- \f${\beta}\f$ denotes the fields of effective mHM parameters at
+- ${\beta}$ denotes the fields of effective mHM parameters at
   level-1 estimated as described in section ([MPR](#mpr)).
-- \f$ \gamma\f$ is a vector of global parameters characterized by a
-      probability density function \f$\Phi_{\gamma_s}\f$.
-- \f$i\f$, \f$t\f$ represent a point in space and time
+- $\gamma$ is a vector of global parameters characterized by a
+      probability density function $\Phi_{\gamma_s}$.
+- $i$, $t$ represent a point in space and time
      respectively.
 
-In general, \f$\gamma\f$ can be estimated, for example, by
-\f[
+In general, $\gamma$ can be estimated, for example, by
+$$
     \min_{\hat{{\gamma}}}=\|\mathbf{y} -\mathbf{\hat{y}}\|
-\f]
+$$
 
-where \f$\|\cdot\|\f$ denotes a robust estimator. Many procedures to
+where $\|\cdot\|$ denotes a robust estimator. Many procedures to
 estimate global parameters include simulated annealing \cite AK90 and
 dynamically dimensioned search \cite TS2007. Optimization routines are
 provided by FORCES; the v6 optimization container is not implemented yet.
@@ -309,7 +313,7 @@ provided by FORCES; the v6 optimization container is not implemented yet.
 
 ## Model Calibration
 
-Good parameter sets for \f$ \gamma \f$ were identified with a
+Good parameter sets for $\gamma$ were identified with a
 split-sampling technique using an adaptive constrained optimization
 algorithm based on simulated annealing (SA) \cite AK90 . The overall
 model efficiency was estimated as a weighted combination of four
@@ -318,32 +322,32 @@ observed and calculated streamflows using three different time scales
 (daily, monthly and annual) as well as the logarithms of the
 streamflow to downplay the effects of the peak flows over the low
 flows \cite HB2005 . These objective functions are denoted by
-\f$\phi_k,\, k=1,4\f$. Every objective function should be normalized
+$\phi_k,\, k=1,4$. Every objective function should be normalized
 in the interval [0,1], with 1 representing the best posible solution.
 The overall objective function to be minimized is then
 
-\f[
+$$
     \Phi = \Big(\sum_i w_i^p (1-\phi_i)^p \Big)^{\frac{1}{p}}
-\f]
+$$
 
-where \f$p>1\f$, and \f$\sum_{i=1}^4 w_i =1\f$. Here \f$p\f$ is an exponent
+where $p>1$, and $\sum_{i=1}^4 w_i =1$. Here $p$ is an exponent
 according to the compromise programming technique \cite Duc84 and
-\f$w_i\f$ denote the degree of importance of each objective. High values
-of \f$p\f$, say \f$p=6\f$, should be chosen to avoid substitution of
+$w_i$ denote the degree of importance of each objective. High values
+of $p$, say $p=6$, should be chosen to avoid substitution of
 objective function values at low levels. In general, the
 estimators related to daily streamflows were twice as important as
 the long-term ones, thus
-\f$\{w_i\}=\{\frac{2}{4},\frac{1}{4},\frac{1}{4},\frac{2}{4} \}\f$.
-The NSE for a given time interval \f$t'\f$ is given by
+$\{w_i\}=\{\frac{2}{4},\frac{1}{4},\frac{1}{4},\frac{2}{4} \}$.
+The NSE for a given time interval $t'$ is given by
 
-\f[
+$$
     \phi_k = 1 - \frac{\displaystyle \sum_{t'} \left(y_k(t') - \hat{y}_k(t')\right)^2}
                       {\displaystyle \sum_{t'} \left(y_k(t') - \overline{y}_k(t')\right)^2 }
-\f]
+$$
 
-where \f$\overline{y}_k(t')\f$ is the mean value of the observations time series over the calibration period. The index
-\f$k\f$ denotes here the daily, monthly, yearly, and the transformed \f$\ln y(t)\f$ streamflow discharges. \f$y\f$ and
-\f$\hat{y}\f$ denote the observed and simulated streamflows at a given time scale.
+where $\overline{y}_k(t')$ is the mean value of the observations time series over the calibration period. The index
+$k$ denotes here the daily, monthly, yearly, and the transformed $\ln y(t)$ streamflow discharges. $y$ and
+$\hat{y}$ denote the observed and simulated streamflows at a given time scale.
 This describes the scientific calibration approach; the legacy calibration
 driver is not part of the v6 implementation.
 
