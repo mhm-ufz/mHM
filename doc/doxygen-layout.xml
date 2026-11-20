@@ -7,7 +7,6 @@
     <tab type="usergroup" visible="yes" title="Guides" url="[none]">
       <tab type="user" title="Project information and quick start" url="@ref mhm_readme"/>
       <tab type="user" title="Build and run mHM v6" url="@ref v6_getting_started"/>
-      <tab type="user" title="Example domains" url="@ref testbasin"/>
       <tab type="user" title="Developing mHM v6" url="@ref v6_development"/>
       <tab type="user" title="Building the documentation" url="@ref mhm_documentation"/>
       <tab type="user" title="Python package" url="@ref mhm_python"/>
@@ -67,6 +66,7 @@
     </tab>
     <tab type="usergroup" visible="yes" title="About" url="[none]">
       <tab type="user" title="mRM overview" url="@ref mRM"/>
+      <tab type="user" title="Example domains" url="@ref testbasin"/>
       <tab type="user" title="Publications" url="@ref publications"/>
       <tab type="user" title="Release history" url="@ref releases"/>
       <tab type="user" title="License" url="@ref license"/>
