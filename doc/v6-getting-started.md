@@ -47,6 +47,9 @@ Use `-DMHM_BUILD_DRIVER=OFF` for a library-only build.
 
 ## Run and validate
 
+The [example domains](example-domains.md) describe the Moselle and Sava
+catchments, their data, and their default simulation periods.
+
 ```bash
 ./debug/app/mhm examples/domain_01
 ./debug/app/mhm examples/domain_02

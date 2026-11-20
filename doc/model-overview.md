@@ -368,7 +368,7 @@ cmake --build debug --parallel 4
   -p test_nml/mhm_parameter_v6_routing.nml -o mhm-output-template.nml
 ```
 
-Runnable examples are in `examples/domain_01` and `examples/domain_02`.
+See [Example domains](example-domains.md) for the two runnable catchments.
 Use `./debug/app/mhm --help` for configuration and run-root options.
 The schema-generated [domain configuration](nml/config_domain.md) and
 [process configuration](nml/config_processes.md) describe the v6 interfaces.

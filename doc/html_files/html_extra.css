@@ -13,6 +13,18 @@ html.dark-mode .contents img[src="upscaling.svg"] {
   content: url("upscaling-dark.svg");
 }
 
+html.dark-mode .contents img[src="example-basins-location.svg"] {
+  content: url("example-basins-location-dark.svg");
+}
+
+html.dark-mode .contents img[src="moselle-example-elevation.svg"] {
+  content: url("moselle-example-elevation-dark.svg");
+}
+
+html.dark-mode .contents img[src="sava-example-elevation.svg"] {
+  content: url("sava-example-elevation-dark.svg");
+}
+
 html.dark-mode .contents img[src="mhm5-logo.svg"] {
   content: url("mhm5-logo-dark.svg");
 }
